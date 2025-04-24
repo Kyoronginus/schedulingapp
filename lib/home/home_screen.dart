@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
 import '../routes/app_routes.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/text_styles.dart';
@@ -14,11 +15,31 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 1;
+  String? _userName;
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserName(); // Fetch user name on initialization
+  }
+
+  Future<void> _fetchUserName() async {
+    try {
+      final user = await Amplify.Auth.getCurrentUser();
+      final attributes = await Amplify.Auth.fetchUserAttributes();
+      final nameAttribute = attributes.firstWhere(
+        (attr) => attr.userAttributeKey == CognitoUserAttributeKey.name,
+        orElse: () => const AuthUserAttribute(
+          userAttributeKey: CognitoUserAttributeKey.name,
+          value: '',
+        ),
+      );
+      setState(() {
+        _userName = nameAttribute.value.isNotEmpty ? nameAttribute.value : null;
+      });
+    } catch (e) {
+      print('❌ Error fetching user name: $e');
+    }
   }
 
   @override
@@ -28,14 +49,15 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Current Index: $_currentIndex'),
-          const SizedBox(height: 20),
-          CustomButton(
-            label: 'Login',
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.login);
-            },
-          ),
+          if (_userName != null)
+            Text('Welcome, $_userName!', style: TextStyle(fontSize: 20)),
+          if (_userName == null)
+            CustomButton(
+              label: 'Login',
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.login);
+              },
+            ),
         ],
       ),
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
