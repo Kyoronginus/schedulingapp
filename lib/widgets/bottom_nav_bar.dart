@@ -14,24 +14,22 @@ class BottomNavBar extends StatelessWidget {
     String route;
     switch (index) {
       case 0:
-        // route = AppRoutes.pesan;
+        route = AppRoutes.home;
         break;
       case 1:
-        // route = AppRoutes.kondisi;
+        //       // Assuming you want to navigate to the home screen for index 1 as well
+        //       // You can change this to the appropriate route if needed
+        route = AppRoutes.home;
         break;
       case 2:
-        // route = AppRoutes.home;
-        break;
-      case 3:
-        // route = AppRoutes.riwayat;
-        break;
-      case 4:
-        // route = AppRoutes.pengaturan;
+        //       // Assuming you want to navigate to the home screen for index 2 as well
+        //       // You can change this to the appropriate route if needed
+        route = AppRoutes.home;
         break;
       default:
         route = AppRoutes.home;
     }
-    // Navigator.pushReplacementNamed(context, route);
+    Navigator.pushReplacementNamed(context, route);
   }
 
   @override
@@ -39,63 +37,33 @@ class BottomNavBar extends StatelessWidget {
     return BottomNavigationBar(
       items: <BottomNavigationBarItem>[
         BottomNavigationBarItem(
-          icon: Image.asset(
-            currentIndex == 0
-                ? 'assets/images/appbar_icons/pesan.png'
-                : 'assets/images/appbar_icons/pesan_hitam.png',
-            width: 22,
-            height: 22,
+          icon: Icon(
+            Icons.schedule,
+            color: currentIndex == 1 ? Colors.black : Colors.grey,
           ),
-          label: 'Pesan',
+          label: 'Schedule',
         ),
         BottomNavigationBarItem(
-          icon: Image.asset(
-            currentIndex == 1
-                ? 'assets/images/appbar_icons/kondisi.png'
-                : 'assets/images/appbar_icons/kondisi_hitam.png',
-            width: 22,
-            height: 22,
+          icon: Icon(
+            Icons.home,
+            color: currentIndex == 0 ? Colors.black : Colors.grey,
           ),
-          label: 'Kondisi',
+          label: 'Home',
         ),
         BottomNavigationBarItem(
-          icon: Image.asset(
-            currentIndex == 2
-                ? 'assets/images/appbar_icons/beranda.png'
-                : 'assets/images/appbar_icons/beranda_hitam.png',
-            width: 22,
-            height: 22,
+          icon: Icon(
+            Icons.settings,
+            color: currentIndex == 2 ? Colors.black : Colors.grey,
           ),
-          label: 'Beranda',
-        ),
-        BottomNavigationBarItem(
-          icon: Image.asset(
-            currentIndex == 3
-                ? 'assets/images/appbar_icons/riwayat.png'
-                : 'assets/images/appbar_icons/riwayat_hitam.png',
-            width: 22,
-            height: 22,
-          ),
-          label: 'Riwayat',
-        ),
-        BottomNavigationBarItem(
-          icon: Image.asset(
-            currentIndex == 4
-                ? 'assets/images/appbar_icons/pengaturan.png'
-                : 'assets/images/appbar_icons/pengaturan_hitam.png',
-            width: 22,
-            height: 22,
-          ),
-          label: 'Pengaturan',
+          label: 'Setting',
         ),
       ],
       currentIndex: currentIndex,
       selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.black,
+      unselectedItemColor: Colors.grey,
       backgroundColor: panaceaTeal20,
-      type: BottomNavigationBarType
-          .fixed, // Ensures all labels are always visible
-      selectedLabelStyle: const TextStyle(fontSize: 12), // Selected font size
+      type: BottomNavigationBarType.fixed,
+      selectedLabelStyle: const TextStyle(fontSize: 12),
       unselectedLabelStyle: const TextStyle(fontSize: 12),
       onTap: (index) => _onItemTapped(context, index),
     );

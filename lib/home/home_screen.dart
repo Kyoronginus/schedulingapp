@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../routes/app_routes.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/text_styles.dart';
+import '../../widgets/bottom_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,24 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Center(
         child: Text('Current Index: $_currentIndex'),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notifications',
-          ),
-        ],
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-      ),
+      bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../widgets/text_styles.dart';
 import '../home/home_screen.dart';
+import '../auth/login/login_screen.dart';
+import '../routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
