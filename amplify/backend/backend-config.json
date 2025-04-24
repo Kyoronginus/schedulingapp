@@ -1,4 +1,24 @@
 {
+  "api": {
+    "schedulingapp": {
+      "dependsOn": [],
+      "output": {
+        "authConfig": {
+          "additionalAuthenticationProviders": [],
+          "defaultAuthentication": {
+            "apiKeyConfig": {
+              "apiKeyExpirationDate": "2026-04-19T14:54:53.841Z",
+              "apiKeyExpirationDays": 360,
+              "description": ""
+            },
+            "authenticationType": "API_KEY"
+          }
+        }
+      },
+      "providerPlugin": "awscloudformation",
+      "service": "AppSync"
+    }
+  },
   "auth": {
     "schedulingapp30672a99": {
       "customAuth": false,

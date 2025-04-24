@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "serviceConfiguration": {
+    "apiName": "schedulingapp",
+    "serviceName": "AppSync",
+    "defaultAuthType": {
+      "mode": "API_KEY",
+      "expirationTime": 360,
+      "apiKeyExpirationDate": "2026-04-19T14:54:53.841Z",
+      "keyDescription": ""
+    }
+  }
+}

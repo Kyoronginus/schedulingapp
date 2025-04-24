@@ -14,7 +14,7 @@ class BottomNavBar extends StatelessWidget {
     String route;
     switch (index) {
       case 0:
-        route = AppRoutes.home;
+        route = AppRoutes.schedule;
         break;
       case 1:
         //       // Assuming you want to navigate to the home screen for index 1 as well
@@ -24,7 +24,7 @@ class BottomNavBar extends StatelessWidget {
       case 2:
         //       // Assuming you want to navigate to the home screen for index 2 as well
         //       // You can change this to the appropriate route if needed
-        route = AppRoutes.home;
+        route = AppRoutes.setting;
         break;
       default:
         route = AppRoutes.home;
@@ -39,14 +39,14 @@ class BottomNavBar extends StatelessWidget {
         BottomNavigationBarItem(
           icon: Icon(
             Icons.schedule,
-            color: currentIndex == 1 ? Colors.black : Colors.grey,
+            color: currentIndex == 0 ? Colors.black : Colors.grey,
           ),
           label: 'Schedule',
         ),
         BottomNavigationBarItem(
           icon: Icon(
             Icons.home,
-            color: currentIndex == 0 ? Colors.black : Colors.grey,
+            color: currentIndex == 1 ? Colors.black : Colors.grey,
           ),
           label: 'Home',
         ),
