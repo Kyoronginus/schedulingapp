@@ -3,6 +3,7 @@ import 'routes/app_routes.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'amplifyconfiguration.dart';
+import 'package:amplify_api/amplify_api.dart'; // Ensure this import is correct
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,6 +11,9 @@ void main() async {
   try {
     final authPlugin = AmplifyAuthCognito();
     await Amplify.addPlugin(authPlugin);
+
+    final apiPlugin = AmplifyAPI();
+    await Amplify.addPlugin(apiPlugin);
 
     await Amplify.configure(amplifyconfig);
 

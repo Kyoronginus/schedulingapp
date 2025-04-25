@@ -5,6 +5,7 @@ import '../../widgets/custom_app_bar.dart';
 import '../../widgets/text_styles.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/custom_button.dart';
+import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,20 +27,69 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchUserName() async {
     try {
       final user = await Amplify.Auth.getCurrentUser();
-      final attributes = await Amplify.Auth.fetchUserAttributes();
-      final nameAttribute = attributes.firstWhere(
-        (attr) => attr.userAttributeKey == CognitoUserAttributeKey.name,
-        orElse: () => const AuthUserAttribute(
-          userAttributeKey: CognitoUserAttributeKey.name,
-          value: '',
-        ),
+      final userId = user.userId;
+
+      final request = GraphQLRequest<String>(
+        document: '''
+        query GetUser {
+          getUser(id: "$userId") {
+            name
+          }
+        }
+      ''',
       );
-      setState(() {
-        _userName = nameAttribute.value.isNotEmpty ? nameAttribute.value : null;
-      });
+
+      final response = await Amplify.API.query(request: request).response;
+      final data = response.data;
+
+      if (data == null) {
+        print('❌ No data received from the GraphQL query.');
+        Navigator.pushReplacementNamed(context, AppRoutes.setUserName);
+        return; // データがない場合、処理を終了
+      }
+
+      final decoded = jsonDecode(data);
+
+      // getUserのデータがnullか、nameがnullの場合
+      if (decoded['getUser'] == null || decoded['getUser']['name'] == null) {
+        print('❌ User data not found, navigating to set username screen.');
+        Navigator.pushReplacementNamed(context, AppRoutes.setUserName);
+      } else {
+        final name = decoded['getUser']['name'];
+        setState(() {
+          _userName = name;
+        });
+      }
     } catch (e) {
-      print('❌ Error fetching user name: $e');
+      print('❌ Error fetching user name from DynamoDB: $e');
     }
+  }
+
+  Future<String?> _promptForName() async {
+    String? name;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        final nameController = TextEditingController();
+        return AlertDialog(
+          title: Text("Enter Your Name"),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(labelText: "Name"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                name = nameController.text.trim();
+                Navigator.of(context).pop();
+              },
+              child: Text("Submit"),
+            ),
+          ],
+        );
+      },
+    );
+    return name;
   }
 
   @override
