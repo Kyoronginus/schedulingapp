@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:schedulingapp/widgets/custom_button.dart';
 import '../routes/app_routes.dart'; // 必要に応じてインポート
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/bottom_nav_bar.dart';
@@ -19,9 +20,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     });
   }
 
-  // スケジュール作成画面への遷移
   void _navigateToScheduleForm() {
     Navigator.pushReplacementNamed(context, '/scheduleForm');
+  }
+
+  void _navigateToAddGroup() {
+    Navigator.pushNamed(context, '/addGroup');
   }
 
   @override
@@ -34,9 +38,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           children: [
             Text('Current Index: $_currentIndex'),
             SizedBox(height: 20),
-            ElevatedButton(
+            CustomButton(
               onPressed: _navigateToScheduleForm,
-              child: Text('Create Schedule'),
+              label: 'Create Schedule',
+            ),
+            SizedBox(height: 20),
+            CustomButton(
+              onPressed: _navigateToAddGroup,
+              label: 'Create Group',
             ),
           ],
         ),

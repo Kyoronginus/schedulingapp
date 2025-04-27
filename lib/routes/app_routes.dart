@@ -7,6 +7,7 @@ import '../schedule/schedule_screen.dart';
 import '../auth/register/register_screen.dart';
 import '../dynamo/set_user_name_screen.dart';
 import '../schedule/schedule_form_screen.dart';
+import '../../schedule/add_group_screen.dart';
 
 class AppRoutes {
   static const String home = '/home';
@@ -17,6 +18,7 @@ class AppRoutes {
   static const String schedule = '/schedule';
   static const String setUserName = '/setUserName';
   static const String scheduleForm = '/scheduleForm';
+  static const String addGroup = '/addGroup';
 
   static Map<String, WidgetBuilder> get routes => {
         AppRoutes.home: (context) => const HomeScreen(),
@@ -27,5 +29,6 @@ class AppRoutes {
         AppRoutes.schedule: (context) => const ScheduleScreen(),
         AppRoutes.scheduleForm: (context) => const ScheduleFormScreen(),
         AppRoutes.setUserName: (context) => const SetUserNameScreen(),
+        AppRoutes.addGroup: (context) => const AddGroupScreen(),
       };
 }

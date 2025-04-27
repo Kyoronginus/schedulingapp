@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:schedulingapp/widgets/custom_app_bar.dart';
 import '../models/Schedule.dart';
 import 'package:intl/intl.dart';
 import '../models/Schedule_extensions.dart';
@@ -23,7 +24,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
   DateTime? _startTime;
   DateTime? _endTime;
   bool _isSaving = false;
-  Group? _selectedGroup; // 選択されたグループを保持
+  Group? _selectedGroup; // Holds the selected group
 
   @override
   void initState() {
@@ -31,32 +32,32 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
     _loadInitialData();
   }
 
-  // 初期データ（ユーザーとグループ）を読み込む
+  // Load initial data (user and group)
   Future<void> _loadInitialData() async {
     try {
       final group = await GroupService.getSelectedGroup();
       setState(() => _selectedGroup = group);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('グループの読み込みに失敗しました: $e')),
+        SnackBar(content: Text('Failed to load group: $e')),
       );
     }
   }
 
-  // スケジュール作成処理
+  // Schedule creation process
   Future<void> _createSchedule() async {
     if (_titleController.text.isEmpty ||
         _startTime == null ||
         _endTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('すべての必須フィールドを入力してください')),
+        const SnackBar(content: Text('Please fill in all required fields')),
       );
       return;
     }
 
     if (_selectedGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('グループを選択してください')),
+        const SnackBar(content: Text('Please select a group')),
       );
       return;
     }
@@ -72,26 +73,26 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
         description: _descriptionController.text,
         startTime: TemporalDateTime(_startTime!),
         endTime: TemporalDateTime(_endTime!),
-        user: currentUser, // ← Userオブジェクトをそのまま渡す
+        user: currentUser, // Pass the User object directly
         group: _selectedGroup, // Explicitly set groupId
       );
 
       await ScheduleService.createSchedule(newSchedule);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('スケジュールを作成しました！')),
+        const SnackBar(content: Text('Schedule created successfully!')),
       );
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('エラー: ${e.toString()}')),
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
     } finally {
       setState(() => _isSaving = false);
     }
   }
 
-  // 日時選択ダイアログ
+  // Date and time selection dialog
   Future<void> _selectDateTime(bool isStartTime) async {
     final selectedDate = await showDatePicker(
       context: context,
@@ -124,13 +125,13 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
     });
   }
 
-  // グループ選択ダイアログ
+  // Group selection dialog
   Future<void> _selectGroup() async {
     final groups = await GroupService.getUserGroups();
     final selectedGroup = await showDialog<Group>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('グループを選択'),
+        title: const Text('Select a Group'),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -153,7 +154,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("新しいスケジュール")),
+      appBar: CustomAppBar(title: Text('Ini schedule form screen')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -163,7 +164,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
               TextField(
                 controller: _titleController,
                 decoration: const InputDecoration(
-                  labelText: 'タイトル*',
+                  labelText: 'Title*',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -171,17 +172,17 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
               TextField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
-                  labelText: '説明',
+                  labelText: 'Description',
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
               ),
               const SizedBox(height: 16),
               _buildTimeSelection(
-                  '開始時間*', _startTime, () => _selectDateTime(true)),
+                  'Start Time*', _startTime, () => _selectDateTime(true)),
               const SizedBox(height: 16),
               _buildTimeSelection(
-                  '終了時間*', _endTime, () => _selectDateTime(false)),
+                  'End Time*', _endTime, () => _selectDateTime(false)),
               const SizedBox(height: 16),
               _buildGroupSelector(),
               const SizedBox(height: 24),
@@ -192,7 +193,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                 ),
                 child: _isSaving
                     ? const CircularProgressIndicator()
-                    : const Text('保存', style: TextStyle(fontSize: 18)),
+                    : const Text('Save', style: TextStyle(fontSize: 18)),
               ),
             ],
           ),
@@ -201,7 +202,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
     );
   }
 
-  // 時間選択ウィジェット
+  // Time selection widget
   Widget _buildTimeSelection(
       String label, DateTime? time, VoidCallback onPressed) {
     return Column(
@@ -221,7 +222,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
               Text(
                 time != null
                     ? DateFormat('yyyy/MM/dd HH:mm').format(time)
-                    : '選択してください',
+                    : 'Please select',
                 style: TextStyle(
                   color: time != null ? Colors.black : Colors.grey,
                 ),
@@ -234,12 +235,12 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
     );
   }
 
-  // グループ選択ウィジェット
+  // Group selection widget
   Widget _buildGroupSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('グループ*', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Group*', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         OutlinedButton(
           onPressed: _selectGroup,
@@ -251,7 +252,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _selectedGroup?.name ?? '選択してください',
+                _selectedGroup?.name ?? 'Please select',
                 style: TextStyle(
                   color: _selectedGroup != null ? Colors.black : Colors.grey,
                 ),
