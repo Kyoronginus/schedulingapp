@@ -6,4 +6,38 @@ type User @model {
   id: ID!
   email: String!
   name: String!
+  groups: [GroupUser] @hasMany(indexName: "byUser", fields: ["id"])
+  schedules: [Schedule] @hasMany(indexName: "byUser", fields: ["id"])
+}
+
+type Group @model {
+  id: ID!
+  name: String!
+  description: String
+  members: [GroupUser] @hasMany(indexName: "byGroup", fields: ["id"])
+  schedules: [Schedule] @hasMany(indexName: "byGroup", fields: ["id"])
+}
+
+type GroupUser @model
+  @key(name: "byUser", fields: ["userId"])
+  @key(name: "byGroup", fields: ["groupId"]) {
+  id: ID!
+  userId: ID! @index(name: "byUser")
+  groupId: ID! @index(name: "byGroup")
+  group: Group @belongsTo(fields: ["groupId"])
+  user: User @belongsTo(fields: ["userId"])
+}
+
+type Schedule @model
+  @key(name: "byUser", fields: ["userId"])
+  @key(name: "byGroup", fields: ["groupId"]) {
+  id: ID!
+  title: String!
+  description: String
+  startTime: AWSDateTime!
+  endTime: AWSDateTime!
+  userId: ID! @index(name: "byUser") 
+  groupId: ID! @index(name: "byGroup") 
+  user: User @belongsTo(fields: ["userId"])
+  group: Group @belongsTo(fields: ["groupId"])
 }

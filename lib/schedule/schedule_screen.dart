@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../routes/app_routes.dart';
+import '../routes/app_routes.dart'; // 必要に応じてインポート
 import '../../widgets/custom_app_bar.dart';
-import '../../widgets/text_styles.dart';
 import '../../widgets/bottom_nav_bar.dart';
-import '../../widgets/custom_button.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -21,12 +19,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     });
   }
 
+  // スケジュール作成画面への遷移
+  void _navigateToScheduleForm() {
+    Navigator.pushReplacementNamed(context, '/scheduleForm');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: Text("Ini Schedule Screen")),
+      appBar: CustomAppBar(title: Text("Schedule Screen")),
       body: Center(
-        child: Text('Current Index: $_currentIndex'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Current Index: $_currentIndex'),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _navigateToScheduleForm,
+              child: Text('Create Schedule'),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
     );

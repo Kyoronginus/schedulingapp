@@ -24,13 +24,13 @@ import 'package:amplify_core/amplify_core.dart' as amplify_core;
 import 'package:collection/collection.dart';
 
 
-/** This is an auto generated class representing the User type in your schema. */
-class User extends amplify_core.Model {
-  static const classType = const _UserModelType();
+/** This is an auto generated class representing the Group type in your schema. */
+class Group extends amplify_core.Model {
+  static const classType = const _GroupModelType();
   final String id;
-  final String? _email;
   final String? _name;
-  final List<GroupUser>? _groups;
+  final String? _description;
+  final List<GroupUser>? _members;
   final List<Schedule>? _schedules;
   final amplify_core.TemporalDateTime? _createdAt;
   final amplify_core.TemporalDateTime? _updatedAt;
@@ -42,23 +42,10 @@ class User extends amplify_core.Model {
   @override
   String getId() => id;
   
-  UserModelIdentifier get modelIdentifier {
-      return UserModelIdentifier(
+  GroupModelIdentifier get modelIdentifier {
+      return GroupModelIdentifier(
         id: id
       );
-  }
-  
-  String get email {
-    try {
-      return _email!;
-    } catch(e) {
-      throw amplify_core.AmplifyCodeGenModelException(
-          amplify_core.AmplifyExceptionMessages.codeGenRequiredFieldForceCastExceptionMessage,
-          recoverySuggestion:
-            amplify_core.AmplifyExceptionMessages.codeGenRequiredFieldForceCastRecoverySuggestion,
-          underlyingException: e.toString()
-          );
-    }
   }
   
   String get name {
@@ -74,8 +61,12 @@ class User extends amplify_core.Model {
     }
   }
   
-  List<GroupUser>? get groups {
-    return _groups;
+  String? get description {
+    return _description;
+  }
+  
+  List<GroupUser>? get members {
+    return _members;
   }
   
   List<Schedule>? get schedules {
@@ -90,14 +81,14 @@ class User extends amplify_core.Model {
     return _updatedAt;
   }
   
-  const User._internal({required this.id, required email, required name, groups, schedules, createdAt, updatedAt}): _email = email, _name = name, _groups = groups, _schedules = schedules, _createdAt = createdAt, _updatedAt = updatedAt;
+  const Group._internal({required this.id, required name, description, members, schedules, createdAt, updatedAt}): _name = name, _description = description, _members = members, _schedules = schedules, _createdAt = createdAt, _updatedAt = updatedAt;
   
-  factory User({String? id, required String email, required String name, List<GroupUser>? groups, List<Schedule>? schedules}) {
-    return User._internal(
+  factory Group({String? id, required String name, String? description, List<GroupUser>? members, List<Schedule>? schedules}) {
+    return Group._internal(
       id: id == null ? amplify_core.UUID.getUUID() : id,
-      email: email,
       name: name,
-      groups: groups != null ? List<GroupUser>.unmodifiable(groups) : groups,
+      description: description,
+      members: members != null ? List<GroupUser>.unmodifiable(members) : members,
       schedules: schedules != null ? List<Schedule>.unmodifiable(schedules) : schedules);
   }
   
@@ -108,11 +99,11 @@ class User extends amplify_core.Model {
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    return other is User &&
+    return other is Group &&
       id == other.id &&
-      _email == other._email &&
       _name == other._name &&
-      DeepCollectionEquality().equals(_groups, other._groups) &&
+      _description == other._description &&
+      DeepCollectionEquality().equals(_members, other._members) &&
       DeepCollectionEquality().equals(_schedules, other._schedules);
   }
   
@@ -123,10 +114,10 @@ class User extends amplify_core.Model {
   String toString() {
     var buffer = new StringBuffer();
     
-    buffer.write("User {");
+    buffer.write("Group {");
     buffer.write("id=" + "$id" + ", ");
-    buffer.write("email=" + "$_email" + ", ");
     buffer.write("name=" + "$_name" + ", ");
+    buffer.write("description=" + "$_description" + ", ");
     buffer.write("createdAt=" + (_createdAt != null ? _createdAt!.format() : "null") + ", ");
     buffer.write("updatedAt=" + (_updatedAt != null ? _updatedAt!.format() : "null"));
     buffer.write("}");
@@ -134,43 +125,43 @@ class User extends amplify_core.Model {
     return buffer.toString();
   }
   
-  User copyWith({String? email, String? name, List<GroupUser>? groups, List<Schedule>? schedules}) {
-    return User._internal(
+  Group copyWith({String? name, String? description, List<GroupUser>? members, List<Schedule>? schedules}) {
+    return Group._internal(
       id: id,
-      email: email ?? this.email,
       name: name ?? this.name,
-      groups: groups ?? this.groups,
+      description: description ?? this.description,
+      members: members ?? this.members,
       schedules: schedules ?? this.schedules);
   }
   
-  User copyWithModelFieldValues({
-    ModelFieldValue<String>? email,
+  Group copyWithModelFieldValues({
     ModelFieldValue<String>? name,
-    ModelFieldValue<List<GroupUser>?>? groups,
+    ModelFieldValue<String?>? description,
+    ModelFieldValue<List<GroupUser>?>? members,
     ModelFieldValue<List<Schedule>?>? schedules
   }) {
-    return User._internal(
+    return Group._internal(
       id: id,
-      email: email == null ? this.email : email.value,
       name: name == null ? this.name : name.value,
-      groups: groups == null ? this.groups : groups.value,
+      description: description == null ? this.description : description.value,
+      members: members == null ? this.members : members.value,
       schedules: schedules == null ? this.schedules : schedules.value
     );
   }
   
-  User.fromJson(Map<String, dynamic> json)  
+  Group.fromJson(Map<String, dynamic> json)  
     : id = json['id'],
-      _email = json['email'],
       _name = json['name'],
-      _groups = json['groups']  is Map
-        ? (json['groups']['items'] is List
-          ? (json['groups']['items'] as List)
+      _description = json['description'],
+      _members = json['members']  is Map
+        ? (json['members']['items'] is List
+          ? (json['members']['items'] as List)
               .where((e) => e != null)
               .map((e) => GroupUser.fromJson(new Map<String, dynamic>.from(e)))
               .toList()
           : null)
-        : (json['groups'] is List
-          ? (json['groups'] as List)
+        : (json['members'] is List
+          ? (json['members'] as List)
               .where((e) => e?['serializedData'] != null)
               .map((e) => GroupUser.fromJson(new Map<String, dynamic>.from(e?['serializedData'])))
               .toList()
@@ -192,59 +183,59 @@ class User extends amplify_core.Model {
       _updatedAt = json['updatedAt'] != null ? amplify_core.TemporalDateTime.fromString(json['updatedAt']) : null;
   
   Map<String, dynamic> toJson() => {
-    'id': id, 'email': _email, 'name': _name, 'groups': _groups?.map((GroupUser? e) => e?.toJson()).toList(), 'schedules': _schedules?.map((Schedule? e) => e?.toJson()).toList(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
+    'id': id, 'name': _name, 'description': _description, 'members': _members?.map((GroupUser? e) => e?.toJson()).toList(), 'schedules': _schedules?.map((Schedule? e) => e?.toJson()).toList(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
   };
   
   Map<String, Object?> toMap() => {
     'id': id,
-    'email': _email,
     'name': _name,
-    'groups': _groups,
+    'description': _description,
+    'members': _members,
     'schedules': _schedules,
     'createdAt': _createdAt,
     'updatedAt': _updatedAt
   };
 
-  static final amplify_core.QueryModelIdentifier<UserModelIdentifier> MODEL_IDENTIFIER = amplify_core.QueryModelIdentifier<UserModelIdentifier>();
+  static final amplify_core.QueryModelIdentifier<GroupModelIdentifier> MODEL_IDENTIFIER = amplify_core.QueryModelIdentifier<GroupModelIdentifier>();
   static final ID = amplify_core.QueryField(fieldName: "id");
-  static final EMAIL = amplify_core.QueryField(fieldName: "email");
   static final NAME = amplify_core.QueryField(fieldName: "name");
-  static final GROUPS = amplify_core.QueryField(
-    fieldName: "groups",
+  static final DESCRIPTION = amplify_core.QueryField(fieldName: "description");
+  static final MEMBERS = amplify_core.QueryField(
+    fieldName: "members",
     fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'GroupUser'));
   static final SCHEDULES = amplify_core.QueryField(
     fieldName: "schedules",
     fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'Schedule'));
   static var schema = amplify_core.Model.defineSchema(define: (amplify_core.ModelSchemaDefinition modelSchemaDefinition) {
-    modelSchemaDefinition.name = "User";
-    modelSchemaDefinition.pluralName = "Users";
+    modelSchemaDefinition.name = "Group";
+    modelSchemaDefinition.pluralName = "Groups";
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.id());
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
-      key: User.EMAIL,
+      key: Group.NAME,
       isRequired: true,
       ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
     ));
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
-      key: User.NAME,
-      isRequired: true,
+      key: Group.DESCRIPTION,
+      isRequired: false,
       ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
     ));
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.hasMany(
-      key: User.GROUPS,
+      key: Group.MEMBERS,
       isRequired: false,
       ofModelName: 'GroupUser',
-      associatedKey: GroupUser.USER
+      associatedKey: GroupUser.GROUP
     ));
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.hasMany(
-      key: User.SCHEDULES,
+      key: Group.SCHEDULES,
       isRequired: false,
       ofModelName: 'Schedule',
-      associatedKey: Schedule.USER
+      associatedKey: Schedule.GROUP
     ));
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.nonQueryField(
@@ -263,29 +254,29 @@ class User extends amplify_core.Model {
   });
 }
 
-class _UserModelType extends amplify_core.ModelType<User> {
-  const _UserModelType();
+class _GroupModelType extends amplify_core.ModelType<Group> {
+  const _GroupModelType();
   
   @override
-  User fromJson(Map<String, dynamic> jsonData) {
-    return User.fromJson(jsonData);
+  Group fromJson(Map<String, dynamic> jsonData) {
+    return Group.fromJson(jsonData);
   }
   
   @override
   String modelName() {
-    return 'User';
+    return 'Group';
   }
 }
 
 /**
  * This is an auto generated class representing the model identifier
- * of [User] in your schema.
+ * of [Group] in your schema.
  */
-class UserModelIdentifier implements amplify_core.ModelIdentifier<User> {
+class GroupModelIdentifier implements amplify_core.ModelIdentifier<Group> {
   final String id;
 
-  /** Create an instance of UserModelIdentifier using [id] the primary key. */
-  const UserModelIdentifier({
+  /** Create an instance of GroupModelIdentifier using [id] the primary key. */
+  const GroupModelIdentifier({
     required this.id});
   
   @override
@@ -303,7 +294,7 @@ class UserModelIdentifier implements amplify_core.ModelIdentifier<User> {
   String serializeAsString() => serializeAsMap().values.join('#');
   
   @override
-  String toString() => 'UserModelIdentifier(id: $id)';
+  String toString() => 'GroupModelIdentifier(id: $id)';
   
   @override
   bool operator ==(Object other) {
@@ -311,7 +302,7 @@ class UserModelIdentifier implements amplify_core.ModelIdentifier<User> {
       return true;
     }
     
-    return other is UserModelIdentifier &&
+    return other is GroupModelIdentifier &&
       id == other.id;
   }
   
