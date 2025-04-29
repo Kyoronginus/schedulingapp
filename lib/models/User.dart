@@ -219,6 +219,10 @@ class User extends amplify_core.Model {
     modelSchemaDefinition.name = "User";
     modelSchemaDefinition.pluralName = "Users";
     
+    modelSchemaDefinition.indexes = [
+      amplify_core.ModelIndex(fields: const ["email"], name: "byEmail")
+    ];
+    
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.id());
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(

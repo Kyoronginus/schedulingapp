@@ -4,6 +4,7 @@ import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'amplifyconfiguration.dart';
 import 'package:amplify_api/amplify_api.dart'; // Ensure this import is correct
+import 'package:schedulingapp/models/ModelProvider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,8 +14,10 @@ void main() async {
     await Amplify.addPlugin(authPlugin);
 
     final apiPlugin = AmplifyAPI();
-    await Amplify.addPlugin(apiPlugin);
+    // await Amplify.addPlugin(apiPlugin);
 
+    await Amplify.addPlugin(AmplifyAPI(modelProvider: ModelProvider.instance));
+    // await Amplify.DataStore.start();
     await Amplify.configure(amplifyconfig);
 
     runApp(const SchedulingApp());

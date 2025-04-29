@@ -30,6 +30,7 @@ class Group extends amplify_core.Model {
   final String id;
   final String? _name;
   final String? _description;
+  final String? _ownerId;
   final List<GroupUser>? _members;
   final List<Schedule>? _schedules;
   final amplify_core.TemporalDateTime? _createdAt;
@@ -65,6 +66,19 @@ class Group extends amplify_core.Model {
     return _description;
   }
   
+  String get ownerId {
+    try {
+      return _ownerId!;
+    } catch(e) {
+      throw amplify_core.AmplifyCodeGenModelException(
+          amplify_core.AmplifyExceptionMessages.codeGenRequiredFieldForceCastExceptionMessage,
+          recoverySuggestion:
+            amplify_core.AmplifyExceptionMessages.codeGenRequiredFieldForceCastRecoverySuggestion,
+          underlyingException: e.toString()
+          );
+    }
+  }
+  
   List<GroupUser>? get members {
     return _members;
   }
@@ -81,13 +95,14 @@ class Group extends amplify_core.Model {
     return _updatedAt;
   }
   
-  const Group._internal({required this.id, required name, description, members, schedules, createdAt, updatedAt}): _name = name, _description = description, _members = members, _schedules = schedules, _createdAt = createdAt, _updatedAt = updatedAt;
+  const Group._internal({required this.id, required name, description, required ownerId, members, schedules, createdAt, updatedAt}): _name = name, _description = description, _ownerId = ownerId, _members = members, _schedules = schedules, _createdAt = createdAt, _updatedAt = updatedAt;
   
-  factory Group({String? id, required String name, String? description, List<GroupUser>? members, List<Schedule>? schedules}) {
+  factory Group({String? id, required String name, String? description, required String ownerId, List<GroupUser>? members, List<Schedule>? schedules}) {
     return Group._internal(
       id: id == null ? amplify_core.UUID.getUUID() : id,
       name: name,
       description: description,
+      ownerId: ownerId,
       members: members != null ? List<GroupUser>.unmodifiable(members) : members,
       schedules: schedules != null ? List<Schedule>.unmodifiable(schedules) : schedules);
   }
@@ -103,6 +118,7 @@ class Group extends amplify_core.Model {
       id == other.id &&
       _name == other._name &&
       _description == other._description &&
+      _ownerId == other._ownerId &&
       DeepCollectionEquality().equals(_members, other._members) &&
       DeepCollectionEquality().equals(_schedules, other._schedules);
   }
@@ -118,6 +134,7 @@ class Group extends amplify_core.Model {
     buffer.write("id=" + "$id" + ", ");
     buffer.write("name=" + "$_name" + ", ");
     buffer.write("description=" + "$_description" + ", ");
+    buffer.write("ownerId=" + "$_ownerId" + ", ");
     buffer.write("createdAt=" + (_createdAt != null ? _createdAt!.format() : "null") + ", ");
     buffer.write("updatedAt=" + (_updatedAt != null ? _updatedAt!.format() : "null"));
     buffer.write("}");
@@ -125,11 +142,12 @@ class Group extends amplify_core.Model {
     return buffer.toString();
   }
   
-  Group copyWith({String? name, String? description, List<GroupUser>? members, List<Schedule>? schedules}) {
+  Group copyWith({String? name, String? description, String? ownerId, List<GroupUser>? members, List<Schedule>? schedules}) {
     return Group._internal(
       id: id,
       name: name ?? this.name,
       description: description ?? this.description,
+      ownerId: ownerId ?? this.ownerId,
       members: members ?? this.members,
       schedules: schedules ?? this.schedules);
   }
@@ -137,6 +155,7 @@ class Group extends amplify_core.Model {
   Group copyWithModelFieldValues({
     ModelFieldValue<String>? name,
     ModelFieldValue<String?>? description,
+    ModelFieldValue<String>? ownerId,
     ModelFieldValue<List<GroupUser>?>? members,
     ModelFieldValue<List<Schedule>?>? schedules
   }) {
@@ -144,6 +163,7 @@ class Group extends amplify_core.Model {
       id: id,
       name: name == null ? this.name : name.value,
       description: description == null ? this.description : description.value,
+      ownerId: ownerId == null ? this.ownerId : ownerId.value,
       members: members == null ? this.members : members.value,
       schedules: schedules == null ? this.schedules : schedules.value
     );
@@ -153,6 +173,7 @@ class Group extends amplify_core.Model {
     : id = json['id'],
       _name = json['name'],
       _description = json['description'],
+      _ownerId = json['ownerId'],
       _members = json['members']  is Map
         ? (json['members']['items'] is List
           ? (json['members']['items'] as List)
@@ -183,13 +204,14 @@ class Group extends amplify_core.Model {
       _updatedAt = json['updatedAt'] != null ? amplify_core.TemporalDateTime.fromString(json['updatedAt']) : null;
   
   Map<String, dynamic> toJson() => {
-    'id': id, 'name': _name, 'description': _description, 'members': _members?.map((GroupUser? e) => e?.toJson()).toList(), 'schedules': _schedules?.map((Schedule? e) => e?.toJson()).toList(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
+    'id': id, 'name': _name, 'description': _description, 'ownerId': _ownerId, 'members': _members?.map((GroupUser? e) => e?.toJson()).toList(), 'schedules': _schedules?.map((Schedule? e) => e?.toJson()).toList(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
   };
   
   Map<String, Object?> toMap() => {
     'id': id,
     'name': _name,
     'description': _description,
+    'ownerId': _ownerId,
     'members': _members,
     'schedules': _schedules,
     'createdAt': _createdAt,
@@ -200,6 +222,7 @@ class Group extends amplify_core.Model {
   static final ID = amplify_core.QueryField(fieldName: "id");
   static final NAME = amplify_core.QueryField(fieldName: "name");
   static final DESCRIPTION = amplify_core.QueryField(fieldName: "description");
+  static final OWNERID = amplify_core.QueryField(fieldName: "ownerId");
   static final MEMBERS = amplify_core.QueryField(
     fieldName: "members",
     fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'GroupUser'));
@@ -209,6 +232,10 @@ class Group extends amplify_core.Model {
   static var schema = amplify_core.Model.defineSchema(define: (amplify_core.ModelSchemaDefinition modelSchemaDefinition) {
     modelSchemaDefinition.name = "Group";
     modelSchemaDefinition.pluralName = "Groups";
+    
+    modelSchemaDefinition.indexes = [
+      amplify_core.ModelIndex(fields: const ["ownerId", "name"], name: "byOwner")
+    ];
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.id());
     
@@ -221,6 +248,12 @@ class Group extends amplify_core.Model {
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
       key: Group.DESCRIPTION,
       isRequired: false,
+      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
+    ));
+    
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
+      key: Group.OWNERID,
+      isRequired: true,
       ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
     ));
     

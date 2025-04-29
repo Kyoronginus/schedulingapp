@@ -29,6 +29,7 @@ class GroupUser extends amplify_core.Model {
   final String id;
   final Group? _group;
   final User? _user;
+  final bool? _isAdmin;
   final amplify_core.TemporalDateTime? _createdAt;
   final amplify_core.TemporalDateTime? _updatedAt;
 
@@ -53,6 +54,19 @@ class GroupUser extends amplify_core.Model {
     return _user;
   }
   
+  bool get isAdmin {
+    try {
+      return _isAdmin!;
+    } catch(e) {
+      throw amplify_core.AmplifyCodeGenModelException(
+          amplify_core.AmplifyExceptionMessages.codeGenRequiredFieldForceCastExceptionMessage,
+          recoverySuggestion:
+            amplify_core.AmplifyExceptionMessages.codeGenRequiredFieldForceCastRecoverySuggestion,
+          underlyingException: e.toString()
+          );
+    }
+  }
+  
   amplify_core.TemporalDateTime? get createdAt {
     return _createdAt;
   }
@@ -61,13 +75,14 @@ class GroupUser extends amplify_core.Model {
     return _updatedAt;
   }
   
-  const GroupUser._internal({required this.id, group, user, createdAt, updatedAt}): _group = group, _user = user, _createdAt = createdAt, _updatedAt = updatedAt;
+  const GroupUser._internal({required this.id, group, user, required isAdmin, createdAt, updatedAt}): _group = group, _user = user, _isAdmin = isAdmin, _createdAt = createdAt, _updatedAt = updatedAt;
   
-  factory GroupUser({String? id, Group? group, User? user}) {
+  factory GroupUser({String? id, Group? group, User? user, required bool isAdmin}) {
     return GroupUser._internal(
       id: id == null ? amplify_core.UUID.getUUID() : id,
       group: group,
-      user: user);
+      user: user,
+      isAdmin: isAdmin);
   }
   
   bool equals(Object other) {
@@ -80,7 +95,8 @@ class GroupUser extends amplify_core.Model {
     return other is GroupUser &&
       id == other.id &&
       _group == other._group &&
-      _user == other._user;
+      _user == other._user &&
+      _isAdmin == other._isAdmin;
   }
   
   @override
@@ -94,6 +110,7 @@ class GroupUser extends amplify_core.Model {
     buffer.write("id=" + "$id" + ", ");
     buffer.write("group=" + (_group != null ? _group!.toString() : "null") + ", ");
     buffer.write("user=" + (_user != null ? _user!.toString() : "null") + ", ");
+    buffer.write("isAdmin=" + (_isAdmin != null ? _isAdmin!.toString() : "null") + ", ");
     buffer.write("createdAt=" + (_createdAt != null ? _createdAt!.format() : "null") + ", ");
     buffer.write("updatedAt=" + (_updatedAt != null ? _updatedAt!.format() : "null"));
     buffer.write("}");
@@ -101,21 +118,24 @@ class GroupUser extends amplify_core.Model {
     return buffer.toString();
   }
   
-  GroupUser copyWith({Group? group, User? user}) {
+  GroupUser copyWith({Group? group, User? user, bool? isAdmin}) {
     return GroupUser._internal(
       id: id,
       group: group ?? this.group,
-      user: user ?? this.user);
+      user: user ?? this.user,
+      isAdmin: isAdmin ?? this.isAdmin);
   }
   
   GroupUser copyWithModelFieldValues({
     ModelFieldValue<Group?>? group,
-    ModelFieldValue<User?>? user
+    ModelFieldValue<User?>? user,
+    ModelFieldValue<bool>? isAdmin
   }) {
     return GroupUser._internal(
       id: id,
       group: group == null ? this.group : group.value,
-      user: user == null ? this.user : user.value
+      user: user == null ? this.user : user.value,
+      isAdmin: isAdmin == null ? this.isAdmin : isAdmin.value
     );
   }
   
@@ -131,17 +151,19 @@ class GroupUser extends amplify_core.Model {
           ? User.fromJson(new Map<String, dynamic>.from(json['user']['serializedData']))
           : User.fromJson(new Map<String, dynamic>.from(json['user']))
         : null,
+      _isAdmin = json['isAdmin'],
       _createdAt = json['createdAt'] != null ? amplify_core.TemporalDateTime.fromString(json['createdAt']) : null,
       _updatedAt = json['updatedAt'] != null ? amplify_core.TemporalDateTime.fromString(json['updatedAt']) : null;
   
   Map<String, dynamic> toJson() => {
-    'id': id, 'group': _group?.toJson(), 'user': _user?.toJson(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
+    'id': id, 'group': _group?.toJson(), 'user': _user?.toJson(), 'isAdmin': _isAdmin, 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
   };
   
   Map<String, Object?> toMap() => {
     'id': id,
     'group': _group,
     'user': _user,
+    'isAdmin': _isAdmin,
     'createdAt': _createdAt,
     'updatedAt': _updatedAt
   };
@@ -154,6 +176,7 @@ class GroupUser extends amplify_core.Model {
   static final USER = amplify_core.QueryField(
     fieldName: "user",
     fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'User'));
+  static final ISADMIN = amplify_core.QueryField(fieldName: "isAdmin");
   static var schema = amplify_core.Model.defineSchema(define: (amplify_core.ModelSchemaDefinition modelSchemaDefinition) {
     modelSchemaDefinition.name = "GroupUser";
     modelSchemaDefinition.pluralName = "GroupUsers";
@@ -177,6 +200,12 @@ class GroupUser extends amplify_core.Model {
       isRequired: false,
       targetNames: ['userId'],
       ofModelName: 'User'
+    ));
+    
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
+      key: GroupUser.ISADMIN,
+      isRequired: true,
+      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.bool)
     ));
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.nonQueryField(

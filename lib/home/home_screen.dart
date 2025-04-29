@@ -27,41 +27,78 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchUserName() async {
     try {
       final user = await Amplify.Auth.getCurrentUser();
-      final userId = user.userId;
 
+      // 1. 安全にemailを取得
+      final attributes = await Amplify.Auth.fetchUserAttributes();
+      final emailAttr = attributes.firstWhere(
+        (attr) => attr.userAttributeKey == CognitoUserAttributeKey.email,
+        orElse: () => AuthUserAttribute(
+          userAttributeKey: CognitoUserAttributeKey.email,
+          value: '',
+        ),
+      );
+      final email = emailAttr?.value ?? 'no-email@example.com';
+      print('📧 User email: $email');
+
+      // 2. GraphQLクエリ
       final request = GraphQLRequest<String>(
         document: '''
-        query GetUser {
-          getUser(id: "$userId") {
+        query GetUser(\$id: ID!) {
+          getUser(id: \$id) {
             name
           }
         }
       ''',
+        variables: {'id': user.userId},
       );
 
       final response = await Amplify.API.query(request: request).response;
-      final data = response.data;
+      final userData = jsonDecode(response.data ?? '{}')['getUser'];
 
-      if (data == null) {
-        print('❌ No data received from the GraphQL query.');
-        Navigator.pushReplacementNamed(context, AppRoutes.setUserName);
-        return; // データがない場合、処理を終了
-      }
-
-      final decoded = jsonDecode(data);
-
-      // getUserのデータがnullか、nameがnullの場合
-      if (decoded['getUser'] == null || decoded['getUser']['name'] == null) {
-        print('❌ User data not found, navigating to set username screen.');
-        Navigator.pushReplacementNamed(context, AppRoutes.setUserName);
-      } else {
-        final name = decoded['getUser']['name'];
-        setState(() {
-          _userName = name;
+      if (userData == null) {
+        print('🔄 Redirecting to profile...');
+        Navigator.pushNamed(context, '/profile', arguments: {
+          'email': email,
+          'userId': user.userId,
         });
+      } else {
+        setState(() => _userName = userData['name']);
       }
     } catch (e) {
-      print('❌ Error fetching user name from DynamoDB: $e');
+      print('❌ Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('データ取得に失敗しました')),
+      );
+    }
+  }
+
+  Future<void> _createUserProfile(
+      {required String email, required String userId}) async {
+    final name = await _promptForName();
+    if (name == null || name.isEmpty) return;
+
+    try {
+      final request = GraphQLRequest<String>(
+        document: '''
+      mutation CreateUser(\$input: CreateUserInput!) {
+        createUser(input: \$input) {
+          id
+          name
+        }
+      }
+      ''',
+        variables: {
+          'input': {
+            'id': userId,
+            'email': email,
+            'name': name,
+          }
+        },
+      );
+      await Amplify.API.mutate(request: request);
+      setState(() => _userName = name);
+    } catch (e) {
+      print('❌ User creation failed: $e');
     }
   }
 

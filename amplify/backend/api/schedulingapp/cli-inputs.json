@@ -4,10 +4,17 @@
     "apiName": "schedulingapp",
     "serviceName": "AppSync",
     "defaultAuthType": {
-      "mode": "API_KEY",
-      "expirationTime": 360,
-      "apiKeyExpirationDate": "2026-04-19T14:54:53.841Z",
-      "keyDescription": ""
-    }
+      "mode": "AMAZON_COGNITO_USER_POOLS",
+      "cognitoUserPoolId": "authschedulingapp30672a99"
+    },
+    "additionalAuthTypes": [
+      {
+        "mode": "API_KEY",
+        "expirationTime": 300,
+        "apiKeyExpirationDate": "2026-02-23T20:18:20.530Z",
+        "keyDescription": "probably this API key will not used"
+      }
+    ],
+    "conflictResolution": {}
   }
 }

@@ -153,49 +153,56 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(title: Text('Ini schedule form screen')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title*',
-                  border: OutlineInputBorder(),
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(
+            context); // Ensure it navigates back to the previous screen
+        return false; // Prevent default back button behavior
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(title: Text('Ini schedule form screen')),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title*',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
                 ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              _buildTimeSelection(
-                  'Start Time*', _startTime, () => _selectDateTime(true)),
-              const SizedBox(height: 16),
-              _buildTimeSelection(
-                  'End Time*', _endTime, () => _selectDateTime(false)),
-              const SizedBox(height: 16),
-              _buildGroupSelector(),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isSaving ? null : _createSchedule,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                const SizedBox(height: 16),
+                _buildTimeSelection(
+                    'Start Time*', _startTime, () => _selectDateTime(true)),
+                const SizedBox(height: 16),
+                _buildTimeSelection(
+                    'End Time*', _endTime, () => _selectDateTime(false)),
+                const SizedBox(height: 16),
+                _buildGroupSelector(),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _isSaving ? null : _createSchedule,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isSaving
+                      ? const CircularProgressIndicator()
+                      : const Text('Save', style: TextStyle(fontSize: 18)),
                 ),
-                child: _isSaving
-                    ? const CircularProgressIndicator()
-                    : const Text('Save', style: TextStyle(fontSize: 18)),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -34,4 +34,55 @@ class GroupService {
     final items = jsonDecode(response.data!)['listGroupUsers']['items'];
     return items.map<Group>((item) => Group.fromJson(item['group'])).toList();
   }
+
+  static Future<void> createGroup({
+    required String name,
+    String? description,
+  }) async {
+    try {
+      final userId = (await Amplify.Auth.getCurrentUser()).userId;
+      print(
+          'Creating group with userId: $userId , name: $name , description: $description');
+      final request = GraphQLRequest<String>(
+        document: '''
+        mutation CreateGroup(\$input: CreateGroupInput!) {
+          createGroup(input: \$input) {
+            id
+            name
+            description
+            ownerId
+            members {
+              items {
+                id
+                userId
+                isAdmin
+              }
+            }
+          }
+        }
+      ''',
+        variables: {
+          'input': {
+            'name': name,
+            'description': description,
+            'ownerId': userId,
+            'members': {
+              'items': [
+                {
+                  'userId': userId,
+                  'isAdmin': true // Automatically make creator an admin
+                }
+              ]
+            }
+          },
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+      print('✅ Group created: ${response.data}');
+    } catch (e) {
+      print('❌ Failed to create group: $e');
+      rethrow;
+    }
+  }
 }

@@ -1,17 +1,32 @@
 {
   "api": {
     "schedulingapp": {
-      "dependsOn": [],
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "schedulingapp30672a99"
+        }
+      ],
       "output": {
         "authConfig": {
-          "additionalAuthenticationProviders": [],
+          "additionalAuthenticationProviders": [
+            {
+              "apiKeyConfig": {
+                "apiKeyExpirationDate": "2026-02-23T20:18:20.530Z",
+                "apiKeyExpirationDays": 300,
+                "description": "probably this API key will not used"
+              },
+              "authenticationType": "API_KEY"
+            }
+          ],
           "defaultAuthentication": {
-            "apiKeyConfig": {
-              "apiKeyExpirationDate": "2026-04-19T14:54:53.841Z",
-              "apiKeyExpirationDays": 360,
-              "description": ""
-            },
-            "authenticationType": "API_KEY"
+            "authenticationType": "AMAZON_COGNITO_USER_POOLS",
+            "userPoolConfig": {
+              "userPoolId": "authschedulingapp30672a99"
+            }
           }
         }
       },
