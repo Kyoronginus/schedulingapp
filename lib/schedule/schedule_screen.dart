@@ -36,8 +36,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Current Index: $_currentIndex'),
-            SizedBox(height: 20),
             CustomButton(
               onPressed: _navigateToScheduleForm,
               label: 'Create Schedule',

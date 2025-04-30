@@ -10,6 +10,7 @@ import '../models/Group.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import '../dynamo/get_user_service.dart';
 import '../dynamo/group_service.dart';
+import '../routes/app_routes.dart';
 
 class ScheduleFormScreen extends StatefulWidget {
   const ScheduleFormScreen({super.key});
@@ -82,7 +83,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Schedule created successfully!')),
       );
-      Navigator.pop(context);
+      Navigator.pushReplacementNamed(context, AppRoutes.schedule);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),

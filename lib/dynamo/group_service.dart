@@ -41,9 +41,9 @@ class GroupService {
   }) async {
     try {
       final userId = (await Amplify.Auth.getCurrentUser()).userId;
-      print(
-          'Creating group with userId: $userId , name: $name , description: $description');
-      final request = GraphQLRequest<String>(
+
+      // Step 1: Create the group
+      final groupRequest = GraphQLRequest<String>(
         document: '''
         mutation CreateGroup(\$input: CreateGroupInput!) {
           createGroup(input: \$input) {
@@ -51,13 +51,6 @@ class GroupService {
             name
             description
             ownerId
-            members {
-              items {
-                id
-                userId
-                isAdmin
-              }
-            }
           }
         }
       ''',
@@ -66,22 +59,43 @@ class GroupService {
             'name': name,
             'description': description,
             'ownerId': userId,
-            'members': {
-              'items': [
-                {
-                  'userId': userId,
-                  'isAdmin': true // Automatically make creator an admin
-                }
-              ]
-            }
-          },
+          }
         },
       );
 
-      final response = await Amplify.API.mutate(request: request).response;
-      print('✅ Group created: ${response.data}');
+      final groupResponse =
+          await Amplify.API.mutate(request: groupRequest).response;
+      final groupData = jsonDecode(groupResponse.data!)['createGroup'];
+      final groupId = groupData['id'];
+
+      print('✅ Group created with ID: $groupId');
+
+      // Step 2: Add creator as a GroupUser (member)
+      final memberRequest = GraphQLRequest<String>(
+        document: '''
+        mutation CreateGroupUser(\$input: CreateGroupUserInput!) {
+          createGroupUser(input: \$input) {
+            id
+            userId
+            groupId
+            isAdmin
+          }
+        }
+      ''',
+        variables: {
+          'input': {
+            'userId': userId,
+            'groupId': groupId,
+            'isAdmin': true,
+          }
+        },
+      );
+
+      final memberResponse =
+          await Amplify.API.mutate(request: memberRequest).response;
+      print('✅ GroupUser created: ${memberResponse.data}');
     } catch (e) {
-      print('❌ Failed to create group: $e');
+      print('❌ Failed to create group or member: $e');
       rethrow;
     }
   }

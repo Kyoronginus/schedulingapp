@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../widgets/custom_app_bar.dart';
-import '../../dynamo/group_service.dart';
+import '../../../widgets/custom_app_bar.dart';
+import '../../../dynamo/group_service.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import '../models/Group.dart';
+import '../../models/Group.dart';
 
 class AddGroupScreen extends StatefulWidget {
   const AddGroupScreen({super.key});
