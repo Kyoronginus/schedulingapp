@@ -51,7 +51,7 @@ class InviteMemberService {
   Future<void> createGroupUser({
     required String userId,
     required String groupId,
-    bool isAdmin = false, // defaultでfalseに
+    bool isAdmin = false, //
   }) async {
     try {
       final request = GraphQLRequest<String>(

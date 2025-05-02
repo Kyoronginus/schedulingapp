@@ -5,7 +5,6 @@ import '../models/Schedule_extensions.dart';
 import 'package:amplify_api/amplify_api.dart';
 
 class ScheduleService {
-  // スケジュールを作成
   static Future<void> createSchedule(Schedule schedule) async {
     try {
       // Use copyWith to ensure the schedule object has consistent data types
@@ -46,7 +45,6 @@ class ScheduleService {
     }
   }
 
-  // 自分のスケジュールを全部取得
   static Future<List<Schedule>> getUserSchedules(String userId) async {
     try {
       final request = GraphQLRequest<String>(
@@ -80,7 +78,6 @@ class ScheduleService {
       final data = response.data;
       if (data == null) return [];
 
-      // ここでデータをモデルに変換する
       final schedules = ScheduleListExtension.listFromJson(data);
       return schedules;
     } catch (e) {
@@ -89,7 +86,6 @@ class ScheduleService {
     }
   }
 
-  // グループのスケジュールを取得
   static Future<List<Schedule>> getGroupSchedules(String groupId) async {
     try {
       final request = GraphQLRequest<String>(
