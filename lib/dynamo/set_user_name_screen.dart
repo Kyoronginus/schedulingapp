@@ -5,8 +5,8 @@ import '../amplifyconfiguration.dart';
 import 'package:flutter/material.dart';
 import '../routes/app_routes.dart';
 import 'dart:convert';
-import '../models/User.dart'; // Import User class
-import '../models/Group.dart'; // Import Group class
+import '../models/User.dart';
+import '../models/Group.dart';
 
 class SetUserNameScreen extends StatefulWidget {
   const SetUserNameScreen({super.key});

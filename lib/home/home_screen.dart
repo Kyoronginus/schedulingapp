@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final user = await Amplify.Auth.getCurrentUser();
 
-      // 1. 安全にemailを取得
+      // 1. fetch email from Cognito
       final attributes = await Amplify.Auth.fetchUserAttributes();
       final emailAttr = attributes.firstWhere(
         (attr) => attr.userAttributeKey == CognitoUserAttributeKey.email,
@@ -48,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final email = emailAttr?.value ?? 'no-email@example.com';
       print('📧 User email: $email');
 
-      // 2. GraphQLクエリ
+      // 2. GraphQL Query
       final request = GraphQLRequest<String>(
         document: '''
         query GetUser(\$id: ID!) {
@@ -173,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return _groupedSchedules[day] ?? [];
   }
 
-// スケジュール表示ウィジェット改良版
+// widget to display a calendar and a list of schedules
   Widget _buildScheduleList() {
     final day = _selectedDay ?? _focusedDay;
     final schedules = _groupedSchedules.values

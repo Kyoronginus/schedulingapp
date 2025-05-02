@@ -4,6 +4,7 @@ import '../home/home_screen.dart';
 import '../auth/login/login_screen.dart';
 import '../routes/app_routes.dart';
 
+//onboarding screen for the app
 class SplashScreen extends StatefulWidget {
   @override
   _SplashScreenState createState() => _SplashScreenState();
