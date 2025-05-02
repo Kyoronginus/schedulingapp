@@ -111,7 +111,6 @@ class GroupService {
                 id
                 name
                 email
-                isAdmin
               }
             }
           }

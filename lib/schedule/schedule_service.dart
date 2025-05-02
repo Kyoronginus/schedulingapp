@@ -1,7 +1,9 @@
 import 'package:amplify_flutter/amplify_flutter.dart';
 import '../models/Schedule.dart';
 import '../models/Schedule_extensions.dart';
-
+import '../models/Group.dart';
+import '../models/User.dart';
+import '../dynamo/group_service.dart';
 import 'package:amplify_api/amplify_api.dart';
 
 class ScheduleService {
@@ -123,6 +125,38 @@ class ScheduleService {
       return schedules;
     } catch (e) {
       print('❌ Failed to fetch group schedules: $e');
+      rethrow;
+    }
+  }
+
+  static Future<List<Schedule>> loadAllSchedules() async {
+    try {
+      final groups = await GroupService.getUserGroups();
+      print('🧩 所属グループ数: ${groups.length}');
+
+      final allSchedules = <Schedule>[];
+
+      for (final group in groups) {
+        print('📅 ${group.name}（ID: ${group.id}）のスケジュールを取得中...');
+        final groupSchedules =
+            await ScheduleService.getGroupSchedules(group.id);
+        print('✅ ${groupSchedules.length} 件取得');
+        allSchedules.addAll(groupSchedules);
+      }
+      print('📦 スケジュール総数: ${allSchedules.length}');
+
+      void debugScheduleList(List<Schedule> schedules) {
+        for (final s in schedules) {
+          print(
+              '📅 Schedule: ${s.title}, start=${s.startTime.getDateTimeInUtc().toLocal()}');
+        }
+      }
+
+      debugScheduleList(allSchedules);
+
+      return allSchedules;
+    } catch (e) {
+      print('❌ Failed to load all schedules: $e');
       rethrow;
     }
   }
