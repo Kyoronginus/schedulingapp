@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await login(_emailController.text, _passwordController.text);
-      Navigator.pushReplacementNamed(context, '/home'); // ホーム画面に遷移
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();

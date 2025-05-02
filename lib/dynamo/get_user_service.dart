@@ -25,7 +25,7 @@ class AuthService {
       final response = await Amplify.API.query(request: request).response;
       return User.fromJson(jsonDecode(response.data!)['getUser']);
     } on AuthException catch (e) {
-      throw Exception('ログインが必要です: ${e.message}');
+      throw Exception('You need to login first: ${e.message}');
     }
   }
 }

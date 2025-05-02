@@ -6,7 +6,7 @@ import '../setting/setting_screen.dart';
 import '../schedule/schedule_screen.dart';
 import '../auth/register/register_screen.dart';
 import '../dynamo/set_user_name_screen.dart';
-import '../schedule/schedule_form_screen.dart';
+import '../schedule/create_schedule/schedule_form_screen.dart';
 import '../schedule/group/add_group_screen.dart';
 import '../../schedule/invite/invite_member_screen.dart';
 import '../../home/Profile/profile_screen.dart';
@@ -36,6 +36,8 @@ class AppRoutes {
         AppRoutes.addGroup: (context) => const AddGroupScreen(),
         AppRoutes.inviteMember: (context) =>
             InviteMemberScreen(groupId: 'exampleGroupId'),
-        AppRoutes.profile: (context) => ProfileScreen(email: '')
+        AppRoutes.profile: (context) => ProfileScreen(email: ''),
+        AppRoutes.inviteMember: (context) =>
+            InviteMemberScreen(groupId: 'exampleGroupId'),
       };
 }

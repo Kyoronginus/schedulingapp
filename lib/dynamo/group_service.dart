@@ -99,4 +99,47 @@ class GroupService {
       rethrow;
     }
   }
+
+  static Future<List<User>> getGroupMembers(String groupId) async {
+    try {
+      final request = GraphQLRequest<String>(
+        document: '''
+        query GetGroupMembers(\$groupId: ID!) {
+          listGroupUsers(filter: {groupId: {eq: \$groupId}}) {
+            items {
+              user {
+                id
+                name
+                email
+              }
+            }
+          }
+        }
+      ''',
+        variables: {'groupId': groupId},
+      );
+
+      final response = await Amplify.API.query(request: request).response;
+      final rawData = response.data;
+
+      if (rawData == null) {
+        throw Exception('API response data is null');
+      }
+
+      final decoded = jsonDecode(rawData);
+      final items = decoded['listGroupUsers']?['items'];
+
+      if (items == null) {
+        throw Exception('listGroupUsers.items is null');
+      }
+
+      return items
+          .where((item) => item['user'] != null)
+          .map<User>((item) => User.fromJson(item['user']))
+          .toList();
+    } catch (e) {
+      print('❌ Failed to fetch group members: $e');
+      rethrow;
+    }
+  }
 }

@@ -7,29 +7,29 @@ class InviteMemberService {
     try {
       final request = GraphQLRequest<String>(
         document: '''
-        query FindUserByEmail(\$email: String!) {
-          userByEmail(email: \$email) {
-            items {
-              id
-              email
-              name
-            }
-          }
+    query ListUsersByEmail(\$email: String!) {
+      listUsersByEmail(email: \$email) {
+        items {
+          id
+          email
+          name
         }
-      ''',
+      }
+    }
+  ''',
         variables: {
-          'email': email,
+          'email': email.trim().toLowerCase(),
         },
       );
 
       final response = await Amplify.API.query(request: request).response;
 
       if (response.data == null) {
-        throw Exception('ユーザーが見つかりませんでした');
+        throw Exception('user is not found');
       }
 
       final Map<String, dynamic> data = jsonDecode(response.data!);
-      final items = data['userByEmail']['items'] as List<dynamic>;
+      final items = data['listUsersByEmail']['items'] as List<dynamic>;
 
       if (items.isEmpty) {
         return null;
@@ -47,10 +47,11 @@ class InviteMemberService {
     }
   }
 
+  /// GroupUser
   Future<void> createGroupUser({
     required String userId,
     required String groupId,
-    required bool isAdmin,
+    bool isAdmin = false, // defaultでfalseに
   }) async {
     try {
       final request = GraphQLRequest<String>(
@@ -60,25 +61,25 @@ class InviteMemberService {
             id
           }
         }
-      ''',
+        ''',
         variables: {
           'input': {
             'userId': userId,
             'groupId': groupId,
-            'isAdmin': isAdmin, // スキーマにisAdminを追加するならここ！
-          }
+            'isAdmin': isAdmin,
+          },
         },
       );
 
       final response = await Amplify.API.mutate(request: request).response;
 
-      if (response.data == null) {
-        throw Exception('GroupUser作成に失敗しました');
+      if (response.data == null || response.errors.isNotEmpty) {
+        throw Exception('failed to create GroupUser');
       }
 
-      print('GroupUser作成成功！');
+      print('✅ successfully created GroupUser: ${response.data}');
     } catch (e) {
-      print('Error creating GroupUser: $e');
+      print('🔴 Error creating GroupUser: $e');
       rethrow;
     }
   }

@@ -1,9 +1,5 @@
-import 'dart:convert'; // ← 追加
 import 'package:flutter/material.dart';
-import 'package:amplify_flutter/amplify_flutter.dart'; // ← 追加
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/bottom_nav_bar.dart';
-import '../../models/User.dart';
+import 'invite_member_service.dart'; // Import the service
 import '../../widgets/custom_app_bar.dart';
 
 class InviteMemberScreen extends StatefulWidget {
@@ -17,116 +13,40 @@ class InviteMemberScreen extends StatefulWidget {
 class _InviteMemberScreenState extends State<InviteMemberScreen> {
   final _emailController = TextEditingController();
   bool _isAdmin = false;
-
-  Future<User?> findUserByEmail(String email) async {
-    try {
-      final request = GraphQLRequest<String>(
-        document: '''
-          query FindUserByEmail(\$email: String!) {
-            userByEmail(email: \$email) {
-              items {
-                id
-                email
-                name
-              }
-            }
-          }
-        ''',
-        variables: {
-          'email': email,
-        },
-      );
-
-      final response = await Amplify.API.query(request: request).response;
-
-      if (response.data == null) {
-        throw Exception('ユーザーが見つかりませんでした');
-      }
-
-      final Map<String, dynamic> data = jsonDecode(response.data!);
-      final items = data['userByEmail']['items'] as List<dynamic>;
-
-      if (items.isEmpty) {
-        return null;
-      }
-
-      final userData = items.first;
-      return User(
-        id: userData['id'],
-        email: userData['email'],
-        name: userData['name'],
-      );
-    } catch (e) {
-      print('Error finding user by email: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> createGroupUser({
-    required String userId,
-    required String groupId,
-    required bool isAdmin,
-  }) async {
-    try {
-      final request = GraphQLRequest<String>(
-        document: '''
-          mutation CreateGroupUser(\$input: CreateGroupUserInput!) {
-            createGroupUser(input: \$input) {
-              id
-            }
-          }
-        ''',
-        variables: {
-          'input': {
-            'userId': userId,
-            'groupId': groupId,
-            'isAdmin': isAdmin,
-          }
-        },
-      );
-
-      final response = await Amplify.API.mutate(request: request).response;
-
-      if (response.data == null) {
-        throw Exception('GroupUser作成に失敗しました');
-      }
-
-      print('GroupUser作成成功！');
-    } catch (e) {
-      print('Error creating GroupUser: $e');
-      rethrow;
-    }
-  }
+  final InviteMemberService _inviteMemberService =
+      InviteMemberService(); // Create an instance of the service
 
   void _inviteMember() async {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('メールアドレスを入力してください')),
+        const SnackBar(content: Text('Please enter an email')),
       );
       return;
     }
 
     try {
-      final user = await findUserByEmail(email);
+      // Use the service to find the user by email
+      final user = await _inviteMemberService.findUserByEmail(email);
       if (user == null) {
-        throw Exception('ユーザーが見つかりませんでした');
+        throw Exception('User not found');
       }
 
-      await createGroupUser(
+      // Use the service to create the GroupUser
+      await _inviteMemberService.createGroupUser(
         userId: user.id,
         groupId: widget.groupId,
         isAdmin: _isAdmin,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('招待しました！')),
+        const SnackBar(content: Text('User invited successfully')),
       );
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('招待に失敗しました: ${e.toString()}')),
+        SnackBar(content: Text('Failed to invite user: ${e.toString()}')),
       );
     }
   }
@@ -143,7 +63,8 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
           children: [
             TextField(
               controller: _emailController,
-              decoration: InputDecoration(labelText: '招待する人のEmail'),
+              decoration:
+                  const InputDecoration(labelText: 'Email of the member'),
             ),
             Row(
               children: [
@@ -155,13 +76,13 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
                     });
                   },
                 ),
-                Text('スケジュール作成権限を与える')
+                const Text('Give schedule authority'),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _inviteMember,
-              child: Text('招待する'),
+              child: const Text('Invite'),
             ),
           ],
         ),

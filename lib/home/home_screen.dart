@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print('❌ Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('データ取得に失敗しました')),
+        SnackBar(content: Text('Failed to fetch user data: $e')),
       );
     }
   }

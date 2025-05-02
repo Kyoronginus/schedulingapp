@@ -4,7 +4,7 @@ import '../../routes/app_routes.dart';
 import 'package:collection/collection.dart';
 
 class ConfirmSignUpScreen extends StatefulWidget {
-  final String email; // 登録時に渡す
+  final String email;
 
   const ConfirmSignUpScreen({Key? key, required this.email}) : super(key: key);
 
