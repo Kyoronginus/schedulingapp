@@ -1,94 +1,89 @@
 import 'package:flutter/material.dart';
-import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import '../verification/confirm_signup_screen.dart';
+import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import '../../utils/utils_functions.dart';
 import '../../routes/app_routes.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+class ResetPasswordScreen extends StatefulWidget {
+  final String email;
+
+  const ResetPasswordScreen({Key? key, required this.email}) : super(key: key);
 
   @override
-  State<RegisterScreen> createState() => _RegisterPageState();
+  _ResetPasswordScreenState createState() => _ResetPasswordScreenState();
 }
 
-class _RegisterPageState extends State<RegisterScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-  final nameController = TextEditingController();
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+  final _codeController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _passwordReset = false;
 
-  Future<void> _registerUser() async {
+  Future<void> _resetPassword() async {
+    // Validate inputs
+    if (_codeController.text.trim().isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter the verification code';
+      });
+      return;
+    }
+
+    if (_newPasswordController.text.trim().isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter a new password';
+      });
+      return;
+    }
+
+    if (_newPasswordController.text != _confirmPasswordController.text) {
+      setState(() {
+        _errorMessage = 'Passwords do not match';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final email = emailController.text.trim();
-      final password = passwordController.text.trim();
-      final confirmPassword = confirmPasswordController.text.trim();
-      final name = nameController.text.trim();
-
-      // Validate inputs
-      if (name.isEmpty) {
-        setState(() {
-          _errorMessage = 'Please enter your name';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      if (email.isEmpty) {
-        setState(() {
-          _errorMessage = 'Please enter your email';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      if (password.isEmpty) {
-        setState(() {
-          _errorMessage = 'Please enter a password';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      if (password != confirmPassword) {
-        setState(() {
-          _errorMessage = 'Passwords do not match';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Sign up the user with AWS Cognito
-      final signUpResult = await Amplify.Auth.signUp(
-        username: email,
-        password: password,
-        options: CognitoSignUpOptions(userAttributes: {
-          CognitoUserAttributeKey.email: email,
-          CognitoUserAttributeKey.name: name,
-        }),
+      // Confirm the password reset
+      await Amplify.Auth.confirmResetPassword(
+        username: widget.email,
+        newPassword: _newPasswordController.text.trim(),
+        confirmationCode: _codeController.text.trim(),
       );
 
-      // Navigate to ConfirmSignUpScreen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ConfirmSignUpScreen(email: email),
+      setState(() {
+        _passwordReset = true;
+      });
+
+      // Show success message and navigate back to login
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset successful. Please login with your new password.'),
+          backgroundColor: Colors.green,
         ),
       );
+
+      // Navigate back to login screen after a short delay
+      Future.delayed(const Duration(seconds: 2), () {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.emailLogin,
+          (route) => false,
+        );
+      });
     } on AuthException catch (e) {
       setState(() {
         _errorMessage = e.message;
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Unexpected error: $e';
+        _errorMessage = 'An error occurred: $e';
       });
     } finally {
       setState(() {
@@ -100,6 +95,11 @@ class _RegisterPageState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Reset Password'),
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+      ),
       body: Stack(
         children: [
           // Background gradient
@@ -125,52 +125,26 @@ class _RegisterPageState extends State<RegisterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 40),
-                    // Logo or app icon
-                    Center(
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              spreadRadius: 2,
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.calendar_today,
-                          size: 50,
-                          color: primaryColor,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    // Create account text
                     const Text(
-                      "Create Account",
+                      "Create New Password",
                       style: TextStyle(
-                        fontSize: 32,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Sign up to get started",
-                      style: TextStyle(
+                    const SizedBox(height: 16),
+                    Text(
+                      "Enter the verification code sent to ${widget.email} and create a new password",
+                      style: const TextStyle(
                         fontSize: 16,
                         color: Colors.white70,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 40),
-                    // Name field
+                    // Verification code field
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -185,18 +159,18 @@ class _RegisterPageState extends State<RegisterScreen> {
                         ],
                       ),
                       child: TextField(
-                        controller: nameController,
+                        controller: _codeController,
                         decoration: InputDecoration(
-                          labelText: "Name",
+                          labelText: "Verification Code",
                           labelStyle: TextStyle(color: primaryColor),
-                          prefixIcon: Icon(Icons.person, color: primaryColor),
+                          prefixIcon: Icon(Icons.security, color: primaryColor),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Email field
+                    // New password field
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -211,35 +185,9 @@ class _RegisterPageState extends State<RegisterScreen> {
                         ],
                       ),
                       child: TextField(
-                        controller: emailController,
+                        controller: _newPasswordController,
                         decoration: InputDecoration(
-                          labelText: "Email",
-                          labelStyle: TextStyle(color: primaryColor),
-                          prefixIcon: Icon(Icons.email, color: primaryColor),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Password field
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            spreadRadius: 1,
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: passwordController,
-                        decoration: InputDecoration(
-                          labelText: "Password",
+                          labelText: "New Password",
                           labelStyle: TextStyle(color: primaryColor),
                           prefixIcon: Icon(Icons.lock, color: primaryColor),
                           border: InputBorder.none,
@@ -249,7 +197,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Confirm Password field
+                    // Confirm password field
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -264,7 +212,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                         ],
                       ),
                       child: TextField(
-                        controller: confirmPasswordController,
+                        controller: _confirmPasswordController,
                         decoration: InputDecoration(
                           labelText: "Confirm Password",
                           labelStyle: TextStyle(color: primaryColor),
@@ -275,12 +223,12 @@ class _RegisterPageState extends State<RegisterScreen> {
                         obscureText: true,
                       ),
                     ),
-                    const SizedBox(height: 32),
-                    // Register button
+                    const SizedBox(height: 24),
+                    // Reset Password button
                     SizedBox(
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _registerUser,
+                        onPressed: _isLoading ? null : _resetPassword,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: primaryColor,
@@ -292,7 +240,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                         child: _isLoading
                             ? CircularProgressIndicator(color: primaryColor)
                             : const Text(
-                                "Register",
+                                "Reset Password",
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -312,30 +260,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                           textAlign: TextAlign.center,
                         ),
                       ),
-                    const SizedBox(height: 32),
-                    // Login link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          "Already have an account?",
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushReplacementNamed(context, AppRoutes.login);
-                          },
-                          child: Text(
-                            "Login",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),

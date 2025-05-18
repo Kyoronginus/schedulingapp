@@ -15,7 +15,7 @@ class SettingScreen extends StatefulWidget {
 }
 
 class _SettingScreenState extends State<SettingScreen> {
-  int _currentIndex = 2;
+  int _currentIndex = 3; // Setting is now the 4th tab (index 3)
   bool _isLoggedIn = false;
 
   @override

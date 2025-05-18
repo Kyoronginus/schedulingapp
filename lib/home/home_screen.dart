@@ -18,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 1;
+  int _currentIndex = 0; // Use schedule index since we're removing home tab
   String? _userName;
   Map<DateTime, List<Schedule>> _groupedSchedules = {};
   DateTime _focusedDay = DateTime.now();
@@ -210,7 +210,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: Text("Home Screen")),
+      appBar: CustomAppBar(
+        title: Text("Home Screen"),
+        showBackButton: false, // Hide back button on home screen
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _userName == null

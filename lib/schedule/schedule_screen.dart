@@ -18,7 +18,7 @@ class ScheduleScreen extends StatefulWidget {
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  int _currentIndex = 0;
+  int _currentIndex = 0; // Schedule is still the 1st tab (index 0)
   List<Group> _groups = [];
   bool _isLoading = true;
 

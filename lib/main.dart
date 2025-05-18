@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'routes/app_routes.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'amplifyconfiguration.dart';
-import 'package:amplify_api/amplify_api.dart'; // Ensure this import is correct
+import 'package:amplify_api/amplify_api.dart';
 import 'package:schedulingapp/models/ModelProvider.dart';
+import 'package:schedulingapp/theme/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,17 +15,23 @@ void main() async {
     final authPlugin = AmplifyAuthCognito();
     await Amplify.addPlugin(authPlugin);
 
-    final apiPlugin = AmplifyAPI();
-    // await Amplify.addPlugin(apiPlugin);
-
     await Amplify.addPlugin(AmplifyAPI(modelProvider: ModelProvider.instance));
-    // await Amplify.DataStore.start();
     await Amplify.configure(amplifyconfig);
 
-    runApp(const SchedulingApp());
+    runApp(
+      ChangeNotifierProvider(
+        create: (_) => ThemeProvider(),
+        child: const SchedulingApp(),
+      ),
+    );
   } on AmplifyAlreadyConfiguredException {
     print("Amplify already configured");
-    runApp(const SchedulingApp());
+    runApp(
+      ChangeNotifierProvider(
+        create: (_) => ThemeProvider(),
+        child: const SchedulingApp(),
+      ),
+    );
   }
 }
 
@@ -32,17 +40,11 @@ class SchedulingApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
       title: 'Scheduling App',
-      theme: ThemeData(
-        primarySwatch: Colors.cyan,
-        scaffoldBackgroundColor: const Color.fromARGB(255, 255, 255, 255),
-        appBarTheme: const AppBarTheme(
-          backgroundColor:
-              Color.fromARGB(255, 158, 239, 240), // Example hexadecimal color
-          foregroundColor: Color.fromARGB(255, 118, 176, 194),
-        ),
-      ),
+      theme: themeProvider.getTheme(),
       initialRoute: '/',
       routes: AppRoutes.routes,
       debugShowCheckedModeBanner: false,

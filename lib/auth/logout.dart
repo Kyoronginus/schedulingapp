@@ -6,7 +6,8 @@ Future<void> logout(BuildContext context) async {
   try {
     await Amplify.Auth.signOut();
     Navigator.pushNamedAndRemoveUntil(
-        context, AppRoutes.home, (route) => false);
+        context, AppRoutes.register, (route) => false);
+        
   } catch (e) {
     print('❌ Logout failed: $e');
   }

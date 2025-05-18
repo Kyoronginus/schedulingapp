@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../routes/app_routes.dart';
 import '../utils/utils_functions.dart';
+import '../theme/theme_provider.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -17,51 +19,55 @@ class BottomNavBar extends StatelessWidget {
         route = AppRoutes.schedule;
         break;
       case 1:
-        //       // Assuming you want to navigate to the home screen for index 1 as well
-        //       // You can change this to the appropriate route if needed
-        route = AppRoutes.home;
+        route = AppRoutes.addGroup;
         break;
       case 2:
-        //       // Assuming you want to navigate to the home screen for index 2 as well
-        //       // You can change this to the appropriate route if needed
-        route = AppRoutes.setting;
+        route = AppRoutes.profile;
         break;
       default:
-        route = AppRoutes.home;
+        route = AppRoutes.schedule;
     }
     Navigator.pushReplacementNamed(context, route);
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+    final theme = Theme.of(context);
+
+    final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
+    final inactiveColor = isDarkMode ? Colors.grey.shade600 : Colors.grey;
+    final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+
     return BottomNavigationBar(
       items: <BottomNavigationBarItem>[
         BottomNavigationBarItem(
           icon: Icon(
-            Icons.schedule,
-            color: currentIndex == 0 ? Colors.black : Colors.grey,
+            Icons.calendar_today,
+            color: currentIndex == 0 ? activeColor : inactiveColor,
           ),
           label: 'Schedule',
         ),
         BottomNavigationBarItem(
           icon: Icon(
-            Icons.home,
-            color: currentIndex == 1 ? Colors.black : Colors.grey,
+            Icons.group,
+            color: currentIndex == 1 ? activeColor : inactiveColor,
           ),
-          label: 'Home',
+          label: 'Group',
         ),
         BottomNavigationBarItem(
           icon: Icon(
-            Icons.settings,
-            color: currentIndex == 2 ? Colors.black : Colors.grey,
+            Icons.person,
+            color: currentIndex == 2 ? activeColor : inactiveColor,
           ),
-          label: 'Setting',
+          label: 'Profile',
         ),
       ],
       currentIndex: currentIndex,
-      selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.grey,
-      backgroundColor: panaceaTeal20,
+      selectedItemColor: activeColor,
+      unselectedItemColor: inactiveColor,
+      backgroundColor: backgroundColor,
       type: BottomNavigationBarType.fixed,
       selectedLabelStyle: const TextStyle(fontSize: 12),
       unselectedLabelStyle: const TextStyle(fontSize: 12),

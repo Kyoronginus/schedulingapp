@@ -1,5 +1,6 @@
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
+import 'package:flutter/material.dart';
 import '../amplifyconfiguration.dart';
 
 Future<void> initAmplify() async {
@@ -43,4 +44,58 @@ Future<void> login(String email, String password) async {
   );
 
   print('✅ Login success: ${result.isSignedIn}');
+}
+
+/// Sign in with Google using Amplify Auth
+Future<bool> signInWithGoogle(BuildContext context) async {
+  try {
+    // Start the sign-in process
+    final result = await Amplify.Auth.signInWithWebUI(
+      provider: AuthProvider.google,
+      options: const CognitoSignInWithWebUIOptions(
+        isPreferPrivateSession: false,
+      ),
+    );
+
+    if (result.isSignedIn) {
+      print('✅ Google Sign In Success');
+      return true;
+    } else {
+      print('❌ Google Sign In Failed');
+      return false;
+    }
+  } on AmplifyException catch (e) {
+    print('❌ Google Sign In Error: ${e.message}');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Google Sign In Error: ${e.message}')),
+    );
+    return false;
+  }
+}
+
+/// Sign in with Facebook using Amplify Auth
+Future<bool> signInWithFacebook(BuildContext context) async {
+  try {
+    // Start the sign-in process
+    final result = await Amplify.Auth.signInWithWebUI(
+      provider: AuthProvider.facebook,
+      options: const CognitoSignInWithWebUIOptions(
+        isPreferPrivateSession: false,
+      ),
+    );
+
+    if (result.isSignedIn) {
+      print('✅ Facebook Sign In Success');
+      return true;
+    } else {
+      print('❌ Facebook Sign In Failed');
+      return false;
+    }
+  } on AmplifyException catch (e) {
+    print('❌ Facebook Sign In Error: ${e.message}');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Facebook Sign In Error: ${e.message}')),
+    );
+    return false;
+  }
 }

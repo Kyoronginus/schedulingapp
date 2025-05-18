@@ -3,7 +3,7 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:schedulingapp/widgets/custom_app_bar.dart';
 import '../../models/Schedule.dart';
 import 'package:intl/intl.dart';
-import '../../models/Schedule_extensions.dart';
+import '../../models/schedule_extensions.dart';
 import '../schedule_service.dart';
 import '../../models/User.dart';
 import '../../models/Group.dart';

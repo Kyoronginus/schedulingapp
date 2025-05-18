@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../widgets/custom_app_bar.dart';
+import '../../../widgets/bottom_nav_bar.dart';
 import '../../../dynamo/group_service.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import '../../models/Group.dart';
@@ -15,6 +16,7 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _isSaving = false;
+  int _currentIndex = 1; // Group is the 2nd tab (index 1)
 
   Future<void> _createGroup() async {
     final name = _nameController.text.trim();
@@ -90,6 +92,7 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
     );
   }
 }

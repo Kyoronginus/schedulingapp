@@ -1,6 +1,6 @@
 import 'package:amplify_flutter/amplify_flutter.dart';
 import '../models/Schedule.dart';
-import '../models/Schedule_extensions.dart';
+import '../models/schedule_extensions.dart';
 import '../models/Group.dart';
 import '../models/User.dart';
 import '../dynamo/group_service.dart';
