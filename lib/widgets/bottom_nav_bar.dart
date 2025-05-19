@@ -19,7 +19,7 @@ class BottomNavBar extends StatelessWidget {
         route = AppRoutes.schedule;
         break;
       case 1:
-        route = AppRoutes.addGroup;
+        route = AppRoutes.addGroup; // This now points to GroupScreen
         break;
       case 2:
         route = AppRoutes.profile;

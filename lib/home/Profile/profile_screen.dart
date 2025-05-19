@@ -35,8 +35,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _userName;
   String? _userEmail;
   String? _authProvider;
-  int _currentIndex = 2; // Updated to match new navigation index
-
+  int _currentIndex = 2;
+  
   ImageProvider? _profileImage;
 
   @override

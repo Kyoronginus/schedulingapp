@@ -30,6 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _fetchUserName();
     _loadAllSchedules(); // Load schedules on initialization
+
+    // Redirect to the schedule screen after a short delay
+    Future.delayed(Duration.zero, () {
+      Navigator.pushReplacementNamed(context, AppRoutes.schedule);
+    });
   }
 
   Future<void> _fetchUserName() async {

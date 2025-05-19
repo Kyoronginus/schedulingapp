@@ -9,7 +9,7 @@ import '../schedule/schedule_screen.dart';
 import '../auth/register/register_screen.dart';
 import '../dynamo/set_user_name_screen.dart';
 import '../schedule/create_schedule/schedule_form_screen.dart';
-import '../schedule/group/add_group_screen.dart';
+import '../schedule/group/group_screen.dart';
 import '../schedule/invite/invite_member_screen.dart';
 import '../home/Profile/profile_screen.dart';
 
@@ -25,7 +25,7 @@ class AppRoutes {
   static const String inviteMember = '/inviteMember';
   static const String setUserName = '/setUserName';
   static const String scheduleForm = '/scheduleForm';
-  static const String addGroup = '/addGroup';
+  static const String addGroup = '/group';
   static const String profile = '/profile';
 
   static Map<String, WidgetBuilder> get routes => {
@@ -39,7 +39,7 @@ class AppRoutes {
         AppRoutes.schedule: (context) => const ScheduleScreen(),
         AppRoutes.scheduleForm: (context) => const ScheduleFormScreen(),
         AppRoutes.setUserName: (context) => const SetUserNameScreen(),
-        AppRoutes.addGroup: (context) => const AddGroupScreen(),
+        AppRoutes.addGroup: (context) => const GroupScreen(),
         AppRoutes.inviteMember: (context) =>
             InviteMemberScreen(groupId: 'exampleGroupId'),
         AppRoutes.profile: (context) => ProfileScreen(email: ''),

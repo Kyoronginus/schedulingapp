@@ -11,9 +11,15 @@ import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import '../../dynamo/get_user_service.dart';
 import '../../dynamo/group_service.dart';
 import '../../routes/app_routes.dart';
+import '../../theme/theme_provider.dart';
+import 'package:provider/provider.dart';
+import '../../utils/utils_functions.dart';
+import 'dart:async';
 
 class ScheduleFormScreen extends StatefulWidget {
-  const ScheduleFormScreen({super.key});
+  final Schedule? scheduleToEdit;
+
+  const ScheduleFormScreen({super.key, this.scheduleToEdit});
 
   @override
   _ScheduleFormScreenState createState() => _ScheduleFormScreenState();
@@ -27,10 +33,59 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
   bool _isSaving = false;
   Group? _selectedGroup; // Holds the selected group
 
+  // Timer to periodically check if selected time is still valid
+  Timer? _timeValidityTimer;
+  bool _isEditing = false;
+
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    _isEditing = widget.scheduleToEdit != null;
+
+    // If editing, populate the form with existing data
+    if (_isEditing) {
+      _titleController.text = widget.scheduleToEdit!.title;
+      _descriptionController.text = widget.scheduleToEdit!.description ?? '';
+      _startTime = widget.scheduleToEdit!.startTime.getDateTimeInUtc();
+      _endTime = widget.scheduleToEdit!.endTime.getDateTimeInUtc();
+      _selectedGroup = widget.scheduleToEdit!.group;
+    } else {
+      _loadInitialData();
+    }
+
+    // Start a timer to check time validity every minute
+    _timeValidityTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      _validateTimeSelections();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timeValidityTimer?.cancel();
+    super.dispose();
+  }
+
+  // Validate that selected times are still in the future
+  void _validateTimeSelections() {
+    final now = DateTime.now();
+
+    // If start time is in the past, clear it
+    if (_startTime != null && _startTime!.isBefore(now)) {
+      setState(() {
+        _startTime = null;
+        // If end time depends on start time, clear it too
+        if (_endTime != null) {
+          _endTime = null;
+        }
+      });
+
+      // Only show warning if the form is visible
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Selected time is now in the past. Please select a new time.')),
+        );
+      }
+    }
   }
 
   // Load initial data (user and group)
@@ -45,7 +100,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
     }
   }
 
-  // Schedule creation process
+  // Schedule creation/update process
   Future<void> _createSchedule() async {
     if (_titleController.text.isEmpty ||
         _startTime == null ||
@@ -63,26 +118,62 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
       return;
     }
 
+    // Validate that start time is before end time
+    if (_startTime!.isAfter(_endTime!) || _startTime!.isAtSameMomentAs(_endTime!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('End time must be after start time')),
+      );
+      return;
+    }
+
+    // Validate that start time is in the future
+    final now = DateTime.now();
+    if (_startTime!.isBefore(now)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Start time must be in the future')),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
-      final currentUser = await AuthService.getCurrentUser();
+      if (_isEditing) {
+        // Update existing schedule
+        final updatedSchedule = widget.scheduleToEdit!.copyWith(
+          title: _titleController.text,
+          description: _descriptionController.text,
+          startTime: TemporalDateTime(_startTime!),
+          endTime: TemporalDateTime(_endTime!),
+          group: _selectedGroup,
+        );
 
-      final newSchedule = Schedule(
-        id: '', // Amplify will auto-generate this
-        title: _titleController.text,
-        description: _descriptionController.text,
-        startTime: TemporalDateTime(_startTime!),
-        endTime: TemporalDateTime(_endTime!),
-        user: currentUser, // Pass the User object directly
-        group: _selectedGroup, // Explicitly set groupId
-      );
+        await ScheduleService.updateSchedule(updatedSchedule);
 
-      await ScheduleService.createSchedule(newSchedule);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Schedule updated successfully!')),
+        );
+      } else {
+        // Create new schedule
+        final currentUser = await AuthService.getCurrentUser();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Schedule created successfully!')),
-      );
+        final newSchedule = Schedule(
+          id: '', // Amplify will auto-generate this
+          title: _titleController.text,
+          description: _descriptionController.text,
+          startTime: TemporalDateTime(_startTime!),
+          endTime: TemporalDateTime(_endTime!),
+          user: currentUser, // Pass the User object directly
+          group: _selectedGroup, // Explicitly set groupId
+        );
+
+        await ScheduleService.createSchedule(newSchedule);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Schedule created successfully!')),
+        );
+      }
+
       Navigator.pushReplacementNamed(context, AppRoutes.schedule);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -95,17 +186,74 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
 
   // Date and time selection dialog
   Future<void> _selectDateTime(bool isStartTime) async {
+    final DateTime now = DateTime.now();
+
+    // Round current time to next 5 minutes
+    final int currentMinute = now.minute;
+    final int roundedMinute = ((currentMinute + 4) ~/ 5) * 5;
+    final DateTime roundedNow = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour + (roundedMinute >= 60 ? 1 : 0),
+      roundedMinute % 60
+    );
+
+    // Set initial date based on existing selection or current date
+    final initialDate = isStartTime
+        ? (_startTime != null ? _startTime! : roundedNow)
+        : (_endTime != null ? _endTime! :
+           (_startTime != null ? _startTime!.add(const Duration(hours: 1)) : roundedNow.add(const Duration(hours: 1))));
+
     final selectedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      initialDate: initialDate,
+      firstDate: DateTime(now.year, now.month, now.day), // Allow today
       lastDate: DateTime(2101),
     );
     if (selectedDate == null) return;
 
+    // Determine minimum time for today
+    TimeOfDay minimumTime = TimeOfDay.fromDateTime(roundedNow);
+    bool isToday = selectedDate.year == now.year &&
+                   selectedDate.month == now.month &&
+                   selectedDate.day == now.day;
+
+    // Set initial time based on existing selection or current time + 1 hour (rounded to 5 minutes)
+    TimeOfDay initialTimeOfDay;
+    if (isStartTime) {
+      initialTimeOfDay = _startTime != null
+          ? TimeOfDay.fromDateTime(_startTime!)
+          : TimeOfDay.fromDateTime(roundedNow.add(const Duration(minutes: 30)));
+    } else {
+      initialTimeOfDay = _endTime != null
+          ? TimeOfDay.fromDateTime(_endTime!)
+          : (_startTime != null
+              ? TimeOfDay.fromDateTime(_startTime!.add(const Duration(hours: 1)))
+              : TimeOfDay.fromDateTime(roundedNow.add(const Duration(hours: 1, minutes: 30))));
+    }
+
     final selectedTime = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(DateTime.now()),
+      initialTime: initialTimeOfDay,
+      builder: (BuildContext context, Widget? child) {
+        // Only apply time validation for today
+        if (!isToday) return child!;
+
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            alwaysUse24HourFormat: false,
+          ),
+          child: TimePickerDialog(
+            initialTime: initialTimeOfDay,
+            cancelText: 'CANCEL',
+            confirmText: 'OK',
+            // This validator ensures time is in the future for today
+            errorInvalidText: 'Time must be in the future',
+            initialEntryMode: TimePickerEntryMode.dial,
+          ),
+        );
+      },
     );
     if (selectedTime == null) return;
 
@@ -117,9 +265,29 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
       selectedTime.minute,
     );
 
+    // Ensure selected time is in the future
+    if (selectedDateTime.isBefore(now)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selected time must be in the future')),
+      );
+      return;
+    }
+
+    // For end time, ensure it's after start time
+    if (!isStartTime && _startTime != null && selectedDateTime.isBefore(_startTime!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('End time must be after start time')),
+      );
+      return;
+    }
+
     setState(() {
       if (isStartTime) {
         _startTime = selectedDateTime;
+        // If end time exists but is now before start time, clear it
+        if (_endTime != null && _endTime!.isBefore(selectedDateTime)) {
+          _endTime = null;
+        }
       } else {
         _endTime = selectedDateTime;
       }
@@ -154,6 +322,9 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return WillPopScope(
       onWillPop: () async {
         Navigator.pop(
@@ -161,7 +332,16 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
         return false; // Prevent default back button behavior
       },
       child: Scaffold(
-        appBar: CustomAppBar(title: Text('Ini schedule form screen')),
+        appBar: CustomAppBar(
+          title: Text(
+            _isEditing ? "Edit Schedule" : "Create Schedule",
+            style: TextStyle(
+              color: isDarkMode ? const Color(0xFF4CAF50) : Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : null,
+        ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
@@ -232,7 +412,9 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                     ? DateFormat('yyyy/MM/dd HH:mm').format(time)
                     : 'Please select',
                 style: TextStyle(
-                  color: time != null ? Colors.black : Colors.grey,
+                  color: time != null
+                      ? (Provider.of<ThemeProvider>(context).isDarkMode ? Colors.white : Colors.black)
+                      : Colors.grey,
                 ),
               ),
               const Icon(Icons.calendar_today, size: 20),
@@ -262,7 +444,9 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
               Text(
                 _selectedGroup?.name ?? 'Please select',
                 style: TextStyle(
-                  color: _selectedGroup != null ? Colors.black : Colors.grey,
+                  color: _selectedGroup != null
+                      ? (Provider.of<ThemeProvider>(context).isDarkMode ? Colors.white : Colors.black)
+                      : Colors.grey,
                 ),
               ),
               const Icon(Icons.arrow_drop_down, size: 24),

@@ -47,6 +47,73 @@ class ScheduleService {
     }
   }
 
+  static Future<void> updateSchedule(Schedule schedule) async {
+    try {
+      final request = GraphQLRequest<String>(
+        document: '''
+          mutation UpdateSchedule(\$input: UpdateScheduleInput!) {
+            updateSchedule(input: \$input) {
+              id
+              title
+              startTime
+              endTime
+              description
+              userId
+              groupId
+            }
+          }
+        ''',
+        variables: {
+          'input': {
+            'id': schedule.id,
+            'title': schedule.title,
+            'description': schedule.description,
+            'startTime': schedule.startTime.format(),
+            'endTime': schedule.endTime.format(),
+            '_version': 1, // This might need to be adjusted based on your schema
+          },
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+      if (response.hasErrors) {
+        throw Exception(response.errors.first.message);
+      }
+      print("✅ Schedule updated: ${response.data}");
+    } catch (e) {
+      print('❌ Failed to update schedule: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> deleteSchedule(String scheduleId) async {
+    try {
+      final request = GraphQLRequest<String>(
+        document: '''
+          mutation DeleteSchedule(\$input: DeleteScheduleInput!) {
+            deleteSchedule(input: \$input) {
+              id
+            }
+          }
+        ''',
+        variables: {
+          'input': {
+            'id': scheduleId,
+          },
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+      if (response.hasErrors) {
+        throw Exception(response.errors.first.message);
+      }
+      print("✅ Schedule deleted: ${response.data}");
+    } catch (e) {
+      print('❌ Failed to delete schedule: $e');
+      rethrow;
+    }
+  }
+
   static Future<List<Schedule>> getUserSchedules(String userId) async {
     try {
       final request = GraphQLRequest<String>(
