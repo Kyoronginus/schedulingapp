@@ -3,28 +3,23 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import 'package:amplify_api/amplify_api.dart';
 import 'dart:convert';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/bottom_nav_bar.dart';
-import '../widgets/custom_button.dart';
 import '../models/Schedule.dart';
 import '../models/Group.dart';
-import '../models/User.dart';
 import '../dynamo/group_service.dart';
 import 'schedule_service.dart';
-import '../routes/app_routes.dart';
 import '../theme/theme_provider.dart';
 import '../utils/utils_functions.dart';
 import 'create_schedule/schedule_form_screen.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Extension to make any widget tappable
 extension TapExtension on Widget {
   Widget onTap(VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: this,
-    );
+    return GestureDetector(onTap: onTap, child: this);
   }
 }
 
@@ -32,11 +27,11 @@ class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
 
   @override
-  _ScheduleScreenState createState() => _ScheduleScreenState();
+  State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  int _currentIndex = 0; // Schedule is the 1st tab (index 0)
+  final int _currentIndex = 0; // Schedule is the 1st tab (index 0)
   List<Group> _groups = [];
   Group? _selectedGroup;
   bool _isPersonalCalendar = false;
@@ -47,7 +42,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   String _currentMonth = DateFormat('MMMM').format(DateTime.now());
   int _currentYear = DateTime.now().year;
   String _currentUserId = '';
-  Map<String, bool> _isAdminCache = {}; // Cache to store admin status for groups
+  final Map<String, bool> _isAdminCache =
+      {}; // Cache to store admin status for groups
+  bool _showCreateForm = false; // Flag to show/hide the create form overlay
 
   @override
   void initState() {
@@ -63,7 +60,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         _currentUserId = user.userId;
       });
     } catch (e) {
-      print('Error getting current user: $e');
+      debugPrint('Error getting current user: $e');
     }
   }
 
@@ -90,10 +87,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             }
           }
         ''',
-        variables: {
-          'userId': _currentUserId,
-          'groupId': groupId,
-        },
+        variables: {'userId': _currentUserId, 'groupId': groupId},
       );
 
       final response = await Amplify.API.query(request: request).response;
@@ -109,7 +103,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       _isAdminCache[groupId] = isAdmin;
       return isAdmin;
     } catch (e) {
-      print('Error checking admin status: $e');
+      debugPrint('Error checking admin status: $e');
       return false;
     }
   }
@@ -126,9 +120,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       });
       _loadSchedules();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load groups: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load groups: $e')));
+      }
       setState(() => _isLoading = false);
     }
   }
@@ -151,14 +147,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load schedules: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load schedules: $e')));
+      }
       setState(() => _isLoading = false);
     }
   }
 
-  Map<DateTime, List<Schedule>> _groupSchedulesByDate(List<Schedule> schedules) {
+  Map<DateTime, List<Schedule>> _groupSchedulesByDate(
+    List<Schedule> schedules,
+  ) {
     final Map<DateTime, List<Schedule>> grouped = {};
     for (final schedule in schedules) {
       final date = DateTime(
@@ -178,19 +178,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return _groupedSchedules[day] ?? [];
   }
 
-  void _navigateToScheduleForm() {
-    Navigator.pushNamed(context, AppRoutes.scheduleForm).then((_) {
-      // Reload schedules when returning from the form
-      _loadSchedules();
+  void _toggleCreateForm() {
+    setState(() {
+      _showCreateForm = !_showCreateForm;
+      // If not already selected, select today's date when opening the form
+      if (_showCreateForm && _selectedDay == null) {
+        _selectedDay = DateTime.now();
+      }
     });
   }
 
-  void _navigateToAddGroup() {
-    Navigator.pushNamed(context, AppRoutes.addGroup).then((_) {
-      // Reload groups when returning from the form
-      _loadGroups();
+  void _closeCreateForm() {
+    setState(() {
+      _showCreateForm = false;
     });
+    _loadSchedules(); // Reload schedules when closing the form
   }
+
+  // Removed unused method _navigateToAddGroup
 
   void _selectGroup(Group group) {
     setState(() {
@@ -219,11 +224,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final theme = Theme.of(context);
 
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
-    final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -237,141 +239,168 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : null,
         showBackButton: false,
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(
-              color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-            ))
-          : Column(
-              children: [
-                // Top row with calendar selector and month/year selector
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                  child: Row(
-                    children: [
-                      // Calendar selector dropdown
-                      Expanded(
-                        child: _buildCalendarSelector(),
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      // Month/Year selector
-                      Expanded(
-                        child: _buildMonthYearSelector(),
-                      ),
-                    ],
-                  ),
+      body: Stack(
+        children: [
+          // Main content
+          _isLoading
+              ? Center(
+                child: CircularProgressIndicator(
+                  color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                 ),
+              )
+              : Column(
+                children: [
+                  // Top row with calendar selector and month/year selector
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
+                    child: Row(
+                      children: [
+                        // Calendar selector dropdown
+                        Expanded(child: _buildCalendarSelector()),
 
-                // Calendar
-                TableCalendar(
-                  firstDay: DateTime.utc(2000, 1, 1),
-                  lastDay: DateTime.utc(2100, 12, 31),
-                  focusedDay: _focusedDay,
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  eventLoader: _getSchedulesForDay,
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
-                  },
-                  onPageChanged: (focusedDay) {
-                    setState(() {
-                      _focusedDay = focusedDay;
-                      _currentMonth = DateFormat('MMMM').format(focusedDay);
-                      _currentYear = focusedDay.year;
-                    });
-                  },
-                  startingDayOfWeek: StartingDayOfWeek.monday, // Start with Monday
-                  calendarStyle: CalendarStyle(
-                    markerDecoration: BoxDecoration(
-                      color: activeColor,
-                      shape: BoxShape.circle,
+                        const SizedBox(width: 8),
+
+                        // Month/Year selector
+                        Expanded(child: _buildMonthYearSelector()),
+                      ],
                     ),
-                    todayDecoration: BoxDecoration(
-                      color: activeColor.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    selectedDecoration: BoxDecoration(
-                      color: activeColor,
-                      shape: BoxShape.circle,
-                    ),
-                    // Only make Sunday red (last day of week when starting with Monday)
-                    weekendTextStyle: const TextStyle(
-                      color: Colors.black, // Default color for Saturday
-                    ),
-                    outsideTextStyle: TextStyle(
-                      color: Colors.grey[400],
-                    ),
-                    markersMaxCount: 4,
-                    markersAlignment: Alignment.bottomCenter,
-                    markerMargin: const EdgeInsets.only(top: 4),
-                    markerSize: 6,
                   ),
-                  headerVisible: false, // Hide the default header
-                  calendarBuilders: CalendarBuilders(
-                    // Custom day builder to make only Sunday red
-                    defaultBuilder: (context, day, focusedDay) {
-                      // Sunday is 7 when starting with Monday
-                      final isWeekend = day.weekday == DateTime.sunday;
-                      return Center(
-                        child: Text(
-                          day.day.toString(),
-                          style: TextStyle(
-                            color: isWeekend ? Colors.red : null,
+
+                  // Calendar
+                  TableCalendar(
+                    firstDay: DateTime.utc(2000, 1, 1),
+                    lastDay: DateTime.utc(2100, 12, 31),
+                    focusedDay: _focusedDay,
+                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    eventLoader: _getSchedulesForDay,
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
+                    },
+                    onPageChanged: (focusedDay) {
+                      setState(() {
+                        _focusedDay = focusedDay;
+                        _currentMonth = DateFormat('MMMM').format(focusedDay);
+                        _currentYear = focusedDay.year;
+                      });
+                    },
+                    startingDayOfWeek:
+                        StartingDayOfWeek.monday, // Start with Monday
+                    calendarStyle: CalendarStyle(
+                      markerDecoration: BoxDecoration(
+                        color: activeColor,
+                        shape: BoxShape.circle,
+                      ),
+                      todayDecoration: BoxDecoration(
+                        color: activeColor.withAlpha(76), // 0.3 opacity
+                        shape: BoxShape.circle,
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: activeColor,
+                        shape: BoxShape.circle,
+                      ),
+                      // Only make Sunday red (last day of week when starting with Monday)
+                      weekendTextStyle: const TextStyle(
+                        color: Colors.black, // Default color for Saturday
+                      ),
+                      outsideTextStyle: TextStyle(color: Colors.grey[400]),
+                      markersMaxCount: 4,
+                      markersAlignment: Alignment.bottomCenter,
+                      markerMargin: const EdgeInsets.only(top: 4),
+                      markerSize: 6,
+                    ),
+                    headerVisible: false, // Hide the default header
+                    calendarBuilders: CalendarBuilders(
+                      // Custom day builder to make only Sunday red
+                      defaultBuilder: (context, day, focusedDay) {
+                        // Sunday is 7 when starting with Monday
+                        final isWeekend = day.weekday == DateTime.sunday;
+                        return Center(
+                          child: Text(
+                            day.day.toString(),
+                            style: TextStyle(
+                              color: isWeekend ? Colors.red : null,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    // Custom marker builder for dots under dates
-                    markerBuilder: (context, date, events) {
-                      if (events.isEmpty) return const SizedBox.shrink();
+                        );
+                      },
+                      // Custom marker builder for dots under dates
+                      markerBuilder: (context, date, events) {
+                        if (events.isEmpty) return const SizedBox.shrink();
 
-                      // Cast events to List<Schedule>
-                      final scheduleEvents = events.map((e) => e as Schedule).toList();
+                        // Cast events to List<Schedule>
+                        final scheduleEvents =
+                            events.map((e) => e as Schedule).toList();
 
-                      // Assign a color to each unique group
-                      final colors = <Color>[];
-                      for (var schedule in scheduleEvents) {
-                        final c = _getDotColor(schedule, activeColor, colors.length);
-                        if (!colors.contains(c)) colors.add(c);
-                      }
+                        // Assign a color to each unique group
+                        final colors = <Color>[];
+                        for (var schedule in scheduleEvents) {
+                          final c = _getDotColor(
+                            schedule,
+                            activeColor,
+                            colors.length,
+                          );
+                          if (!colors.contains(c)) colors.add(c);
+                        }
 
-                      // Limit to 4 dots maximum
-                      final dotsToShow = colors.length > 4 ? 4 : colors.length;
+                        // Limit to 4 dots maximum
+                        final dotsToShow =
+                            colors.length > 4 ? 4 : colors.length;
 
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            for (var i = 0; i < dotsToShow; i++)
-                              Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 1),
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: colors[i],
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (var i = 0; i < dotsToShow; i++)
+                                Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 1,
+                                  ),
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: colors[i],
+                                  ),
                                 ),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
 
-                // Schedule list
-                Expanded(child: _buildScheduleList()),
-              ],
+                  // Schedule list
+                  Expanded(child: _buildScheduleList()),
+                ],
+              ),
+
+          // Form overlay
+          if (_showCreateForm)
+            Container(
+              color: Colors.black.withAlpha(128), // 0.5 opacity
+              child: ScheduleFormOverlay(
+                onClose: _closeCreateForm,
+                selectedDate: _selectedDay ?? DateTime.now(),
+                initialGroup: _isPersonalCalendar ? null : _selectedGroup,
+              ),
             ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToScheduleForm,
+        onPressed: _toggleCreateForm,
         backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(
+          _showCreateForm ? Icons.close : Icons.add,
+          color: Colors.white,
+        ),
       ),
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
     );
@@ -392,15 +421,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
         borderRadius: BorderRadius.circular(30),
       ),
+      foregroundDecoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(30),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Calendar icon
-          Icon(
-            Icons.calendar_today,
-            color: textColor,
-            size: 20,
-          ),
+          Icon(Icons.calendar_today, color: textColor, size: 20),
 
           const SizedBox(width: 8),
 
@@ -421,11 +450,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           Icon(Icons.arrow_drop_down, color: textColor),
         ],
       ),
-      // Make the whole container clickable
-      foregroundDecoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(30),
-      ),
+      // Foreground decoration moved up
     ).onTap(() {
       // Show month picker when tapped
       showDialog(
@@ -469,29 +494,31 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               // Show year picker when month/year text is tapped
                               showDialog(
                                 context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Select Year'),
-                                  content: SizedBox(
-                                    width: 300,
-                                    height: 300,
-                                    child: ListView.builder(
-                                      itemCount: 101, // 100 years (2000-2100)
-                                      itemBuilder: (context, index) {
-                                        final year = 2000 + index;
-                                        return ListTile(
-                                          title: Text('$year'),
-                                          selected: year == displayYear,
-                                          onTap: () {
-                                            setState(() {
-                                              displayYear = year;
-                                            });
-                                            Navigator.pop(context);
+                                builder:
+                                    (context) => AlertDialog(
+                                      title: const Text('Select Year'),
+                                      content: SizedBox(
+                                        width: 300,
+                                        height: 300,
+                                        child: ListView.builder(
+                                          itemCount:
+                                              101, // 100 years (2000-2100)
+                                          itemBuilder: (context, index) {
+                                            final year = 2000 + index;
+                                            return ListTile(
+                                              title: Text('$year'),
+                                              selected: year == displayYear,
+                                              onTap: () {
+                                                setState(() {
+                                                  displayYear = year;
+                                                });
+                                                Navigator.pop(context);
+                                              },
+                                            );
                                           },
-                                        );
-                                      },
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
                               );
                             },
                             child: Text(
@@ -526,43 +553,71 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          childAspectRatio: 1,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 7,
+                              childAspectRatio: 1,
+                            ),
                         itemCount: 7 * 7, // Header row + up to 6 rows of days
                         itemBuilder: (context, index) {
                           // First row is day headers (Mon, Tue, Wed, etc.)
                           if (index < 7) {
-                            final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                            final dayNames = [
+                              'Mon',
+                              'Tue',
+                              'Wed',
+                              'Thu',
+                              'Fri',
+                              'Sat',
+                              'Sun',
+                            ];
                             return Center(
                               child: Text(
                                 dayNames[index],
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: index == 6 ? Colors.red : null, // Sunday in red
+                                  color:
+                                      index == 6
+                                          ? Colors.red
+                                          : null, // Sunday in red
                                 ),
                               ),
                             );
                           }
 
                           // Calculate the day for this grid position
-                          final firstDayOfMonth = DateTime(displayYear, displayMonth, 1);
-                          final dayOffset = (firstDayOfMonth.weekday - 1) % 7; // 0 = Monday
+                          final firstDayOfMonth = DateTime(
+                            displayYear,
+                            displayMonth,
+                            1,
+                          );
+                          final dayOffset =
+                              (firstDayOfMonth.weekday - 1) % 7; // 0 = Monday
                           final day = index - 7 - dayOffset + 1;
 
                           // Check if this position has a valid day for the current month
-                          if (day < 1 || day > DateTime(displayYear, displayMonth + 1, 0).day) {
+                          if (day < 1 ||
+                              day >
+                                  DateTime(
+                                    displayYear,
+                                    displayMonth + 1,
+                                    0,
+                                  ).day) {
                             return const SizedBox(); // Empty cell
                           }
 
                           final date = DateTime(displayYear, displayMonth, day);
-                          final isSelected = date.year == _currentYear &&
-                                            date.month == DateFormat('MMMM').parse(_currentMonth).month &&
-                                            date.day == (_selectedDay ?? _focusedDay).day;
-                          final isToday = date.year == DateTime.now().year &&
-                                         date.month == DateTime.now().month &&
-                                         date.day == DateTime.now().day;
+                          final isSelected =
+                              date.year == _currentYear &&
+                              date.month ==
+                                  DateFormat(
+                                    'MMMM',
+                                  ).parse(_currentMonth).month &&
+                              date.day == (_selectedDay ?? _focusedDay).day;
+                          final isToday =
+                              date.year == DateTime.now().year &&
+                              date.month == DateTime.now().month &&
+                              date.day == DateTime.now().day;
 
                           // Check if this day is a Sunday
                           final isSunday = date.weekday == DateTime.sunday;
@@ -578,15 +633,26 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             child: Container(
                               margin: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
-                                color: isSelected ? activeColor : (isToday ? activeColor.withOpacity(0.3) : null),
+                                color:
+                                    isSelected
+                                        ? activeColor
+                                        : (isToday
+                                            ? activeColor.withAlpha(76)
+                                            : null), // 0.3 opacity
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
                                 child: Text(
                                   day.toString(),
                                   style: TextStyle(
-                                    color: isSelected ? Colors.white : (isSunday ? Colors.red : null),
-                                    fontWeight: isToday || isSelected ? FontWeight.bold : null,
+                                    color:
+                                        isSelected
+                                            ? Colors.white
+                                            : (isSunday ? Colors.red : null),
+                                    fontWeight:
+                                        isToday || isSelected
+                                            ? FontWeight.bold
+                                            : null,
                                   ),
                                 ),
                               ),
@@ -638,13 +704,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
 
     final day = _selectedDay ?? _focusedDay;
-    final schedules = _groupedSchedules.values
-        .expand((list) => list)
-        .where((s) => isSameDay(s.startTime.getDateTimeInUtc(), day))
-        .toList();
+    final schedules =
+        _groupedSchedules.values
+            .expand((list) => list)
+            .where((s) => isSameDay(s.startTime.getDateTimeInUtc(), day))
+            .toList();
 
     // Sort schedules by start time
-    schedules.sort((a, b) => a.startTime.getDateTimeInUtc().compareTo(b.startTime.getDateTimeInUtc()));
+    schedules.sort(
+      (a, b) => a.startTime.getDateTimeInUtc().compareTo(
+        b.startTime.getDateTimeInUtc(),
+      ),
+    );
 
     if (schedules.isEmpty) {
       return Center(
@@ -714,20 +785,35 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       ),
 
                       // Description
-                      if (schedule.description != null && schedule.description!.isNotEmpty)
+                      if (schedule.description != null &&
+                          schedule.description!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Row(
                             children: [
                               Expanded(
-                                child: Text(
-                                  schedule.description!,
+                                child: Linkify(
+                                  text: schedule.description!,
                                   style: TextStyle(
-                                    color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                    color:
+                                        isDarkMode
+                                            ? Colors.grey[300]
+                                            : Colors.grey[700],
                                     fontSize: 14,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
+                                  linkStyle: TextStyle(
+                                    color: activeColor,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  onOpen: (link) async {
+                                    if (await canLaunchUrl(
+                                      Uri.parse(link.url),
+                                    )) {
+                                      await launchUrl(Uri.parse(link.url));
+                                    }
+                                  },
                                 ),
                               ),
                               if (schedule.description!.length > 100)
@@ -736,18 +822,101 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                     // Show full description
                                     showDialog(
                                       context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: Text(schedule.title),
-                                        content: SingleChildScrollView(
-                                          child: Text(schedule.description!),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context),
-                                            child: Text('Close'),
+                                      builder:
+                                          (context) => AlertDialog(
+                                            title: Text(schedule.title),
+                                            content: SingleChildScrollView(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Linkify(
+                                                    text: schedule.description!,
+                                                    style: TextStyle(
+                                                      color:
+                                                          isDarkMode
+                                                              ? Colors.grey[300]
+                                                              : Colors
+                                                                  .grey[700],
+                                                    ),
+                                                    linkStyle: TextStyle(
+                                                      color: activeColor,
+                                                      decoration:
+                                                          TextDecoration
+                                                              .underline,
+                                                    ),
+                                                    onOpen: (link) async {
+                                                      if (await canLaunchUrl(
+                                                        Uri.parse(link.url),
+                                                      )) {
+                                                        await launchUrl(
+                                                          Uri.parse(link.url),
+                                                        );
+                                                      }
+                                                    },
+                                                  ),
+                                                  if (schedule.location !=
+                                                          null &&
+                                                      schedule
+                                                          .location!
+                                                          .isNotEmpty) ...[
+                                                    const SizedBox(height: 16),
+                                                    Row(
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.location_on,
+                                                          size: 16,
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 4,
+                                                        ),
+                                                        Expanded(
+                                                          child: GestureDetector(
+                                                            onTap: () async {
+                                                              // Try to launch as map URL
+                                                              final mapUrl =
+                                                                  'https://maps.google.com/?q=${Uri.encodeComponent(schedule.location!)}';
+                                                              if (await canLaunchUrl(
+                                                                Uri.parse(
+                                                                  mapUrl,
+                                                                ),
+                                                              )) {
+                                                                await launchUrl(
+                                                                  Uri.parse(
+                                                                    mapUrl,
+                                                                  ),
+                                                                );
+                                                              }
+                                                            },
+                                                            child: Text(
+                                                              schedule
+                                                                  .location!,
+                                                              style: TextStyle(
+                                                                color:
+                                                                    activeColor,
+                                                                decoration:
+                                                                    TextDecoration
+                                                                        .underline,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed:
+                                                    () =>
+                                                        Navigator.pop(context),
+                                                child: const Text('Close'),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
                                     );
                                   },
                                   child: Text(
@@ -761,54 +930,111 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             ],
                           ),
                         ),
+
+                      // Location
+                      if (schedule.location != null &&
+                          schedule.location!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                size: 16,
+                                color:
+                                    isDarkMode
+                                        ? Colors.grey[300]
+                                        : Colors.grey[700],
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    // Try to launch as map URL
+                                    final mapUrl =
+                                        'https://maps.google.com/?q=${Uri.encodeComponent(schedule.location!)}';
+                                    if (await canLaunchUrl(Uri.parse(mapUrl))) {
+                                      await launchUrl(Uri.parse(mapUrl));
+                                    }
+                                  },
+                                  child: Text(
+                                    schedule.location!,
+                                    style: TextStyle(
+                                      color:
+                                          isDarkMode
+                                              ? Colors.grey[300]
+                                              : Colors.grey[700],
+                                      fontSize: 14,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
 
                 // Options button - only shown for admins
                 FutureBuilder<bool>(
-                  future: schedule.group != null
-                      ? _isUserAdmin(schedule.group!.id)
-                      : Future.value(true), // Personal schedules are always editable
+                  future:
+                      schedule.group != null
+                          ? _isUserAdmin(schedule.group!.id)
+                          : Future.value(
+                            true,
+                          ), // Personal schedules are always editable
                   builder: (context, snapshot) {
                     final isAdmin = snapshot.data ?? false;
 
                     return isAdmin
-                      ? IconButton(
+                        ? IconButton(
                           icon: Icon(
                             Icons.more_vert,
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                            color:
+                                isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[700],
                           ),
                           onPressed: () {
                             // Show options menu for admin
                             showModalBottomSheet(
                               context: context,
-                              builder: (context) => Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ListTile(
-                                    leading: const Icon(Icons.edit),
-                                    title: const Text('Edit Schedule'),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      _navigateToEditSchedule(schedule);
-                                    },
+                              builder:
+                                  (context) => Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.edit),
+                                        title: const Text('Edit Schedule'),
+                                        onTap: () {
+                                          Navigator.pop(context);
+                                          _showEditScheduleForm(schedule);
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
+                                        title: const Text(
+                                          'Delete Schedule',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                        onTap: () {
+                                          Navigator.pop(context);
+                                          _showDeleteConfirmation(schedule);
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                  ListTile(
-                                    leading: const Icon(Icons.delete, color: Colors.red),
-                                    title: const Text('Delete Schedule',
-                                      style: TextStyle(color: Colors.red)),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      _showDeleteConfirmation(schedule);
-                                    },
-                                  ),
-                                ],
-                              ),
                             );
                           },
                         )
-                      : const SizedBox.shrink(); // Hide button for non-admins
+                        : const SizedBox.shrink(); // Hide button for non-admins
                   },
                 ),
               ],
@@ -824,48 +1050,59 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  // Navigate to edit schedule screen
-  void _navigateToEditSchedule(Schedule schedule) {
-    // We'll pass the schedule to the form screen for editing
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ScheduleFormScreen(scheduleToEdit: schedule),
-      ),
-    ).then((_) {
-      // Reload schedules when returning from the form
-      _loadSchedules();
+  // Show edit schedule overlay
+  void _showEditScheduleForm(Schedule schedule) {
+    setState(() {
+      _showCreateForm = true;
+    });
+
+    // Use a post-frame callback to ensure the overlay is built before showing the form
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => Dialog(
+              insetPadding: EdgeInsets.zero,
+              backgroundColor: Colors.transparent,
+              child: ScheduleFormOverlay(
+                scheduleToEdit: schedule,
+                onClose: _closeCreateForm,
+                selectedDate: schedule.startTime.getDateTimeInUtc(),
+                initialGroup: _isPersonalCalendar ? null : _selectedGroup,
+              ),
+            ),
+      );
     });
   }
 
   // Show delete confirmation dialog
   void _showDeleteConfirmation(Schedule schedule) {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    final isDarkMode = themeProvider.isDarkMode;
-    final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
+    // Show delete confirmation dialog
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Schedule'),
-        content: Text('Are you sure you want to delete "${schedule.title}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteSchedule(schedule);
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Schedule'),
+            content: Text(
+              'Are you sure you want to delete "${schedule.title}"?',
             ),
-            child: const Text('Delete'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _deleteSchedule(schedule);
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -875,16 +1112,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       setState(() => _isLoading = true);
       await ScheduleService.deleteSchedule(schedule.id);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Schedule deleted successfully')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Schedule deleted successfully')),
+        );
+      }
 
       // Reload schedules
       _loadSchedules();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete schedule: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete schedule: $e')),
+        );
+      }
     } finally {
       setState(() => _isLoading = false);
     }
@@ -910,9 +1151,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           Colors.deepOrange,
         ];
         // Use hash of group id to determine color or use index if provided
-        final colorIndex = index < colors.length
-            ? index
-            : schedule.group!.id.hashCode % colors.length;
+        final colorIndex =
+            index < colors.length
+                ? index
+                : schedule.group!.id.hashCode % colors.length;
         return colors[colorIndex];
       }
     } else {
@@ -924,13 +1166,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget _buildCalendarSelector() {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
     final textColor = isDarkMode ? Colors.white : Colors.black;
 
     // Determine the current calendar name
-    String currentCalendarName = _isPersonalCalendar
-        ? "Personal"
-        : _selectedGroup?.name ?? "Select Calendar";
+    String currentCalendarName =
+        _isPersonalCalendar
+            ? "Personal"
+            : _selectedGroup?.name ?? "Select Calendar";
 
     return Container(
       height: _selectorHeight,
@@ -945,11 +1187,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           value: null, // Don't show a selected value in the dropdown itself
           hint: Row(
             children: [
-              Icon(
-                Icons.calendar_view_month,
-                color: textColor,
-                size: 20,
-              ),
+              Icon(Icons.calendar_view_month, color: textColor, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -975,7 +1213,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 "Personal",
                 style: TextStyle(
                   color: textColor,
-                  fontWeight: _isPersonalCalendar ? FontWeight.bold : FontWeight.normal,
+                  fontWeight:
+                      _isPersonalCalendar ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
               onTap: () => _selectPersonalCalendar(),
@@ -985,23 +1224,26 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             if (_groups.isNotEmpty)
               DropdownMenuItem<String>(
                 enabled: false,
-                child: Divider(color: textColor.withOpacity(0.5)),
+                child: Divider(color: textColor.withAlpha(128)), // 0.5 opacity
               ),
 
             // Group Calendar options
-            ..._groups.map((group) => DropdownMenuItem<String>(
-              value: group.id,
-              child: Text(
-                group.name,
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: !_isPersonalCalendar && _selectedGroup?.id == group.id
-                      ? FontWeight.bold
-                      : FontWeight.normal,
+            ..._groups.map(
+              (group) => DropdownMenuItem<String>(
+                value: group.id,
+                child: Text(
+                  group.name,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight:
+                        !_isPersonalCalendar && _selectedGroup?.id == group.id
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                  ),
                 ),
+                onTap: () => _selectGroup(group),
               ),
-              onTap: () => _selectGroup(group),
-            )),
+            ),
           ],
           onChanged: (_) {}, // We handle selection in onTap of each item
         ),

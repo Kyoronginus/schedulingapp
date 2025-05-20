@@ -8,7 +8,6 @@ import '../auth/password/reset_password_screen.dart';
 import '../schedule/schedule_screen.dart';
 import '../auth/register/register_screen.dart';
 import '../dynamo/set_user_name_screen.dart';
-import '../schedule/create_schedule/schedule_form_screen.dart';
 import '../schedule/group/group_screen.dart';
 import '../schedule/invite/invite_member_screen.dart';
 import '../home/Profile/profile_screen.dart';
@@ -24,7 +23,6 @@ class AppRoutes {
   static const String schedule = '/schedule';
   static const String inviteMember = '/inviteMember';
   static const String setUserName = '/setUserName';
-  static const String scheduleForm = '/scheduleForm';
   static const String addGroup = '/group';
   static const String profile = '/profile';
 
@@ -34,14 +32,13 @@ class AppRoutes {
         AppRoutes.emailLogin: (context) => const EmailLoginScreen(),
         AppRoutes.register: (context) => const RegisterScreen(),
         AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
-        AppRoutes.resetPassword: (context) => ResetPasswordScreen(email: ''),
+        AppRoutes.resetPassword: (context) => const ResetPasswordScreen(email: ''),
         AppRoutes.splash: (context) => SplashScreen(),
         AppRoutes.schedule: (context) => const ScheduleScreen(),
-        AppRoutes.scheduleForm: (context) => const ScheduleFormScreen(),
         AppRoutes.setUserName: (context) => const SetUserNameScreen(),
         AppRoutes.addGroup: (context) => const GroupScreen(),
         AppRoutes.inviteMember: (context) =>
-            InviteMemberScreen(groupId: 'exampleGroupId'),
-        AppRoutes.profile: (context) => ProfileScreen(email: ''),
+            const InviteMemberScreen(groupId: 'exampleGroupId'),
+        AppRoutes.profile: (context) => const ProfileScreen(email: ''),
       };
 }

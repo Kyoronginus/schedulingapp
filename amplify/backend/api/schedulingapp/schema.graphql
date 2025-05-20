@@ -61,6 +61,7 @@ type Schedule
   id: ID!
   title: String!
   description: String
+  location: String
   startTime: AWSDateTime!
   endTime: AWSDateTime!
   userId: ID! @index(name: "byUser")

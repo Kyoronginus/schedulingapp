@@ -1,56 +1,89 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import 'package:schedulingapp/widgets/custom_app_bar.dart';
-import '../../models/Schedule.dart';
 import 'package:intl/intl.dart';
-import '../../models/schedule_extensions.dart';
+import '../../models/Schedule.dart';
 import '../schedule_service.dart';
-import '../../models/User.dart';
 import '../../models/Group.dart';
-import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import '../../dynamo/get_user_service.dart';
 import '../../dynamo/group_service.dart';
-import '../../routes/app_routes.dart';
 import '../../theme/theme_provider.dart';
 import 'package:provider/provider.dart';
-import '../../utils/utils_functions.dart';
 import 'dart:async';
 
-class ScheduleFormScreen extends StatefulWidget {
+class ScheduleFormOverlay extends StatefulWidget {
   final Schedule? scheduleToEdit;
+  final Function onClose;
+  final DateTime selectedDate;
+  final Group? initialGroup;
 
-  const ScheduleFormScreen({super.key, this.scheduleToEdit});
+  const ScheduleFormOverlay({
+    super.key,
+    this.scheduleToEdit,
+    required this.onClose,
+    required this.selectedDate,
+    this.initialGroup,
+  });
 
   @override
-  _ScheduleFormScreenState createState() => _ScheduleFormScreenState();
+  State<ScheduleFormOverlay> createState() => _ScheduleFormOverlayState();
 }
 
-class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
+class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  DateTime? _startTime;
-  DateTime? _endTime;
+  final _locationController = TextEditingController();
+  DateTime? _selectedDate;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
   bool _isSaving = false;
-  Group? _selectedGroup; // Holds the selected group
+  Group? _selectedGroup;
+  bool _isEditing = false;
 
   // Timer to periodically check if selected time is still valid
   Timer? _timeValidityTimer;
-  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
     _isEditing = widget.scheduleToEdit != null;
+    _selectedDate = widget.selectedDate;
 
     // If editing, populate the form with existing data
     if (_isEditing) {
       _titleController.text = widget.scheduleToEdit!.title;
       _descriptionController.text = widget.scheduleToEdit!.description ?? '';
-      _startTime = widget.scheduleToEdit!.startTime.getDateTimeInUtc();
-      _endTime = widget.scheduleToEdit!.endTime.getDateTimeInUtc();
+      _locationController.text = widget.scheduleToEdit!.location ?? '';
+
+      final startDateTime = widget.scheduleToEdit!.startTime.getDateTimeInUtc();
+      final endDateTime = widget.scheduleToEdit!.endTime.getDateTimeInUtc();
+
+      _selectedDate = DateTime(
+        startDateTime.year,
+        startDateTime.month,
+        startDateTime.day,
+      );
+
+      _startTime = TimeOfDay(
+        hour: startDateTime.hour,
+        minute: startDateTime.minute,
+      );
+
+      _endTime = TimeOfDay(
+        hour: endDateTime.hour,
+        minute: endDateTime.minute,
+      );
+
       _selectedGroup = widget.scheduleToEdit!.group;
     } else {
       _loadInitialData();
+
+      // Set default times to the next hour
+      final now = DateTime.now();
+      // Round to the next hour
+      final nextHour = (now.hour + (now.minute > 0 ? 1 : 0)) % 24;
+      _startTime = TimeOfDay(hour: nextHour, minute: 0);
+      // End time is 1 hour after start time
+      _endTime = TimeOfDay(hour: (nextHour + 1) % 24, minute: 0);
     }
 
     // Start a timer to check time validity every minute
@@ -62,47 +95,67 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
   @override
   void dispose() {
     _timeValidityTimer?.cancel();
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
-  // Validate that selected times are still in the future
-  void _validateTimeSelections() {
-    final now = DateTime.now();
-
-    // If start time is in the past, clear it
-    if (_startTime != null && _startTime!.isBefore(now)) {
-      setState(() {
-        _startTime = null;
-        // If end time depends on start time, clear it too
-        if (_endTime != null) {
-          _endTime = null;
-        }
-      });
-
-      // Only show warning if the form is visible
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Selected time is now in the past. Please select a new time.')),
-        );
+  // Load initial data (default group)
+  Future<void> _loadInitialData() async {
+    try {
+      final groups = await GroupService.getUserGroups();
+      if (groups.isNotEmpty) {
+        setState(() {
+          // Use the initialGroup if provided, otherwise use the first group
+          _selectedGroup = widget.initialGroup ?? groups.first;
+        });
       }
+    } catch (e) {
+      debugPrint('Failed to load initial data: $e');
     }
   }
 
-  // Load initial data (user and group)
-  Future<void> _loadInitialData() async {
-    try {
-      final group = await GroupService.getSelectedGroup();
-      setState(() => _selectedGroup = group);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load group: $e')),
-      );
+  // Validate time selections
+  void _validateTimeSelections() {
+    if (_selectedDate == null || _startTime == null) return;
+
+    final now = DateTime.now();
+    final selectedStartDateTime = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      _startTime!.hour,
+      _startTime!.minute,
+    );
+
+    // If selected date is today and start time is in the past, reset it
+    if (selectedStartDateTime.isBefore(now) &&
+        _selectedDate!.year == now.year &&
+        _selectedDate!.month == now.month &&
+        _selectedDate!.day == now.day) {
+      setState(() {
+        _startTime = null;
+        _endTime = null;
+      });
     }
+  }
+
+  // Convert TimeOfDay to DateTime
+  DateTime _timeOfDayToDateTime(DateTime date, TimeOfDay time) {
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
   }
 
   // Schedule creation/update process
-  Future<void> _createSchedule() async {
+  Future<void> _saveSchedule() async {
     if (_titleController.text.isEmpty ||
+        _selectedDate == null ||
         _startTime == null ||
         _endTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -118,17 +171,20 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
       return;
     }
 
+    final startDateTime = _timeOfDayToDateTime(_selectedDate!, _startTime!);
+    final endDateTime = _timeOfDayToDateTime(_selectedDate!, _endTime!);
+
     // Validate that start time is before end time
-    if (_startTime!.isAfter(_endTime!) || _startTime!.isAtSameMomentAs(_endTime!)) {
+    if (startDateTime.isAfter(endDateTime) || startDateTime.isAtSameMomentAs(endDateTime)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('End time must be after start time')),
       );
       return;
     }
 
-    // Validate that start time is in the future
+    // Validate that start time is not in the past
     final now = DateTime.now();
-    if (_startTime!.isBefore(now)) {
+    if (startDateTime.isBefore(now)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Start time must be in the future')),
       );
@@ -143,16 +199,19 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
         final updatedSchedule = widget.scheduleToEdit!.copyWith(
           title: _titleController.text,
           description: _descriptionController.text,
-          startTime: TemporalDateTime(_startTime!),
-          endTime: TemporalDateTime(_endTime!),
+          location: _locationController.text,
+          startTime: TemporalDateTime(startDateTime),
+          endTime: TemporalDateTime(endDateTime),
           group: _selectedGroup,
         );
 
         await ScheduleService.updateSchedule(updatedSchedule);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Schedule updated successfully!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Schedule updated successfully!')),
+          );
+        }
       } else {
         // Create new schedule
         final currentUser = await AuthService.getCurrentUser();
@@ -161,142 +220,41 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
           id: '', // Amplify will auto-generate this
           title: _titleController.text,
           description: _descriptionController.text,
-          startTime: TemporalDateTime(_startTime!),
-          endTime: TemporalDateTime(_endTime!),
+          location: _locationController.text,
+          startTime: TemporalDateTime(startDateTime),
+          endTime: TemporalDateTime(endDateTime),
           user: currentUser, // Pass the User object directly
           group: _selectedGroup, // Explicitly set groupId
         );
 
         await ScheduleService.createSchedule(newSchedule);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Schedule created successfully!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Schedule created successfully!')),
+          );
+        }
       }
 
-      Navigator.pushReplacementNamed(context, AppRoutes.schedule);
+      widget.onClose();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
     } finally {
       setState(() => _isSaving = false);
     }
   }
 
-  // Date and time selection dialog
-  Future<void> _selectDateTime(bool isStartTime) async {
-    final DateTime now = DateTime.now();
-
-    // Round current time to next 5 minutes
-    final int currentMinute = now.minute;
-    final int roundedMinute = ((currentMinute + 4) ~/ 5) * 5;
-    final DateTime roundedNow = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      now.hour + (roundedMinute >= 60 ? 1 : 0),
-      roundedMinute % 60
-    );
-
-    // Set initial date based on existing selection or current date
-    final initialDate = isStartTime
-        ? (_startTime != null ? _startTime! : roundedNow)
-        : (_endTime != null ? _endTime! :
-           (_startTime != null ? _startTime!.add(const Duration(hours: 1)) : roundedNow.add(const Duration(hours: 1))));
-
-    final selectedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(now.year, now.month, now.day), // Allow today
-      lastDate: DateTime(2101),
-    );
-    if (selectedDate == null) return;
-
-    // Determine minimum time for today
-    TimeOfDay minimumTime = TimeOfDay.fromDateTime(roundedNow);
-    bool isToday = selectedDate.year == now.year &&
-                   selectedDate.month == now.month &&
-                   selectedDate.day == now.day;
-
-    // Set initial time based on existing selection or current time + 1 hour (rounded to 5 minutes)
-    TimeOfDay initialTimeOfDay;
-    if (isStartTime) {
-      initialTimeOfDay = _startTime != null
-          ? TimeOfDay.fromDateTime(_startTime!)
-          : TimeOfDay.fromDateTime(roundedNow.add(const Duration(minutes: 30)));
-    } else {
-      initialTimeOfDay = _endTime != null
-          ? TimeOfDay.fromDateTime(_endTime!)
-          : (_startTime != null
-              ? TimeOfDay.fromDateTime(_startTime!.add(const Duration(hours: 1)))
-              : TimeOfDay.fromDateTime(roundedNow.add(const Duration(hours: 1, minutes: 30))));
-    }
-
-    final selectedTime = await showTimePicker(
-      context: context,
-      initialTime: initialTimeOfDay,
-      builder: (BuildContext context, Widget? child) {
-        // Only apply time validation for today
-        if (!isToday) return child!;
-
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            alwaysUse24HourFormat: false,
-          ),
-          child: TimePickerDialog(
-            initialTime: initialTimeOfDay,
-            cancelText: 'CANCEL',
-            confirmText: 'OK',
-            // This validator ensures time is in the future for today
-            errorInvalidText: 'Time must be in the future',
-            initialEntryMode: TimePickerEntryMode.dial,
-          ),
-        );
-      },
-    );
-    if (selectedTime == null) return;
-
-    final selectedDateTime = DateTime(
-      selectedDate.year,
-      selectedDate.month,
-      selectedDate.day,
-      selectedTime.hour,
-      selectedTime.minute,
-    );
-
-    // Ensure selected time is in the future
-    if (selectedDateTime.isBefore(now)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selected time must be in the future')),
-      );
-      return;
-    }
-
-    // For end time, ensure it's after start time
-    if (!isStartTime && _startTime != null && selectedDateTime.isBefore(_startTime!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End time must be after start time')),
-      );
-      return;
-    }
-
-    setState(() {
-      if (isStartTime) {
-        _startTime = selectedDateTime;
-        // If end time exists but is now before start time, clear it
-        if (_endTime != null && _endTime!.isBefore(selectedDateTime)) {
-          _endTime = null;
-        }
-      } else {
-        _endTime = selectedDateTime;
-      }
-    });
-  }
-
   // Group selection dialog
   Future<void> _selectGroup() async {
+    if (!mounted) return;
+
     final groups = await GroupService.getUserGroups();
+    if (!mounted) return;
+
     final selectedGroup = await showDialog<Group>(
       context: context,
       builder: (context) => AlertDialog(
@@ -324,136 +282,360 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
+    final primaryColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF4A80F0);
 
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pop(
-            context); // Ensure it navigates back to the previous screen
-        return false; // Prevent default back button behavior
-      },
-      child: Scaffold(
-        appBar: CustomAppBar(
-          title: Text(
-            _isEditing ? "Edit Schedule" : "Create Schedule",
-            style: TextStyle(
-              color: isDarkMode ? const Color(0xFF4CAF50) : Colors.white,
-              fontWeight: FontWeight.bold,
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(51), // 0.2 opacity
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
-          ),
-          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : null,
+          ],
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title*',
-                    border: OutlineInputBorder(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: const Center(
+                child: Text(
+                  'Add New Event',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                _buildTimeSelection(
-                    'Start Time*', _startTime, () => _selectDateTime(true)),
-                const SizedBox(height: 16),
-                _buildTimeSelection(
-                    'End Time*', _endTime, () => _selectDateTime(false)),
-                const SizedBox(height: 16),
-                _buildGroupSelector(),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isSaving ? null : _createSchedule,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: _isSaving
-                      ? const CircularProgressIndicator()
-                      : const Text('Save', style: TextStyle(fontSize: 18)),
-                ),
-              ],
+              ),
             ),
-          ),
+
+            // Form content
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title field
+                  TextField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      hintText: 'Event title ...',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Date field
+                  InkWell(
+                    onTap: _selectDate,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _selectedDate != null
+                                ? DateFormat('dd / MM / yyyy').format(_selectedDate!)
+                                : 'Select date',
+                            style: TextStyle(
+                              color: _selectedDate != null
+                                  ? isDarkMode ? Colors.white : Colors.black
+                                  : Colors.grey,
+                            ),
+                          ),
+                          Icon(Icons.calendar_today, color: primaryColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Time fields
+                  Row(
+                    children: [
+                      // Start time
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => _selectTime(true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _startTime != null
+                                      ? _startTime!.format(context)
+                                      : '${(DateTime.now().hour + (DateTime.now().minute > 0 ? 1 : 0)) % 24}:00',
+                                  style: TextStyle(
+                                    color: isDarkMode ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                Icon(Icons.access_time, color: primaryColor),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Arrow
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Icon(Icons.arrow_forward, color: primaryColor),
+                      ),
+
+                      // End time
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => _selectTime(false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _endTime != null
+                                      ? _endTime!.format(context)
+                                      : '${((DateTime.now().hour + (DateTime.now().minute > 0 ? 1 : 0)) + 1) % 24}:00',
+                                  style: TextStyle(
+                                    color: isDarkMode ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                Icon(Icons.access_time, color: primaryColor),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Location field
+                  TextField(
+                    controller: _locationController,
+                    decoration: InputDecoration(
+                      hintText: 'Location (Link Gmaps/Zoom)',
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      suffixIcon: Icon(Icons.location_on, color: primaryColor),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description field
+                  TextField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      hintText: 'Description...',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Group selector
+                  InkWell(
+                    onTap: _selectGroup,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _selectedGroup?.name ?? 'Select group',
+                            style: TextStyle(
+                              color: _selectedGroup != null
+                                  ? isDarkMode ? Colors.white : Colors.black
+                                  : Colors.grey,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down, size: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Cancel button - positioned at bottom left
+                      SizedBox(
+                        width: 100,
+                        child: ElevatedButton(
+                          onPressed: () => widget.onClose(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+
+                      // Save button - positioned at bottom right
+                      SizedBox(
+                        width: 100,
+                        child: ElevatedButton(
+                          onPressed: _isSaving ? null : _saveSchedule,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: _isSaving
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Save'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // Time selection widget
-  Widget _buildTimeSelection(
-      String label, DateTime? time, VoidCallback onPressed) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: onPressed,
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            alignment: Alignment.centerLeft,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                time != null
-                    ? DateFormat('yyyy/MM/dd HH:mm').format(time)
-                    : 'Please select',
-                style: TextStyle(
-                  color: time != null
-                      ? (Provider.of<ThemeProvider>(context).isDarkMode ? Colors.white : Colors.black)
-                      : Colors.grey,
-                ),
-              ),
-              const Icon(Icons.calendar_today, size: 20),
-            ],
-          ),
-        ),
-      ],
+  // Date selection
+  Future<void> _selectDate() async {
+    final now = DateTime.now();
+    final initialDate = _selectedDate ?? now;
+
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year, now.month, now.day), // Allow today
+      lastDate: DateTime(2101),
     );
+
+    if (selectedDate != null) {
+      setState(() => _selectedDate = selectedDate);
+    }
   }
 
-  // Group selection widget
-  Widget _buildGroupSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Group*', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: _selectGroup,
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            alignment: Alignment.centerLeft,
+  // Time selection
+  Future<void> _selectTime(bool isStartTime) async {
+    final now = DateTime.now();
+    final isToday = _selectedDate?.year == now.year &&
+                   _selectedDate?.month == now.month &&
+                   _selectedDate?.day == now.day;
+
+    // Get the next hour for default times
+    final currentTime = DateTime.now();
+    final nextHour = (currentTime.hour + (currentTime.minute > 0 ? 1 : 0)) % 24;
+
+    final initialTime = isStartTime
+        ? _startTime ?? TimeOfDay(hour: nextHour, minute: 0)
+        : _endTime ?? TimeOfDay(hour: (nextHour + 1) % 24, minute: 0);
+
+    final selectedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      builder: (BuildContext context, Widget? child) {
+        // Only apply time validation for today
+        if (!isToday) return child!;
+
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            alwaysUse24HourFormat: false,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _selectedGroup?.name ?? 'Please select',
-                style: TextStyle(
-                  color: _selectedGroup != null
-                      ? (Provider.of<ThemeProvider>(context).isDarkMode ? Colors.white : Colors.black)
-                      : Colors.grey,
-                ),
-              ),
-              const Icon(Icons.arrow_drop_down, size: 24),
-            ],
-          ),
-        ),
-      ],
+          child: child!,
+        );
+      },
     );
+
+    if (selectedTime != null) {
+      // For today, validate that time is in the future
+      if (isToday) {
+        final selectedDateTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          selectedTime.hour,
+          selectedTime.minute,
+        );
+
+        if (selectedDateTime.isBefore(now)) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Selected time must be in the future')),
+            );
+          }
+          return;
+        }
+      }
+
+      // For end time, validate it's after start time
+      if (!isStartTime && _startTime != null) {
+        final startMinutes = _startTime!.hour * 60 + _startTime!.minute;
+        final endMinutes = selectedTime.hour * 60 + selectedTime.minute;
+
+        if (endMinutes <= startMinutes) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('End time must be after start time')),
+            );
+          }
+          return;
+        }
+      }
+
+      setState(() {
+        if (isStartTime) {
+          _startTime = selectedTime;
+
+          // Always adjust end time to be 1 hour after start time
+          // This ensures the end time is always updated when start time changes
+          final newEndHour = (selectedTime.hour + 1) % 24;
+          _endTime = TimeOfDay(hour: newEndHour, minute: selectedTime.minute);
+        } else {
+          _endTime = selectedTime;
+        }
+      });
+    }
   }
 }

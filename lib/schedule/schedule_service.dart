@@ -1,10 +1,8 @@
 import 'package:amplify_flutter/amplify_flutter.dart';
 import '../models/Schedule.dart';
-import '../models/schedule_extensions.dart';
-import '../models/Group.dart';
-import '../models/User.dart';
+import 'schedule_extensions.dart';
 import '../dynamo/group_service.dart';
-import 'package:amplify_api/amplify_api.dart';
+import 'package:flutter/foundation.dart';
 
 class ScheduleService {
   static Future<void> createSchedule(Schedule schedule) async {
@@ -26,6 +24,7 @@ class ScheduleService {
               startTime
               endTime
               description
+              location
               userId
               groupId
             }
@@ -40,9 +39,9 @@ class ScheduleService {
       if (response.hasErrors) {
         throw Exception(response.errors.first.message);
       }
-      print("✅ Schedule created: ${response.data}");
+      debugPrint("✅ Schedule created: ${response.data}");
     } catch (e) {
-      print('❌ Failed to create schedule: $e');
+      debugPrint('❌ Failed to create schedule: $e');
       rethrow;
     }
   }
@@ -58,6 +57,7 @@ class ScheduleService {
               startTime
               endTime
               description
+              location
               userId
               groupId
             }
@@ -68,6 +68,7 @@ class ScheduleService {
             'id': schedule.id,
             'title': schedule.title,
             'description': schedule.description,
+            'location': schedule.location,
             'startTime': schedule.startTime.format(),
             'endTime': schedule.endTime.format(),
             '_version': 1, // This might need to be adjusted based on your schema
@@ -79,9 +80,9 @@ class ScheduleService {
       if (response.hasErrors) {
         throw Exception(response.errors.first.message);
       }
-      print("✅ Schedule updated: ${response.data}");
+      debugPrint("✅ Schedule updated: ${response.data}");
     } catch (e) {
-      print('❌ Failed to update schedule: $e');
+      debugPrint('❌ Failed to update schedule: $e');
       rethrow;
     }
   }
@@ -107,9 +108,9 @@ class ScheduleService {
       if (response.hasErrors) {
         throw Exception(response.errors.first.message);
       }
-      print("✅ Schedule deleted: ${response.data}");
+      debugPrint("✅ Schedule deleted: ${response.data}");
     } catch (e) {
-      print('❌ Failed to delete schedule: $e');
+      debugPrint('❌ Failed to delete schedule: $e');
       rethrow;
     }
   }
@@ -126,6 +127,7 @@ class ScheduleService {
                 startTime
                 endTime
                 description
+                location
                 userId
                 groupId
               }
@@ -150,7 +152,7 @@ class ScheduleService {
       final schedules = ScheduleListExtension.listFromJson(data);
       return schedules;
     } catch (e) {
-      print('❌ Failed to fetch schedules: $e');
+      debugPrint('❌ Failed to fetch schedules: $e');
       rethrow;
     }
   }
@@ -167,6 +169,7 @@ class ScheduleService {
                 startTime
                 endTime
                 description
+                location
                 userId
                 groupId
               }
@@ -191,7 +194,7 @@ class ScheduleService {
       final schedules = ScheduleListExtension.listFromJson(data);
       return schedules;
     } catch (e) {
-      print('❌ Failed to fetch group schedules: $e');
+      debugPrint('❌ Failed to fetch group schedules: $e');
       rethrow;
     }
   }
@@ -199,22 +202,22 @@ class ScheduleService {
   static Future<List<Schedule>> loadAllSchedules() async {
     try {
       final groups = await GroupService.getUserGroups();
-      print('🧩 所属グループ数: ${groups.length}');
+      debugPrint('🧩 所属グループ数: ${groups.length}');
 
       final allSchedules = <Schedule>[];
 
       for (final group in groups) {
-        print('📅 ${group.name}（ID: ${group.id}）のスケジュールを取得中...');
+        debugPrint('📅 ${group.name}（ID: ${group.id}）のスケジュールを取得中...');
         final groupSchedules =
             await ScheduleService.getGroupSchedules(group.id);
-        print('✅ ${groupSchedules.length} 件取得');
+        debugPrint('✅ ${groupSchedules.length} 件取得');
         allSchedules.addAll(groupSchedules);
       }
-      print('📦 スケジュール総数: ${allSchedules.length}');
+      debugPrint('📦 スケジュール総数: ${allSchedules.length}');
 
       void debugScheduleList(List<Schedule> schedules) {
         for (final s in schedules) {
-          print(
+          debugPrint(
               '📅 Schedule: ${s.title}, start=${s.startTime.getDateTimeInUtc().toLocal()}');
         }
       }
@@ -223,7 +226,7 @@ class ScheduleService {
 
       return allSchedules;
     } catch (e) {
-      print('❌ Failed to load all schedules: $e');
+      debugPrint('❌ Failed to load all schedules: $e');
       rethrow;
     }
   }
