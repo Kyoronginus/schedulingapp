@@ -1,14 +1,13 @@
 {
-  "whyContinueWithGen1": "I am a current Gen 1 user",
+  "providers": [
+    "awscloudformation"
+  ],
   "projectName": "schedulingApp",
   "version": "3.1",
   "frontend": "flutter",
   "flutter": {
     "config": {
-      "ResDir": "./lib/"
+      "ResDir": "lib"
     }
-  },
-  "providers": [
-    "awscloudformation"
-  ]
+  }
 }
