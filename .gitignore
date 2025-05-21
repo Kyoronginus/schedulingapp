@@ -44,6 +44,27 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Flutter build files
+linux/flutter/generated_plugin_registrant.*
+linux/flutter/generated_plugins.cmake
+macos/Flutter/GeneratedPluginRegistrant.swift
+windows/flutter/generated_plugin_registrant.*
+windows/flutter/generated_plugins.cmake
+android/app/.cxx/
+
+# Amplify auto-generated files (only if these get regenerated and don't contain manual edits)
+amplify/backend/api/**/cli-inputs.json
+amplify/backend/api/**/parameters.json
+amplify/backend/api/**/resolvers/README.md
+amplify/backend/api/**/stacks/CustomResources.json
+amplify/backend/api/**/transform.conf.json
+amplify/backend/auth/**/cli-inputs.json
+amplify/backend/auth/**/parameters.json
+amplify/team-provider-info.json
+amplify/backend/types/amplify-dependent-resources-ref.d.ts
+
+.vscode/
+
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
 amplify/.config/local-*
