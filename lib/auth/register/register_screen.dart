@@ -69,9 +69,10 @@ class _RegisterPageState extends State<RegisterScreen> {
       final signUpResult = await Amplify.Auth.signUp(
         username: email,
         password: password,
-        options: CognitoSignUpOptions(userAttributes: {
-          CognitoUserAttributeKey.email: email,
-          CognitoUserAttributeKey.name: name,
+        options: CognitoSignUpOptions(
+          userAttributes: {
+            CognitoUserAttributeKey.email: email,
+            CognitoUserAttributeKey.name: name,
         }),
       );
 
@@ -109,9 +110,9 @@ class _RegisterPageState extends State<RegisterScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  primaryColor.withOpacity(0.8),
-                  primaryColor.withOpacity(0.6),
-                  primaryColor.withOpacity(0.4),
+                  primaryColor.withValues(alpha:0.8),
+                  primaryColor.withValues(alpha:0.6),
+                  primaryColor.withValues(alpha:0.4),
                 ],
               ),
             ),
@@ -135,7 +136,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha:0.2),
                               spreadRadius: 2,
                               blurRadius: 8,
                               offset: const Offset(0, 4),
@@ -177,7 +178,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha:0.1),
                             spreadRadius: 1,
                             blurRadius: 4,
                             offset: const Offset(0, 2),
@@ -203,7 +204,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha:0.1),
                             spreadRadius: 1,
                             blurRadius: 4,
                             offset: const Offset(0, 2),
@@ -229,7 +230,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha:0.1),
                             spreadRadius: 1,
                             blurRadius: 4,
                             offset: const Offset(0, 2),
@@ -256,7 +257,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha:0.1),
                             spreadRadius: 1,
                             blurRadius: 4,
                             offset: const Offset(0, 2),
@@ -325,7 +326,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                           onPressed: () {
                             Navigator.pushReplacementNamed(context, AppRoutes.login);
                           },
-                          child: Text(
+                          child: const Text(
                             "Login",
                             style: TextStyle(
                               color: Colors.white,

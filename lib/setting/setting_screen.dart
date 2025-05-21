@@ -40,7 +40,7 @@ class _SettingScreenState extends State<SettingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: Text("Ini Setting Screen")),
+      appBar: const CustomAppBar(title: Text("Ini Setting Screen")),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -17,11 +17,11 @@ class CustomTextPair extends StatelessWidget {
       children: [
         Text(
           title,
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 5),
+        const SizedBox(height: 5),
         Text(subtitle),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
       ],
     );
   }

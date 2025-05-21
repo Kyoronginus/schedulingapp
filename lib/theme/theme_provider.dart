@@ -108,9 +108,9 @@ class ThemeProvider extends ChangeNotifier {
           }),
           trackColor: MaterialStateProperty.resolveWith<Color>((states) {
             if (states.contains(MaterialState.selected)) {
-              return _accentColorDark.withOpacity(0.5);
+              return _accentColorDark.withValues(alpha:0.5);
             }
-            return Colors.grey.withOpacity(0.5);
+            return Colors.grey.withValues(alpha:0.5);
           }),
         ),
         iconTheme: const IconThemeData(
