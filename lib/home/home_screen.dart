@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final attributes = await Amplify.Auth.fetchUserAttributes();
       final emailAttr = attributes.firstWhere(
         (attr) => attr.userAttributeKey == CognitoUserAttributeKey.email,
-        orElse: () => AuthUserAttribute(
+        orElse: () => const AuthUserAttribute(
           userAttributeKey: CognitoUserAttributeKey.email,
           value: '',
         ),
@@ -122,10 +122,10 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) {
         final nameController = TextEditingController();
         return AlertDialog(
-          title: Text("Enter Your Name"),
+          title: const Text("Enter Your Name"),
           content: TextField(
             controller: nameController,
-            decoration: InputDecoration(labelText: "Name"),
+            decoration: const InputDecoration(labelText: "Name"),
           ),
           actions: [
             TextButton(
@@ -133,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 name = nameController.text.trim();
                 Navigator.of(context).pop();
               },
-              child: Text("Submit"),
+              child: const Text("Submit"),
             ),
           ],
         );
@@ -187,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .toList();
 
     if (schedules.isEmpty) {
-      return Center(child: Text('No schedules for this day'));
+      return const Center(child: Text('No schedules for this day'));
     }
 
     return ListView.builder(
@@ -195,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         final schedule = schedules[index];
         return Card(
-          margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
           child: ListTile(
             title: Text(schedule.title),
             subtitle: Column(
@@ -215,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
+      appBar: const CustomAppBar(
         title: Text("Home Screen"),
         showBackButton: false, // Hide back button on home screen
       ),

@@ -3,6 +3,8 @@ import '../auth_service.dart';
 import '../../utils/utils_functions.dart';
 import '../password/forgot_password_screen.dart';
 import '../../routes/app_routes.dart';
+import '../../widgets/exception_message.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
 
 class EmailLoginScreen extends StatefulWidget {
   const EmailLoginScreen({super.key});
@@ -26,7 +28,11 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     try {
       await login(_emailController.text, _passwordController.text);
       Navigator.pushReplacementNamed(context, AppRoutes.home);
-    } catch (e) {
+    } on AuthException catch (e){
+      setState(() {
+        _errorMessage = authErrorMessage(e);
+      });
+    }catch (e) {
       setState(() {
         _errorMessage = e.toString();
       });
@@ -49,9 +55,9 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  primaryColor.withOpacity(0.8),
-                  primaryColor.withOpacity(0.6),
-                  primaryColor.withOpacity(0.4),
+                  primaryColor.withValues(alpha:0.8),
+                  primaryColor.withValues(alpha:0.6),
+                  primaryColor.withValues(alpha:0.4),
                 ],
               ),
             ),
@@ -74,7 +80,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha:0.2),
                             spreadRadius: 2,
                             blurRadius: 8,
                             offset: const Offset(0, 4),
@@ -116,7 +122,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha:0.1),
                           spreadRadius: 1,
                           blurRadius: 4,
                           offset: const Offset(0, 2),
@@ -142,7 +148,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha:0.1),
                           spreadRadius: 1,
                           blurRadius: 4,
                           offset: const Offset(0, 2),

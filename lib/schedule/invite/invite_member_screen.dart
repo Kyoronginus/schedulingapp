@@ -54,8 +54,8 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
-        title: const Text('Invite Member'),
+      appBar: const CustomAppBar(
+        title: Text('Invite Member'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

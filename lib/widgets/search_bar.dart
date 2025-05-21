@@ -7,17 +7,17 @@ class SearchBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(Icons.search,
+        const Icon(Icons.search,
             color: Colors.black), // Search icon outside the black box
-        SizedBox(width: 8.0), // Add some spacing
+        const SizedBox(width: 8.0), // Add some spacing
         Expanded(
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
             decoration: BoxDecoration(
               color: Colors.black,
               borderRadius: BorderRadius.circular(5.0),
             ),
-            child: Text(
+            child: const Text(
               'Search',
               style: TextStyle(
                 color: Colors.white,
