@@ -6,7 +6,7 @@ import '../../widgets/custom_app_bar.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../utils/utils_functions.dart';
 import '../../auth/logout.dart';
-import '../../routes/app_routes.dart';
+
 import '../../theme/theme_provider.dart';
 import '../../services/profile_image_service.dart';
 import 'dart:convert';
@@ -35,8 +35,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _userName;
   String? _userEmail;
   String? _authProvider;
-  int _currentIndex = 2;
-  
+  int _currentIndex = 3; // Updated to reflect new navigation order
+
   ImageProvider? _profileImage;
 
   @override
@@ -74,23 +74,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Try to determine auth provider
       try {
         final session = await Amplify.Auth.fetchAuthSession(
-          options: CognitoSessionOptions(getAWSCredentials: true),
+          options: FetchAuthSessionOptions(),
         ) as CognitoAuthSession;
 
-        final identityId = session.identityId;
-        if (identityId != null) {
-          if (identityId.contains('google')) {
-            _authProvider = 'Google';
-          } else if (identityId.contains('facebook')) {
-            _authProvider = 'Facebook';
-          } else {
-            _authProvider = 'Email';
-          }
+        final identityIdResult = session.identityIdResult;
+        final id = identityIdResult.value;
+        if (id.contains('google')) {
+          _authProvider = 'Google';
+        } else if (id.contains('facebook')) {
+          _authProvider = 'Facebook';
         } else {
           _authProvider = 'Email';
         }
       } catch (e) {
-        print('Error determining auth provider: $e');
+        debugPrint('Error determining auth provider: $e');
         _authProvider = 'Email';
       }
 
@@ -133,11 +130,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _password = "Password123"; // This is just a placeholder
           });
         } catch (e) {
-          print('Error retrieving password: $e');
+          debugPrint('Error retrieving password: $e');
         }
       }
     } catch (e) {
-      print('Error fetching profile: $e');
+      debugPrint('Error fetching profile: $e');
     } finally {
       setState(() => _isLoading = false);
     }

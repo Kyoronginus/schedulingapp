@@ -19,9 +19,12 @@ class BottomNavBar extends StatelessWidget {
         route = AppRoutes.schedule;
         break;
       case 1:
-        route = AppRoutes.addGroup; // This now points to GroupScreen
+        route = AppRoutes.addGroup; // This points to GroupScreen
         break;
       case 2:
+        route = AppRoutes.notification; // This points to NotificationScreen
+        break;
+      case 3:
         route = AppRoutes.profile;
         break;
       default:
@@ -34,7 +37,6 @@ class BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final theme = Theme.of(context);
 
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
     final inactiveColor = isDarkMode ? Colors.grey.shade600 : Colors.grey;
@@ -58,8 +60,15 @@ class BottomNavBar extends StatelessWidget {
         ),
         BottomNavigationBarItem(
           icon: Icon(
-            Icons.person,
+            Icons.notifications,
             color: currentIndex == 2 ? activeColor : inactiveColor,
+          ),
+          label: 'Notifications',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(
+            Icons.person,
+            color: currentIndex == 3 ? activeColor : inactiveColor,
           ),
           label: 'Profile',
         ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import '../../routes/app_routes.dart';
-import 'package:collection/collection.dart';
+
 
 class ConfirmSignUpScreen extends StatefulWidget {
   final String email;

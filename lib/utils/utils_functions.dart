@@ -20,7 +20,7 @@ MaterialColor createMaterialColor(String hexColor) {
 
   List strengths = <double>[.05];
   final swatch = <int, Color>{};
-  final int r = color.red, g = color.green, b = color.blue;
+  final int r = color.r.toInt(), g = color.g.toInt(), b = color.b.toInt();
 
   for (int i = 1; i < 10; i++) {
     strengths.add(0.1 * i);
@@ -34,5 +34,5 @@ MaterialColor createMaterialColor(String hexColor) {
       1,
     );
   }
-  return MaterialColor(color.value, swatch);
+  return MaterialColor(color.toARGB32(), swatch);
 }

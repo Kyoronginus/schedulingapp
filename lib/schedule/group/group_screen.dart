@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:schedulingapp/widgets/custom_button.dart';
-import '../../routes/app_routes.dart';
+
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../dynamo/group_service.dart';
@@ -156,7 +155,7 @@ class _GroupScreenState extends State<GroupScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
     final textColor = isDarkMode ? Colors.white : Colors.black;
-    
+
     return ListView.builder(
       itemCount: _groups.length,
       padding: const EdgeInsets.all(16.0),
@@ -204,7 +203,7 @@ class _GroupScreenState extends State<GroupScreen> {
   Widget _buildGroupMembers(String groupId) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    
+
     return FutureBuilder<List<User>>(
       future: _loadGroupMembers(groupId),
       builder: (context, snapshot) {
@@ -264,7 +263,7 @@ class _GroupScreenState extends State<GroupScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
-    
+
     return FutureBuilder<List<Schedule>>(
       future: _loadGroupSchedules(groupId),
       builder: (context, snapshot) {
@@ -390,14 +389,14 @@ class _GroupScreenState extends State<GroupScreen> {
                             name: name,
                             description: descriptionController.text.trim(),
                           );
-                          
+
                           Navigator.pop(context);
-                          
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Group created successfully!')),
                           );
-                          
+
                           // Reload groups
                           _loadGroups();
                         } catch (e) {

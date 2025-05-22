@@ -11,6 +11,7 @@ import '../dynamo/set_user_name_screen.dart';
 import '../schedule/group/group_screen.dart';
 import '../schedule/invite/invite_member_screen.dart';
 import '../home/Profile/profile_screen.dart';
+import '../notification/notification_screen.dart';
 
 class AppRoutes {
   static const String home = '/home';
@@ -25,6 +26,7 @@ class AppRoutes {
   static const String setUserName = '/setUserName';
   static const String addGroup = '/group';
   static const String profile = '/profile';
+  static const String notification = '/notification';
 
   static Map<String, WidgetBuilder> get routes => {
         AppRoutes.home: (context) => const HomeScreen(),
@@ -40,5 +42,6 @@ class AppRoutes {
         AppRoutes.inviteMember: (context) =>
             const InviteMemberScreen(groupId: 'exampleGroupId'),
         AppRoutes.profile: (context) => const ProfileScreen(email: ''),
+        AppRoutes.notification: (context) => const NotificationScreen(),
       };
 }

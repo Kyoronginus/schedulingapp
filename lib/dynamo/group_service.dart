@@ -1,9 +1,6 @@
 import 'package:amplify_flutter/amplify_flutter.dart';
-import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
-import '../amplifyconfiguration.dart';
-import 'package:flutter/material.dart';
-import '../routes/app_routes.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../models/User.dart';
 import '../models/Group.dart';
 
@@ -68,7 +65,7 @@ class GroupService {
       final groupData = jsonDecode(groupResponse.data!)['createGroup'];
       final groupId = groupData['id'];
 
-      print('✅ Group created with ID: $groupId');
+      debugPrint('✅ Group created with ID: $groupId');
 
       // Step 2: Add creator as a GroupUser (member)
       final memberRequest = GraphQLRequest<String>(
@@ -93,9 +90,9 @@ class GroupService {
 
       final memberResponse =
           await Amplify.API.mutate(request: memberRequest).response;
-      print('✅ GroupUser created: ${memberResponse.data}');
+      debugPrint('✅ GroupUser created: ${memberResponse.data}');
     } catch (e) {
-      print('❌ Failed to create group or member: $e');
+      debugPrint('❌ Failed to create group or member: $e');
       rethrow;
     }
   }
@@ -138,7 +135,7 @@ class GroupService {
           .map<User>((item) => User.fromJson(item['user']))
           .toList();
     } catch (e) {
-      print('❌ Failed to fetch group members: $e');
+      debugPrint('❌ Failed to fetch group members: $e');
       rethrow;
     }
   }

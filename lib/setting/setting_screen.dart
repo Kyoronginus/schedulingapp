@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart'; // Import Amplify for auth checks
-import '../routes/app_routes.dart';
 import '../../widgets/custom_app_bar.dart';
-import '../../widgets/text_styles.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/custom_button.dart';
 import '../../auth/logout.dart'; // Import logout logic
@@ -26,9 +24,9 @@ class _SettingScreenState extends State<SettingScreen> {
 
   Future<void> _checkAuthState() async {
     try {
-      final user = await Amplify.Auth.getCurrentUser();
+      await Amplify.Auth.getCurrentUser(); // Just check if this succeeds
       setState(() {
-        _isLoggedIn = user != null; // User is logged in if not null
+        _isLoggedIn = true; // User is logged in
       });
     } catch (e) {
       setState(() {

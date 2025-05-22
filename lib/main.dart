@@ -7,6 +7,7 @@ import 'amplifyconfiguration.dart';
 import 'package:amplify_api/amplify_api.dart';
 import 'package:schedulingapp/models/ModelProvider.dart';
 import 'package:schedulingapp/theme/theme_provider.dart';
+import 'package:schedulingapp/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,9 @@ void main() async {
     await Amplify.addPlugin(AmplifyAPI(modelProvider: ModelProvider.instance));
     await Amplify.configure(amplifyconfig);
 
+    // Initialize notification service
+    await NotificationService.initialize();
+
     runApp(
       ChangeNotifierProvider(
         create: (_) => ThemeProvider(),
@@ -25,7 +29,11 @@ void main() async {
       ),
     );
   } on AmplifyAlreadyConfiguredException {
-    print("Amplify already configured");
+    debugPrint("Amplify already configured");
+
+    // Initialize notification service
+    await NotificationService.initialize();
+
     runApp(
       ChangeNotifierProvider(
         create: (_) => ThemeProvider(),

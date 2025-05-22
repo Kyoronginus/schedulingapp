@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
-import '../widgets/custom_app_bar.dart';
+
 import '../widgets/bottom_nav_bar.dart';
 import '../models/Schedule.dart';
 import '../models/Group.dart';
@@ -262,7 +262,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           ],
                         ),
                     ),
-                
+
                     // Calendar
                     TableCalendar(
                       firstDay: DateTime.utc(2000, 1, 1),
@@ -326,11 +326,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         // Custom marker builder for dots under dates
                         markerBuilder: (context, date, events) {
                           if (events.isEmpty) return const SizedBox.shrink();
-                
+
                           // Cast events to List<Schedule>
                           final scheduleEvents =
                               events.map((e) => e as Schedule).toList();
-                
+
                           // Assign a color to each unique group
                           final colors = <Color>[];
                           for (var schedule in scheduleEvents) {
@@ -341,11 +341,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             );
                             if (!colors.contains(c)) colors.add(c);
                           }
-                
+
                           // Limit to 4 dots maximum
                           final dotsToShow =
                               colors.length > 4 ? 4 : colors.length;
-                
+
                           return Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Row(
@@ -370,7 +370,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         },
                       ),
                     ),
-                
+
                     // Schedule list
                     Expanded(child: _buildScheduleList()),
                   ],
@@ -446,7 +446,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   color: Color(0xFF222B45),
                 ),
                 overflow: TextOverflow.ellipsis,
-                
+
               ),
               Text(
                 '$_currentYear',
@@ -456,7 +456,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   color: Color(0xFF8F9BB3),
                 ),
                 overflow: TextOverflow.ellipsis,
-                
+
               ),
             ],
           ),
@@ -1252,7 +1252,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 // import 'package:provider/provider.dart';
 // import 'package:amplify_flutter/amplify_flutter.dart';
 // import 'dart:convert';
-// import '../widgets/custom_app_bar.dart';
+// 
 // import '../widgets/bottom_nav_bar.dart';
 // import '../models/Schedule.dart';
 // import '../models/Group.dart';

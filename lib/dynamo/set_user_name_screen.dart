@@ -1,12 +1,9 @@
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_api/amplify_api.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
-import '../amplifyconfiguration.dart';
 import 'package:flutter/material.dart';
 import '../routes/app_routes.dart';
-import 'dart:convert';
 import '../models/User.dart';
-import '../models/Group.dart';
 
 class SetUserNameScreen extends StatefulWidget {
   const SetUserNameScreen({super.key});

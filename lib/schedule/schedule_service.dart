@@ -3,6 +3,7 @@ import '../models/Schedule.dart';
 import 'schedule_extensions.dart';
 import '../dynamo/group_service.dart';
 import 'package:flutter/foundation.dart';
+import '../services/notification_service.dart';
 
 class ScheduleService {
   static Future<void> createSchedule(Schedule schedule) async {
@@ -40,6 +41,23 @@ class ScheduleService {
         throw Exception(response.errors.first.message);
       }
       debugPrint("✅ Schedule created: ${response.data}");
+
+      // Create a notification for the new schedule
+      await NotificationService.addCreatedScheduleNotification(schedule);
+
+      // Create notifications for upcoming schedule (24h and 1h before)
+      final startTime = schedule.startTime.getDateTimeInUtc();
+      final now = DateTime.now();
+      final timeDifference = startTime.difference(now);
+
+      // If the schedule is more than 24 hours in the future, create a 24h notification
+      if (timeDifference.inHours > 24) {
+        await NotificationService.addUpcomingScheduleNotification(schedule);
+      }
+      // If the schedule is more than 1 hour in the future, create a 1h notification
+      else if (timeDifference.inHours > 1) {
+        await NotificationService.addUpcomingScheduleNotification(schedule);
+      }
     } catch (e) {
       debugPrint('❌ Failed to create schedule: $e');
       rethrow;

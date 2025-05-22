@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import '../../widgets/text_styles.dart';
-import '../home/home_screen.dart';
-import '../auth/login/login_screen.dart';
+
 import '../routes/app_routes.dart';
 import '../utils/utils_functions.dart';
 
@@ -36,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     } catch (e) {
       // Error checking auth status, default to register screen
-      print('Error checking auth status: $e');
+      debugPrint('Error checking auth status: $e');
       Navigator.pushReplacementNamed(context, AppRoutes.register);
     }
   }
