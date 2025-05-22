@@ -40,6 +40,7 @@ dependencies:
   amplify_flutter: ^1.5.0
   amplify_auth_cognito: ^1.5.0
   amplify_core: ^1.5.0
+  amplify_datastore: ^1.5.0
   table_calendar: ^3.0.6
   font_awesome_flutter: ^10.8.0
   provider: ^6.1.2

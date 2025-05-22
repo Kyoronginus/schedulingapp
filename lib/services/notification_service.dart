@@ -1,13 +1,12 @@
 import 'dart:async';
+import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:schedulingapp/models/Schedule.dart';
-import 'package:schedulingapp/models/NotificationModel.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:schedulingapp/models/Notification.dart';
+import 'package:schedulingapp/models/NotificationType.dart';
 import 'package:flutter/foundation.dart';
 
 class NotificationService {
-  static const String _notificationsKey = 'notifications';
-  static List<NotificationModel> _notifications = [];
+  static List<Notification> _cachedNotifications = [];
   static bool _isInitialized = false;
 
   // Initialize the notification service
@@ -18,108 +17,143 @@ class NotificationService {
     _isInitialized = true;
   }
 
-  // Load notifications from shared preferences
+  // Load notifications from Amplify DataStore
   static Future<void> _loadNotifications() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final notificationsJsonList = prefs.getStringList(_notificationsKey) ?? [];
+      _cachedNotifications = [];
 
-      _notifications = [];
+      // Query all notifications from DataStore
+      final notificationsResult = await Amplify.DataStore.query(Notification.classType);
 
-      // Convert stored JSON strings back to notification objects
-      for (final jsonStr in notificationsJsonList) {
-        try {
-          final Map<String, dynamic> jsonMap = jsonDecode(jsonStr);
-
-          // Extract schedule data from the JSON
-          final scheduleJson = jsonMap['schedule'];
-          if (scheduleJson == null) continue;
-
-          // Create Schedule object
-          final schedule = Schedule.fromJson(scheduleJson);
-
-          // Create NotificationModel
-          final notification = NotificationModel(
-            id: jsonMap['id'],
-            schedule: schedule,
-            type: NotificationType.values[jsonMap['type']],
-            timestamp: DateTime.parse(jsonMap['timestamp']),
-            isRead: jsonMap['isRead'] ?? false,
-          );
-
-          _notifications.add(notification);
-        } catch (e) {
-          debugPrint('Error parsing notification: $e');
-        }
-      }
+      _cachedNotifications = notificationsResult;
 
       // Sort notifications by timestamp (newest first)
-      _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      _cachedNotifications.sort((a, b) => b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc()));
 
     } catch (e) {
       debugPrint('Error loading notifications: $e');
     }
   }
 
-  // Save notifications to shared preferences
-  static Future<void> _saveNotifications() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      final notificationsJsonList = _notifications.map((notification) {
-        // Convert notification to a serializable map
-        final Map<String, dynamic> notificationMap = {
-          'id': notification.id,
-          'schedule': notification.schedule.toJson(),
-          'type': notification.type.index,
-          'timestamp': notification.timestamp.toIso8601String(),
-          'isRead': notification.isRead,
-        };
-
-        // Convert map to JSON string
-        return jsonEncode(notificationMap);
-      }).toList();
-
-      await prefs.setStringList(_notificationsKey, notificationsJsonList);
-    } catch (e) {
-      debugPrint('Error saving notifications: $e');
-    }
-  }
-
   // Get all notifications
-  static Future<List<NotificationModel>> getNotifications() async {
+  static Future<List<Notification>> getNotifications() async {
     await initialize();
-    return _notifications;
+    return _cachedNotifications;
   }
 
   // Add a notification for a newly created schedule
   static Future<void> addCreatedScheduleNotification(Schedule schedule) async {
     await initialize();
 
-    final notification = NotificationModel.forCreatedSchedule(schedule);
-    _notifications.add(notification);
+    try {
+      // Create the notification using GraphQL API instead of DataStore
+      final notification = Notification(
+        schedule: schedule,
+        type: NotificationType.CREATED,
+        timestamp: TemporalDateTime.now(),
+        isRead: false,
+      );
 
-    await _saveNotifications();
+      // Add to the local cache
+      _cachedNotifications.add(notification);
+
+      // Create notification in the cloud using GraphQL API
+      final request = GraphQLRequest<String>(
+        document: '''
+          mutation CreateNotification(\$input: CreateNotificationInput!) {
+            createNotification(input: \$input) {
+              id
+              type
+              isRead
+              timestamp
+              scheduleId
+            }
+          }
+        ''',
+        variables: {
+          'input': {
+            'type': notification.type.name,
+            'isRead': notification.isRead,
+            'timestamp': notification.timestamp.format(),
+            'scheduleId': schedule.id,
+          },
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+      if (response.hasErrors) {
+        debugPrint('Error creating notification: ${response.errors.first.message}');
+      } else {
+        debugPrint('✅ Notification created successfully');
+      }
+    } catch (e) {
+      debugPrint('Error creating notification: $e');
+    }
   }
 
   // Add a notification for an upcoming schedule
   static Future<void> addUpcomingScheduleNotification(Schedule schedule) async {
     await initialize();
 
-    final notification = NotificationModel.forUpcomingSchedule(schedule);
-    _notifications.add(notification);
+    try {
+      // Create the notification using GraphQL API instead of DataStore
+      final notification = Notification(
+        id: '${schedule.id}_upcoming',
+        schedule: schedule,
+        type: NotificationType.UPCOMING,
+        timestamp: TemporalDateTime.now(),
+        isRead: false,
+      );
 
-    await _saveNotifications();
+      // Add to the local cache
+      _cachedNotifications.add(notification);
+
+      // Create notification in the cloud using GraphQL API
+      final request = GraphQLRequest<String>(
+        document: '''
+          mutation CreateNotification(\$input: CreateNotificationInput!) {
+            createNotification(input: \$input) {
+              id
+              type
+              isRead
+              timestamp
+              scheduleId
+            }
+          }
+        ''',
+        variables: {
+          'input': {
+            'id': notification.id,
+            'type': notification.type.name,
+            'isRead': notification.isRead,
+            'timestamp': notification.timestamp.format(),
+            'scheduleId': schedule.id,
+          },
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+      if (response.hasErrors) {
+        debugPrint('Error creating notification: ${response.errors.first.message}');
+      } else {
+        debugPrint('✅ Notification created successfully');
+      }
+    } catch (e) {
+      debugPrint('Error creating upcoming notification: $e');
+    }
   }
 
   // Mark a notification as read
   static Future<void> markAsRead(String notificationId) async {
     await initialize();
 
-    final index = _notifications.indexWhere((n) => n.id == notificationId);
+    final index = _cachedNotifications.indexWhere((n) => n.id == notificationId);
     if (index != -1) {
-      _notifications[index] = _notifications[index].copyWith(isRead: true);
-      await _saveNotifications();
+      final notification = _cachedNotifications[index];
+      final updatedNotification = notification.copyWith(isRead: true);
+
+      await Amplify.DataStore.save(updatedNotification);
+      _cachedNotifications[index] = updatedNotification;
     }
   }
 
@@ -127,12 +161,58 @@ class NotificationService {
   static Future<void> markAllAsRead() async {
     await initialize();
 
-    _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
-    await _saveNotifications();
+    final updatedNotifications = <Notification>[];
+
+    for (final notification in _cachedNotifications) {
+      if (!notification.isRead) {
+        final updated = notification.copyWith(isRead: true);
+        await Amplify.DataStore.save(updated);
+        updatedNotifications.add(updated);
+      } else {
+        updatedNotifications.add(notification);
+      }
+    }
+
+    _cachedNotifications = updatedNotifications;
+  }
+
+  // Get message for a notification
+  static String getNotificationMessage(Notification notification) {
+    switch (notification.type) {
+      case NotificationType.CREATED:
+        final userName = notification.schedule?.user?.name ?? 'Someone';
+        return '$userName created an event ${_getTimeAgo(notification.timestamp.getDateTimeInUtc())}';
+      case NotificationType.UPCOMING:
+        final startTime = notification.schedule!.startTime.getDateTimeInUtc();
+        final now = DateTime.now();
+        final difference = startTime.difference(now);
+
+        if (difference.inHours < 1) {
+          return 'Event will start in ${difference.inMinutes} minutes';
+        } else if (difference.inHours < 24) {
+          return 'Event will start in ${difference.inHours} hours';
+        } else {
+          return 'Event will start in ${difference.inDays} days';
+        }
+    }
+  }
+
+  // Get time ago for created notifications
+  static String _getTimeAgo(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} minutes ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hours ago';
+    } else {
+      return '${difference.inDays} days ago';
+    }
   }
 
   // Get real notifications (for backward compatibility with the sample method)
-  static Future<List<NotificationModel>> getSampleNotifications() async {
+  static Future<List<Notification>> getSampleNotifications() async {
     return getNotifications();
   }
 }

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../widgets/bottom_nav_bar.dart';
-import '../models/NotificationModel.dart';
+import '../models/Notification.dart' as models;
+import '../models/NotificationType.dart';
 import '../services/notification_service.dart';
 import '../theme/theme_provider.dart';
 
@@ -16,7 +17,7 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   final int _currentIndex = 2; // Index for notification in bottom nav (0=Schedule, 1=Group, 2=Notification, 3=Profile)
-  List<NotificationModel> _notifications = [];
+  List<models.Notification> _notifications = [];
   bool _isLoading = true;
 
   @override
@@ -120,6 +121,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   itemBuilder: (context, index) {
                     final notification = _notifications[index];
                     final schedule = notification.schedule;
+
+                    // Skip if schedule is null
+                    if (schedule == null) return const SizedBox.shrink();
 
                     // Format the date for display
                     final startDate = schedule.startTime.getDateTimeInUtc();
@@ -242,7 +246,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                           children: [
                                             Expanded(
                                               child: Text(
-                                                notification.message,
+                                                NotificationService.getNotificationMessage(notification),
                                                 style: TextStyle(
                                                   fontSize: 14,
                                                   color: Colors.grey[600],
@@ -275,12 +279,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  Color _getNotificationColor(NotificationModel notification, Color defaultColor) {
+  Color _getNotificationColor(models.Notification notification, Color defaultColor) {
     // Colors based on notification type
     switch (notification.type) {
-      case NotificationType.created:
+      case NotificationType.CREATED:
         return Colors.purple;
-      case NotificationType.upcoming:
+      case NotificationType.UPCOMING:
         return Colors.blue;
     }
   }

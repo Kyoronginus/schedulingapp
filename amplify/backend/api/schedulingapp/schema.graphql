@@ -68,4 +68,27 @@ type Schedule
   groupId: ID! @index(name: "byGroup")
   user: User @belongsTo(fields: ["userId"])
   group: Group @belongsTo(fields: ["groupId"])
+  notifications: [Notification] @hasMany(indexName: "bySchedule", fields: ["id"])
+}
+
+enum NotificationType {
+  CREATED
+  UPCOMING
+}
+
+type Notification
+  @model
+  @auth(rules: [
+    { allow: owner },
+    { allow: private, provider: userPools },
+    { allow: public, provider: apiKey, operations: [read] }
+  ])
+  {
+  id: ID!
+  scheduleId: ID! @index(name: "bySchedule")
+  schedule: Schedule @belongsTo(fields: ["scheduleId"])
+  type: NotificationType!
+  timestamp: AWSDateTime!
+  isRead: Boolean!
+  message: String
 }
