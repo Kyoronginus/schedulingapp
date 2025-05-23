@@ -46,7 +46,7 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Enter Verification Code")),
+      appBar: AppBar(title: const Text("Enter Verification Code")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -54,7 +54,7 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
             Text("We’ve sent a verification code to: ${widget.email}"),
             TextField(
               controller: codeController,
-              decoration: InputDecoration(labelText: 'Verification Code'),
+              decoration: const InputDecoration(labelText: 'Verification Code'),
             ),
             ElevatedButton(
               onPressed: _isLoading ? null : _confirmSignUp,
