@@ -4,7 +4,6 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import '../verification/confirm_signup_screen.dart';
 import '../../utils/utils_functions.dart';
 import '../../routes/app_routes.dart';
-import '../login/initial_login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -69,12 +68,7 @@ class _RegisterPageState extends State<RegisterScreen> {
 
       // Navigate to ConfirmSignUpScreen
       if(signUpResult.isSignUpComplete){
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const LoginScreen(),
-          ),
-        );
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
       }else{
         Navigator.push(
           context,
@@ -99,12 +93,7 @@ class _RegisterPageState extends State<RegisterScreen> {
         } on AuthException catch (resendError){
           if (!mounted) return;
           if(resendError.message.contains("already confirmed")){
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const LoginScreen(),
-              ),
-            );
+            Navigator.pushReplacementNamed(context, AppRoutes.login);
           } else{
             setState(() {
               _errorMessage = resendError.message;
