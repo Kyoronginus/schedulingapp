@@ -20,6 +20,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   String? _errorMessage;
 
   Future<void> _handleLogin() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -27,16 +28,26 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
     try {
       await login(_emailController.text, _passwordController.text);
+
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, AppRoutes.home);
     } on AuthException catch (e){
+      if (!mounted) return;
       setState(() {
         _errorMessage = authErrorMessage(e);
       });
     }catch (e) {
+      if (!mounted) return;
+      final message = e.toString();
+      if (message.contains('not confirmed')) {
+        Navigator.pushReplacementNamed(context, AppRoutes.register);
+      }
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = message;
       });
     } finally {
+      // ignore: control_flow_in_finally
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -179,7 +190,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                           ),
                         );
                       },
-                      child: Text(
+                      child: const Text(
                         "Forgot Password?",
                         style: TextStyle(
                           color: Colors.white,
@@ -238,7 +249,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                         onPressed: () {
                           Navigator.pushReplacementNamed(context, AppRoutes.register);
                         },
-                        child: Text(
+                        child: const Text(
                           "Register",
                           style: TextStyle(
                             color: Colors.white,

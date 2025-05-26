@@ -38,12 +38,29 @@ Future<void> confirmCode(String email, String code) async {
 }
 
 Future<void> login(String email, String password) async {
-  final result = await Amplify.Auth.signIn(
-    username: email,
-    password: password,
-  );
+  try{
+    final result = await Amplify.Auth.signIn(
+      username: email,
+      password: password,
+    );
 
-  print('✅ Login success: ${result.isSignedIn}');
+    if(!result.isSignedIn){
+      final nextStep = result.nextStep.signInStep;
+      if (nextStep == AuthSignInStep.confirmSignUp){
+        throw Exception(
+          'Your account is not confirmed. Please verify your email.',
+        );
+      } else {
+        throw Exception(
+          'Login failed. Make sure your email and password are correct.'
+        );
+      }
+    }
+
+    print('✅ Login success: ${result.isSignedIn}');
+  } on AuthException catch (e) {
+  throw Exception(e.message);
+  }
 }
 
 /// Sign in with Google using Amplify Auth

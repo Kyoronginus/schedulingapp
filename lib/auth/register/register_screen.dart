@@ -21,46 +21,34 @@ class _RegisterPageState extends State<RegisterScreen> {
   String? _errorMessage;
 
   Future<void> _registerUser() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    try {
-      final email = emailController.text.trim();
-      final password = passwordController.text.trim();
-      final confirmPassword = confirmPasswordController.text.trim();
-      final name = nameController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
+    final name = nameController.text.trim();
 
+    try{
       // Validate inputs
-      if (name.isEmpty) {
-        setState(() {
-          _errorMessage = 'Please enter your name';
-          _isLoading = false;
-        });
-        return;
+      String? error;
+      if(name.isEmpty) {
+        error = 'Please enter your name';
+      } else if (email.isEmpty) {
+        error = 'Please enter your email';
+      } else if (password.isEmpty) {
+        error = 'Please enter a password';
+      } else if (password != confirmPassword) {
+        error = 'Passwords do not match';
       }
 
-      if (email.isEmpty) {
+      if (error != null) {
+        if (!mounted) return;
         setState(() {
-          _errorMessage = 'Please enter your email';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      if (password.isEmpty) {
-        setState(() {
-          _errorMessage = 'Please enter a password';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      if (password != confirmPassword) {
-        setState(() {
-          _errorMessage = 'Passwords do not match';
-          _isLoading = false;
+          _errorMessage = error;
         });
         return;
       }
@@ -76,22 +64,55 @@ class _RegisterPageState extends State<RegisterScreen> {
         }),
       );
 
+      if (!mounted) return;
+
       // Navigate to ConfirmSignUpScreen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ConfirmSignUpScreen(email: email),
-        ),
-      );
+      if(signUpResult.isSignUpComplete){
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
+      }else{
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ConfirmSignUpScreen(email: email),
+          ),
+        );
+      }  
     } on AuthException catch (e) {
+      if (!mounted) return;
+      if(e.message.contains("already exists") || e.message.contains("username exists")){
+        try{
+          await Amplify.Auth.resendSignUpCode(username: email);
+
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ConfirmSignUpScreen(email: email),
+            ),
+          );
+        } on AuthException catch (resendError){
+          if (!mounted) return;
+          if(resendError.message.contains("already confirmed")){
+            Navigator.pushReplacementNamed(context, AppRoutes.login);
+          } else{
+            setState(() {
+              _errorMessage = resendError.message;
+            });
+          }
+          return;
+        }
+      }
       setState(() {
         _errorMessage = e.message;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Unexpected error: $e';
       });
     } finally {
+      // ignore: control_flow_in_finally
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
