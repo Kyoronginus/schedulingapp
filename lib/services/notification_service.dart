@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert'; // Added for json.decode
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:schedulingapp/models/Schedule.dart';
 import 'package:schedulingapp/models/Notification.dart';
 import 'package:schedulingapp/models/NotificationType.dart';
+import 'package:schedulingapp/models/User.dart'; // Added for User model
 import 'package:flutter/foundation.dart';
 
 class NotificationService {
@@ -17,19 +19,68 @@ class NotificationService {
     _isInitialized = true;
   }
 
-  // Load notifications from Amplify DataStore
+  // Load notifications from Amplify backend using GraphQL API
   static Future<void> _loadNotifications() async {
     try {
       _cachedNotifications = [];
 
-      // Query all notifications from DataStore
-      final notificationsResult = await Amplify.DataStore.query(Notification.classType);
+      const listNotificationsQuery = '''
+        query ListNotifications {
+          listNotifications {
+            items {
+              id
+              type
+              isRead
+              timestamp
+              scheduleId
+              schedule {
+                id
+                title
+                startTime
+                endTime
+                user {
+                  id
+                  name
+                }
+              }
+            }
+          }
+        }
+      ''';
 
-      _cachedNotifications = notificationsResult;
+      final request = GraphQLRequest<String>(document: listNotificationsQuery);
+      final response = await Amplify.API.query(request: request).response;
 
-      // Sort notifications by timestamp (newest first)
-      _cachedNotifications.sort((a, b) => b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc()));
+      if (response.hasErrors) {
+        debugPrint('Error listing notifications: ${response.errors.first.message}');
+        return;
+      }
 
+      final data = response.data;
+      if (data != null) {
+        final Map<String, dynamic> jsonResponse = json.decode(data);
+        final List<dynamic> notificationItems = jsonResponse['listNotifications']['items'];
+
+        _cachedNotifications = notificationItems.map((item) {
+          final scheduleData = item['schedule'];
+          Schedule? schedule;
+          if (scheduleData != null) {
+            schedule = Schedule.fromJson(Map<String, dynamic>.from(scheduleData));
+          }
+
+          return Notification(
+            id: item['id'],
+            type: NotificationType.values.firstWhere((e) => e.name == item['type']),
+            isRead: item['isRead'],
+            timestamp: TemporalDateTime(DateTime.parse(item['timestamp'])),
+            schedule: schedule,
+            message: item['message'],
+          );
+        }).toList();
+
+        // Sort notifications by timestamp (newest first)
+        _cachedNotifications.sort((a, b) => b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc()));
+      }
     } catch (e) {
       debugPrint('Error loading notifications: $e');
     }
@@ -37,7 +88,8 @@ class NotificationService {
 
   // Get all notifications
   static Future<List<Notification>> getNotifications() async {
-    await initialize();
+    await initialize(); // Ensure service is initialized
+    await _loadNotifications(); // Always load latest from backend
     return _cachedNotifications;
   }
 
@@ -46,16 +98,21 @@ class NotificationService {
     await initialize();
 
     try {
-      // Create the notification using GraphQL API instead of DataStore
+      final message = NotificationService.getNotificationMessage(Notification(
+        schedule: schedule,
+        type: NotificationType.CREATED,
+        timestamp: TemporalDateTime.now(),
+        isRead: false,
+      ));
+
+      // Create the notification using GraphQL API
       final notification = Notification(
         schedule: schedule,
         type: NotificationType.CREATED,
         timestamp: TemporalDateTime.now(),
         isRead: false,
+        message: message,
       );
-
-      // Add to the local cache
-      _cachedNotifications.add(notification);
 
       // Create notification in the cloud using GraphQL API
       final request = GraphQLRequest<String>(
@@ -67,6 +124,7 @@ class NotificationService {
               isRead
               timestamp
               scheduleId
+              message
             }
           }
         ''',
@@ -76,6 +134,7 @@ class NotificationService {
             'isRead': notification.isRead,
             'timestamp': notification.timestamp.format(),
             'scheduleId': schedule.id,
+            'message': notification.message,
           },
         },
       );
@@ -85,6 +144,7 @@ class NotificationService {
         debugPrint('Error creating notification: ${response.errors.first.message}');
       } else {
         debugPrint('✅ Notification created successfully');
+        await _loadNotifications(); // Refresh cache from backend
       }
     } catch (e) {
       debugPrint('Error creating notification: $e');
@@ -96,17 +156,22 @@ class NotificationService {
     await initialize();
 
     try {
-      // Create the notification using GraphQL API instead of DataStore
+      final message = NotificationService.getNotificationMessage(Notification(
+        schedule: schedule,
+        type: NotificationType.UPCOMING,
+        timestamp: TemporalDateTime.now(),
+        isRead: false,
+      ));
+
+      // Create the notification using GraphQL API
       final notification = Notification(
         id: '${schedule.id}_upcoming',
         schedule: schedule,
         type: NotificationType.UPCOMING,
         timestamp: TemporalDateTime.now(),
         isRead: false,
+        message: message,
       );
-
-      // Add to the local cache
-      _cachedNotifications.add(notification);
 
       // Create notification in the cloud using GraphQL API
       final request = GraphQLRequest<String>(
@@ -118,6 +183,7 @@ class NotificationService {
               isRead
               timestamp
               scheduleId
+              message
             }
           }
         ''',
@@ -128,6 +194,7 @@ class NotificationService {
             'isRead': notification.isRead,
             'timestamp': notification.timestamp.format(),
             'scheduleId': schedule.id,
+            'message': notification.message,
           },
         },
       );
@@ -137,6 +204,7 @@ class NotificationService {
         debugPrint('Error creating notification: ${response.errors.first.message}');
       } else {
         debugPrint('✅ Notification created successfully');
+        await _loadNotifications(); // Refresh cache from backend
       }
     } catch (e) {
       debugPrint('Error creating upcoming notification: $e');
@@ -152,8 +220,31 @@ class NotificationService {
       final notification = _cachedNotifications[index];
       final updatedNotification = notification.copyWith(isRead: true);
 
-      await Amplify.DataStore.save(updatedNotification);
-      _cachedNotifications[index] = updatedNotification;
+      // Update notification in the cloud using GraphQL API
+      final request = GraphQLRequest<String>(
+        document: '''
+          mutation UpdateNotification(\$input: UpdateNotificationInput!) {
+            updateNotification(input: \$input) {
+              id
+              isRead
+            }
+          }
+        ''',
+        variables: {
+          'input': {
+            'id': notificationId,
+            'isRead': true,
+          },
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+      if (response.hasErrors) {
+        debugPrint('Error marking notification as read: ${response.errors.first.message}');
+      } else {
+        debugPrint('✅ Notification marked as read successfully');
+        await _loadNotifications(); // Refresh cache from backend
+      }
     }
   }
 
@@ -161,19 +252,37 @@ class NotificationService {
   static Future<void> markAllAsRead() async {
     await initialize();
 
-    final updatedNotifications = <Notification>[];
+    final List<Notification> notificationsToUpdate = _cachedNotifications.where((n) => !n.isRead).toList();
 
-    for (final notification in _cachedNotifications) {
-      if (!notification.isRead) {
-        final updated = notification.copyWith(isRead: true);
-        await Amplify.DataStore.save(updated);
-        updatedNotifications.add(updated);
+    for (final notification in notificationsToUpdate) {
+      final updatedNotification = notification.copyWith(isRead: true);
+
+      // Update notification in the cloud using GraphQL API
+      final request = GraphQLRequest<String>(
+        document: '''
+          mutation UpdateNotification(\$input: UpdateNotificationInput!) {
+            updateNotification(input: \$input) {
+              id
+              isRead
+            }
+          }
+        ''',
+        variables: {
+          'input': {
+            'id': notification.id,
+            'isRead': true,
+          },
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+      if (response.hasErrors) {
+        debugPrint('Error marking notification as read: ${response.errors.first.message}');
       } else {
-        updatedNotifications.add(notification);
+        debugPrint('✅ Notification marked as read successfully');
       }
     }
-
-    _cachedNotifications = updatedNotifications;
+    await _loadNotifications(); // Refresh cache from backend after all updates
   }
 
   // Get message for a notification

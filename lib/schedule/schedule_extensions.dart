@@ -6,14 +6,25 @@ import '../models/Group.dart'; // Import Group class
 
 extension ScheduleExtension on Schedule {
   Map<String, dynamic> toInput() {
+    // Validate that required foreign keys are present
+    final userId = user?.id;
+    final groupId = group?.id;
+
+    if (userId == null || userId.isEmpty) {
+      throw Exception('Schedule must have a valid userId');
+    }
+    if (groupId == null || groupId.isEmpty) {
+      throw Exception('Schedule must have a valid groupId');
+    }
+
     return {
       'title': title,
       'description': description,
       'location': location,
       'startTime': startTime.format(),
       'endTime': endTime.format(),
-      'userId': user?.id,
-      'groupId': group?.id,
+      'userId': userId,
+      'groupId': groupId,
     };
   }
 }
