@@ -4,7 +4,7 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:schedulingapp/models/Schedule.dart';
 import 'package:schedulingapp/models/Notification.dart';
 import 'package:schedulingapp/models/NotificationType.dart';
-import 'package:schedulingapp/models/User.dart'; // Added for User model
+
 import 'package:flutter/foundation.dart';
 
 class NotificationService {
@@ -98,6 +98,14 @@ class NotificationService {
     await initialize();
 
     try {
+      // Validate that the schedule has a valid ID
+      if (schedule.id.isEmpty) {
+        debugPrint('❌ Cannot create notification: Schedule ID is empty');
+        return;
+      }
+
+      debugPrint('🔔 Creating notification for schedule: ${schedule.id}');
+
       final message = NotificationService.getNotificationMessage(Notification(
         schedule: schedule,
         type: NotificationType.CREATED,
@@ -141,9 +149,10 @@ class NotificationService {
 
       final response = await Amplify.API.mutate(request: request).response;
       if (response.hasErrors) {
-        debugPrint('Error creating notification: ${response.errors.first.message}');
+        debugPrint('❌ Error creating notification: ${response.errors.first.message}');
+        debugPrint('❌ Full error details: ${response.errors}');
       } else {
-        debugPrint('✅ Notification created successfully');
+        debugPrint('✅ Notification created successfully: ${response.data}');
         await _loadNotifications(); // Refresh cache from backend
       }
     } catch (e) {
@@ -156,6 +165,14 @@ class NotificationService {
     await initialize();
 
     try {
+      // Validate that the schedule has a valid ID
+      if (schedule.id.isEmpty) {
+        debugPrint('❌ Cannot create upcoming notification: Schedule ID is empty');
+        return;
+      }
+
+      debugPrint('🔔 Creating upcoming notification for schedule: ${schedule.id}');
+
       final message = NotificationService.getNotificationMessage(Notification(
         schedule: schedule,
         type: NotificationType.UPCOMING,
@@ -201,9 +218,10 @@ class NotificationService {
 
       final response = await Amplify.API.mutate(request: request).response;
       if (response.hasErrors) {
-        debugPrint('Error creating notification: ${response.errors.first.message}');
+        debugPrint('❌ Error creating upcoming notification: ${response.errors.first.message}');
+        debugPrint('❌ Full error details: ${response.errors}');
       } else {
-        debugPrint('✅ Notification created successfully');
+        debugPrint('✅ Upcoming notification created successfully: ${response.data}');
         await _loadNotifications(); // Refresh cache from backend
       }
     } catch (e) {
@@ -217,8 +235,6 @@ class NotificationService {
 
     final index = _cachedNotifications.indexWhere((n) => n.id == notificationId);
     if (index != -1) {
-      final notification = _cachedNotifications[index];
-      final updatedNotification = notification.copyWith(isRead: true);
 
       // Update notification in the cloud using GraphQL API
       final request = GraphQLRequest<String>(
@@ -255,7 +271,6 @@ class NotificationService {
     final List<Notification> notificationsToUpdate = _cachedNotifications.where((n) => !n.isRead).toList();
 
     for (final notification in notificationsToUpdate) {
-      final updatedNotification = notification.copyWith(isRead: true);
 
       // Update notification in the cloud using GraphQL API
       final request = GraphQLRequest<String>(

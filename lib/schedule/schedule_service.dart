@@ -1,4 +1,5 @@
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'dart:convert';
 import '../models/Schedule.dart';
 import 'schedule_extensions.dart';
 import '../dynamo/group_service.dart';
@@ -45,19 +46,42 @@ class ScheduleService {
       }
 
       debugPrint("✅ Schedule created via API: ${response.data}");
-      debugPrint("📱 Schedule will be synced to DataStore automatically");
 
-      await NotificationService.addCreatedScheduleNotification(schedule);
+      final responseData = response.data;
+      if (responseData == null) {
+        throw Exception('Failed to create schedule: No data returned');
+      }
 
-      final startTime = schedule.startTime.getDateTimeInUtc();
+      final scheduleJson = jsonDecode(responseData);
+      final createdScheduleData = scheduleJson['createSchedule'];
+      final createdScheduleId = createdScheduleData['id'];
+
+      debugPrint("📱 Created schedule ID: $createdScheduleId");
+
+      final createdSchedule = Schedule(
+        id: createdScheduleId,
+        title: schedule.title,
+        description: schedule.description,
+        location: schedule.location,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        user: schedule.user,
+        group: schedule.group,
+      );
+
+      // Wait a moment for the schedule to be available in the backend
+      await Future.delayed(const Duration(milliseconds: 500));
+      await NotificationService.addCreatedScheduleNotification(createdSchedule);
+
+      final startTime = createdSchedule.startTime.getDateTimeInUtc();
       final now = DateTime.now();
       final timeDifference = startTime.difference(now);
 
       if (timeDifference.inHours > 24) {
-        await NotificationService.addUpcomingScheduleNotification(schedule);
+        await NotificationService.addUpcomingScheduleNotification(createdSchedule);
       }
       else if (timeDifference.inHours > 1) {
-        await NotificationService.addUpcomingScheduleNotification(schedule);
+        await NotificationService.addUpcomingScheduleNotification(createdSchedule);
       }
     } catch (e) {
       debugPrint('❌ Failed to create schedule: $e');
