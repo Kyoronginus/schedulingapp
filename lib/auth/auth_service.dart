@@ -2,6 +2,8 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:flutter/material.dart';
 import '../amplifyconfiguration.dart';
+import '../models/User.dart';
+import 'dart:convert';
 
 Future<void> initAmplify() async {
   try {
@@ -57,9 +59,173 @@ Future<void> login(String email, String password) async {
       }
     }
 
-    print('✅ Login success: ${result.isSignedIn}');
+    debugPrint('✅ Login success: ${result.isSignedIn}');
+
+    // Ensure user exists in DynamoDB after successful login
+    try {
+      await ensureUserExists();
+      debugPrint('✅ User record verified/created in database');
+    } catch (e) {
+      debugPrint('⚠️ Could not create user record: $e');
+      // Don't throw here - user can complete profile setup later
+    }
+
   } on AuthException catch (e) {
   throw Exception(e.message);
+  }
+}
+
+/// Creates a user record in DynamoDB if it doesn't exist
+Future<User> ensureUserExists() async {
+  try {
+    // First try to get the existing user
+    return await getCurrentUser();
+  } catch (e) {
+    debugPrint('🔍 AuthService: User not found, creating new user record...');
+
+    // If user doesn't exist, create it
+    final authUser = await Amplify.Auth.getCurrentUser();
+    final attributes = await Amplify.Auth.fetchUserAttributes();
+
+    // Get email and name from Cognito attributes
+    final emailAttr = attributes.firstWhere(
+      (attr) => attr.userAttributeKey == CognitoUserAttributeKey.email,
+      orElse: () => const AuthUserAttribute(
+        userAttributeKey: CognitoUserAttributeKey.email,
+        value: '',
+      ),
+    );
+
+    final nameAttr = attributes.firstWhere(
+      (attr) => attr.userAttributeKey == CognitoUserAttributeKey.name,
+      orElse: () => const AuthUserAttribute(
+        userAttributeKey: CognitoUserAttributeKey.name,
+        value: '',
+      ),
+    );
+
+    final email = emailAttr.value;
+    final name = nameAttr.value;
+
+    if (email.isEmpty) {
+      throw Exception('Email is required to create user profile');
+    }
+
+    if (name.isEmpty) {
+      throw Exception('Name is required to create user profile');
+    }
+
+    debugPrint('🔍 AuthService: Creating user with email: $email, name: $name');
+
+    // Create user in DynamoDB
+    final request = GraphQLRequest<String>(
+      document: '''
+        mutation CreateUser(\$input: CreateUserInput!) {
+          createUser(input: \$input) {
+            id
+            email
+            name
+          }
+        }
+      ''',
+      variables: {
+        'input': {
+          'id': authUser.userId,
+          'email': email,
+          'name': name,
+        }
+      },
+    );
+
+    final response = await Amplify.API.mutate(request: request).response;
+
+    if (response.hasErrors) {
+      debugPrint('❌ AuthService: GraphQL errors creating user: ${response.errors}');
+      throw Exception('Failed to create user: ${response.errors.map((e) => e.message).join(', ')}');
+    }
+
+    if (response.data == null) {
+      debugPrint('❌ AuthService: No data returned from user creation');
+      throw Exception('Failed to create user: No data returned');
+    }
+
+    final responseJson = jsonDecode(response.data!);
+    final userData = responseJson['createUser'];
+
+    if (userData == null) {
+      debugPrint('❌ AuthService: No createUser data in response');
+      throw Exception('Failed to create user: Invalid response');
+    }
+
+    final user = User.fromJson(userData);
+    debugPrint('✅ AuthService: Successfully created user: ${user.toString()}');
+    return user;
+  }
+}
+
+Future<User> getCurrentUser() async {
+  try {
+    // Get the authenticated user
+    final authUser = await Amplify.Auth.getCurrentUser();
+    debugPrint('🔍 AuthService: Got auth user with ID: ${authUser.userId}');
+
+    // Query the user data from the API
+    final request = GraphQLRequest<String>(
+      document: '''
+        query GetUser(\$id: ID!) {
+          getUser(id: \$id) {
+            id
+            email
+            name
+          }
+        }
+      ''',
+      variables: {'id': authUser.userId},
+    );
+
+    debugPrint('🔍 AuthService: Sending GraphQL query for user: ${authUser.userId}');
+    final response = await Amplify.API.query(request: request).response;
+
+    // Check for GraphQL errors
+    if (response.hasErrors) {
+      debugPrint('❌ AuthService: GraphQL errors: ${response.errors}');
+      throw Exception('GraphQL errors: ${response.errors.map((e) => e.message).join(', ')}');
+    }
+
+    // Check if response data exists
+    if (response.data == null) {
+      debugPrint('❌ AuthService: No data returned from GraphQL query');
+      throw Exception('No data returned from user query');
+    }
+
+    // Parse the JSON response
+    final Map<String, dynamic> responseJson;
+    try {
+      responseJson = jsonDecode(response.data!);
+      debugPrint('🔍 AuthService: Parsed response JSON: $responseJson');
+    } catch (e) {
+      debugPrint('❌ AuthService: Failed to parse JSON: $e');
+      throw Exception('Failed to parse response JSON: $e');
+    }
+
+    // Check if getUser data exists
+    final userData = responseJson['getUser'];
+    if (userData == null) {
+      debugPrint('❌ AuthService: User not found in database for ID: ${authUser.userId}');
+      throw Exception('User not found in database. Please complete your profile setup.');
+    }
+
+    // Create and return User object
+    final user = User.fromJson(userData);
+    debugPrint('✅ AuthService: Successfully created User object: ${user.toString()}');
+    return user;
+
+  } on AuthException catch (e) {
+    debugPrint('❌ AuthService: Auth exception: ${e.message}');
+    throw Exception('Authentication error: ${e.message}');
+  } catch (e) {
+    debugPrint('❌ AuthService: Unexpected error: $e');
+    rethrow;
   }
 }
 
@@ -75,10 +241,20 @@ Future<bool> signInWithGoogle(BuildContext context) async {
     );
 
     if (result.isSignedIn) {
-      print('✅ Google Sign In Success');
+      debugPrint('✅ Google Sign In Success');
+
+      // Ensure user exists in DynamoDB after successful Google login
+      try {
+        await ensureUserExists();
+        debugPrint('✅ User record verified/created in database');
+      } catch (e) {
+        debugPrint('⚠️ Could not create user record: $e');
+        // Don't throw here - user can complete profile setup later
+      }
+
       return true;
     } else {
-      print('❌ Google Sign In Failed');
+      debugPrint('❌ Google Sign In Failed');
       return false;
     }
   } on AmplifyException catch (e) {
@@ -102,10 +278,20 @@ Future<bool> signInWithFacebook(BuildContext context) async {
     );
 
     if (result.isSignedIn) {
-      print('✅ Facebook Sign In Success');
+      debugPrint('✅ Facebook Sign In Success');
+
+      // Ensure user exists in DynamoDB after successful Facebook login
+      try {
+        await ensureUserExists();
+        debugPrint('✅ User record verified/created in database');
+      } catch (e) {
+        debugPrint('⚠️ Could not create user record: $e');
+        // Don't throw here - user can complete profile setup later
+      }
+
       return true;
     } else {
-      print('❌ Facebook Sign In Failed');
+      debugPrint('❌ Facebook Sign In Failed');
       return false;
     }
   } on AmplifyException catch (e) {

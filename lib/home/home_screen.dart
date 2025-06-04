@@ -3,12 +3,11 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:table_calendar/table_calendar.dart'; // Import table_calendar package
 import '../routes/app_routes.dart';
 import '../../widgets/custom_app_bar.dart';
-import '../../widgets/text_styles.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/custom_button.dart';
-import 'dart:convert';
 import '../../models/Schedule.dart'; // Import Schedule model
 import '../../schedule/schedule_service.dart'; // Import ScheduleService
+import '../../auth/auth_service.dart'; // Import AuthService
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,7 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchUserName() async {
     try {
+      debugPrint('🔍 HomeScreen: Starting user name fetch...');
+
       final user = await Amplify.Auth.getCurrentUser();
+      debugPrint('🔍 HomeScreen: Got auth user: ${user.userId}');
 
       // 1. fetch email from Cognito
       final attributes = await Amplify.Auth.fetchUserAttributes();
@@ -50,38 +52,33 @@ class _HomeScreenState extends State<HomeScreen> {
           value: '',
         ),
       );
-      final email = emailAttr?.value ?? 'no-email@example.com';
-      print('📧 User email: $email');
+      final email = emailAttr.value ?? 'no-email@example.com';
+      debugPrint('📧 HomeScreen: User email: $email');
 
-      // 2. GraphQL Query
-      final request = GraphQLRequest<String>(
-        document: '''
-        query GetUser(\$id: ID!) {
-          getUser(id: \$id) {
-            name
-          }
+      // 2. Use AuthService to ensure user exists and get user data
+      try {
+        final userData = await ensureUserExists();
+        debugPrint('✅ HomeScreen: Got user data: ${userData.name}');
+        setState(() => _userName = userData.name);
+      } catch (e) {
+        debugPrint('⚠️ HomeScreen: Could not get/create user data, redirecting to profile: $e');
+        if (mounted) {
+          Navigator.pushNamed(context, '/profile', arguments: {
+            'email': email,
+            'userId': user.userId,
+          });
         }
-      ''',
-        variables: {'id': user.userId},
-      );
-
-      final response = await Amplify.API.query(request: request).response;
-      final userData = jsonDecode(response.data ?? '{}')['getUser'];
-
-      if (userData == null) {
-        print('🔄 Redirecting to profile...');
-        Navigator.pushNamed(context, '/profile', arguments: {
-          'email': email,
-          'userId': user.userId,
-        });
-      } else {
-        setState(() => _userName = userData['name']);
       }
     } catch (e) {
-      print('❌ Error: $e');
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('Failed to fetch user data: $e')),
-      // );
+      debugPrint('❌ HomeScreen: Error fetching user data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to fetch user data. Please try again.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 

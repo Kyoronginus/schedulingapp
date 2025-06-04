@@ -9,14 +9,28 @@ import '../services/notification_service.dart';
 class ScheduleService {
   static Future<void> createSchedule(Schedule schedule) async {
     try {
+      // Validate schedule data
       if (schedule.user == null || schedule.user!.id.isEmpty) {
+        debugPrint('❌ ScheduleService: Invalid user data');
         throw Exception('Schedule must have a valid user');
       }
       if (schedule.group == null || schedule.group!.id.isEmpty) {
+        debugPrint('❌ ScheduleService: Invalid group data');
         throw Exception('Schedule must have a valid group');
       }
 
-      debugPrint('Creating schedule with userId: ${schedule.user!.id}, groupId: ${schedule.group!.id}');
+      debugPrint('🔍 ScheduleService: Creating schedule with userId: ${schedule.user!.id}, groupId: ${schedule.group!.id}');
+      debugPrint('🔍 ScheduleService: Schedule title: "${schedule.title}"');
+
+      // Convert schedule to input format
+      Map<String, dynamic> scheduleInput;
+      try {
+        scheduleInput = schedule.toInput();
+        debugPrint('🔍 ScheduleService: Schedule input: $scheduleInput');
+      } catch (e) {
+        debugPrint('❌ ScheduleService: Failed to convert schedule to input: $e');
+        throw Exception('Failed to prepare schedule data: $e');
+      }
 
       final request = GraphQLRequest<String>(
         document: '''
@@ -36,27 +50,49 @@ class ScheduleService {
           }
         ''',
         variables: {
-          'input': schedule.toInput(),
+          'input': scheduleInput,
         },
       );
 
+      debugPrint('🔍 ScheduleService: Sending GraphQL mutation...');
       final response = await Amplify.API.mutate(request: request).response;
-      if (response.hasErrors) {
-        throw Exception(response.errors.first.message);
-      }
 
-      debugPrint("✅ Schedule created via API: ${response.data}");
+      if (response.hasErrors) {
+        debugPrint('❌ ScheduleService: GraphQL errors: ${response.errors}');
+        final errorMessages = response.errors.map((e) => e.message).join(', ');
+        throw Exception('Failed to create schedule: $errorMessages');
+      }
 
       final responseData = response.data;
       if (responseData == null) {
-        throw Exception('Failed to create schedule: No data returned');
+        debugPrint('❌ ScheduleService: No data returned from mutation');
+        throw Exception('Failed to create schedule: No data returned from server');
       }
 
-      final scheduleJson = jsonDecode(responseData);
-      final createdScheduleData = scheduleJson['createSchedule'];
-      final createdScheduleId = createdScheduleData['id'];
+      debugPrint("✅ ScheduleService: Schedule created via API: $responseData");
 
-      debugPrint("📱 Created schedule ID: $createdScheduleId");
+      // Parse the response
+      final Map<String, dynamic> scheduleJson;
+      try {
+        scheduleJson = jsonDecode(responseData);
+      } catch (e) {
+        debugPrint('❌ ScheduleService: Failed to parse response JSON: $e');
+        throw Exception('Failed to parse server response: $e');
+      }
+
+      final createdScheduleData = scheduleJson['createSchedule'];
+      if (createdScheduleData == null) {
+        debugPrint('❌ ScheduleService: No createSchedule data in response');
+        throw Exception('Invalid response from server');
+      }
+
+      final createdScheduleId = createdScheduleData['id'];
+      if (createdScheduleId == null) {
+        debugPrint('❌ ScheduleService: No schedule ID in response');
+        throw Exception('No schedule ID returned from server');
+      }
+
+      debugPrint("✅ ScheduleService: Created schedule ID: $createdScheduleId");
 
       final createdSchedule = Schedule(
         id: createdScheduleId,
@@ -69,22 +105,31 @@ class ScheduleService {
         group: schedule.group,
       );
 
-      // Wait a moment for the schedule to be available in the backend
-      await Future.delayed(const Duration(milliseconds: 500));
-      await NotificationService.addCreatedScheduleNotification(createdSchedule);
+      // Add notifications
+      try {
+        debugPrint('🔍 ScheduleService: Adding notifications...');
+        // Wait a moment for the schedule to be available in the backend
+        await Future.delayed(const Duration(milliseconds: 500));
+        await NotificationService.addCreatedScheduleNotification(createdSchedule);
 
-      final startTime = createdSchedule.startTime.getDateTimeInUtc();
-      final now = DateTime.now();
-      final timeDifference = startTime.difference(now);
+        final startTime = createdSchedule.startTime.getDateTimeInUtc();
+        final now = DateTime.now();
+        final timeDifference = startTime.difference(now);
 
-      if (timeDifference.inHours > 24) {
-        await NotificationService.addUpcomingScheduleNotification(createdSchedule);
+        if (timeDifference.inHours > 24) {
+          await NotificationService.addUpcomingScheduleNotification(createdSchedule);
+        }
+        else if (timeDifference.inHours > 1) {
+          await NotificationService.addUpcomingScheduleNotification(createdSchedule);
+        }
+        debugPrint('✅ ScheduleService: Notifications added successfully');
+      } catch (e) {
+        debugPrint('⚠️ ScheduleService: Failed to add notifications (schedule still created): $e');
+        // Don't throw here as the schedule was created successfully
       }
-      else if (timeDifference.inHours > 1) {
-        await NotificationService.addUpcomingScheduleNotification(createdSchedule);
-      }
+
     } catch (e) {
-      debugPrint('❌ Failed to create schedule: $e');
+      debugPrint('❌ ScheduleService: Failed to create schedule: $e');
       rethrow;
     }
   }

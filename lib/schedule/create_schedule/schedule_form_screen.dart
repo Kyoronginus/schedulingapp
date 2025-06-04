@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../models/Schedule.dart';
+import '../../models/User.dart';
 import '../schedule_service.dart';
 import '../../models/Group.dart';
-import '../../dynamo/get_user_service.dart';
+import '../../auth/auth_service.dart';
 import '../../dynamo/group_service.dart';
 import '../../theme/theme_provider.dart';
 import 'package:provider/provider.dart';
@@ -214,37 +215,70 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
         }
       } else {
         // Create new schedule
-        final currentUser = await AuthService.getCurrentUser();
+        debugPrint('🔍 ScheduleForm: Starting schedule creation...');
+
+        User currentUser;
+        try {
+          currentUser = await ensureUserExists();
+          debugPrint('✅ ScheduleForm: Got current user: ${currentUser.id}');
+        } catch (e) {
+          debugPrint('❌ ScheduleForm: Failed to get current user: $e');
+          throw Exception('Failed to get user information. Please try logging in again.');
+        }
+
+        if (_selectedGroup == null) {
+          throw Exception('No group selected. Please select a group.');
+        }
+
+        debugPrint('🔍 ScheduleForm: Creating schedule with user: ${currentUser.id}, group: ${_selectedGroup!.id}');
 
         final newSchedule = Schedule(
           id: '', // Amplify will auto-generate this
-          title: _titleController.text,
-          description: _descriptionController.text,
-          location: _locationController.text,
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+          location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
           startTime: TemporalDateTime(startDateTime),
           endTime: TemporalDateTime(endDateTime),
           user: currentUser, // Pass the User object directly
-          group: _selectedGroup, // Explicitly set groupId
+          group: _selectedGroup!, // Explicitly set group
         );
 
+        debugPrint('🔍 ScheduleForm: Schedule object created, calling ScheduleService...');
         await ScheduleService.createSchedule(newSchedule);
+        debugPrint('✅ ScheduleForm: Schedule created successfully!');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Schedule created successfully!')),
+            const SnackBar(
+              content: Text('Schedule created successfully!'),
+              backgroundColor: Colors.green,
+            ),
           );
         }
       }
 
       widget.onClose();
     } catch (e) {
+      debugPrint('❌ ScheduleForm: Error creating/updating schedule: $e');
       if (mounted) {
+        String errorMessage = e.toString();
+        // Clean up the error message for better user experience
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.substring(11);
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(
+            content: Text('Error: $errorMessage'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 

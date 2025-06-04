@@ -9,7 +9,7 @@ import '../../auth/logout.dart';
 
 import '../../theme/theme_provider.dart';
 import '../../services/profile_image_service.dart';
-import 'dart:convert';
+import '../../auth/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String email;
@@ -91,32 +91,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _authProvider = 'Email';
       }
 
-      // Fetch user data from API
-      final request = GraphQLRequest<String>(
-        document: '''
-          query GetUser(\$id: ID!) {
-            getUser(id: \$id) {
-              id
-              name
-              email
-            }
-          }
-        ''',
-        variables: {
-          'id': user.userId,
-        },
-      );
-
-      final response = await Amplify.API.query(request: request).response;
-      final userData = response.data != null
-          ? jsonDecode(response.data!)
-          : null;
-
-      if (userData != null && userData['getUser'] != null) {
+      // Fetch user data from API using AuthService
+      try {
+        final userData = await ensureUserExists();
+        debugPrint('✅ ProfileScreen: Got user data: ${userData.name}');
         setState(() {
-          _userName = userData['getUser']['name'];
-          _userEmail = emailAttr.value;
+          _userName = userData.name;
+          _userEmail = userData.email;
           _nameController.text = _userName ?? '';
+        });
+      } catch (e) {
+        debugPrint('⚠️ ProfileScreen: Could not get/create user data: $e');
+        // Use email from Cognito if user not found in database
+        setState(() {
+          _userEmail = emailAttr.value;
+          _nameController.text = '';
         });
       }
 

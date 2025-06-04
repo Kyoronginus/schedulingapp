@@ -32,6 +32,7 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
 
       if (!mounted) return;
       if (result.isSignUpComplete) {
+        debugPrint('✅ ConfirmSignUp: Email confirmation successful');
         Navigator.pushReplacementNamed(context, AppRoutes.login);
       }
     } on AuthException catch (e) {
