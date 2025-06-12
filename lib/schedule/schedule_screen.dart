@@ -57,6 +57,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Future<void> _getCurrentUserId() async {
     try {
       final user = await Amplify.Auth.getCurrentUser();
+
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() {
         _currentUserId = user.userId;
       });
@@ -112,6 +115,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Future<void> _loadGroups() async {
     try {
       final groups = await GroupService.getUserGroups();
+
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() {
         _groups = groups;
         if (groups.isNotEmpty) {
@@ -126,12 +132,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to load groups: $e')));
       }
+
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
 
   Future<void> _loadSchedules() async {
+    // Check if widget is still mounted before calling setState
+    if (!mounted) return;
     setState(() => _isLoading = true);
+
     try {
       List<Schedule> schedules = [];
 
@@ -143,6 +155,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         schedules = await ScheduleService.getGroupSchedules(_selectedGroup!.id);
       }
 
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() {
         _groupedSchedules = _groupSchedulesByDate(schedules);
         _isLoading = false;
@@ -153,6 +167,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to load schedules: $e')));
       }
+
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }

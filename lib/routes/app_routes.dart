@@ -5,12 +5,13 @@ import '../auth/login/login_screen.dart';
 import '../auth/login/initial_login_screen.dart';
 import '../auth/password/forgot_password_screen.dart';
 import '../auth/password/reset_password_screen.dart';
+import '../auth/password/change_password_screen.dart';
 import '../schedule/schedule_screen.dart';
 import '../auth/register/register_screen.dart';
 import '../dynamo/set_user_name_screen.dart';
 import '../schedule/group/group_screen.dart';
 import '../schedule/invite/invite_member_screen.dart';
-import '../home/Profile/profile_screen.dart';
+import '../home/profile_screen.dart';
 import '../notification/notification_screen.dart';
 
 class AppRoutes {
@@ -20,6 +21,7 @@ class AppRoutes {
   static const String register = '/register';
   static const String forgotPassword = '/forgotPassword';
   static const String resetPassword = '/resetPassword';
+  static const String changePassword = '/changePassword';
   static const String splash = '/';
   static const String schedule = '/schedule';
   static const String inviteMember = '/inviteMember';
@@ -35,6 +37,7 @@ class AppRoutes {
         AppRoutes.register: (context) => const RegisterScreen(),
         AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
         AppRoutes.resetPassword: (context) => const ResetPasswordScreen(email: ''),
+        AppRoutes.changePassword: (context) => const ChangePasswordScreen(),
         AppRoutes.splash: (context) => SplashScreen(),
         AppRoutes.schedule: (context) => const ScheduleScreen(),
         AppRoutes.setUserName: (context) => const SetUserNameScreen(),

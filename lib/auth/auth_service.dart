@@ -3,6 +3,7 @@ import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:flutter/material.dart';
 import '../amplifyconfiguration.dart';
 import '../models/User.dart';
+import '../services/secure_storage_service.dart';
 import 'dart:convert';
 
 Future<void> initAmplify() async {
@@ -60,6 +61,9 @@ Future<void> login(String email, String password) async {
     }
 
     debugPrint('✅ Login success: ${result.isSignedIn}');
+
+    // Store the password securely for display purposes
+    await SecureStorageService.storePassword(password);
 
     // Ensure user exists in DynamoDB after successful login
     try {

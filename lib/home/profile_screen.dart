@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:provider/provider.dart';
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/bottom_nav_bar.dart';
-import '../../utils/utils_functions.dart';
-import '../../auth/logout.dart';
+import '../widgets/custom_app_bar.dart';
+import '../widgets/bottom_nav_bar.dart';
+import '../utils/utils_functions.dart';
+import '../auth/logout.dart';
 
-import '../../theme/theme_provider.dart';
-import '../../services/profile_image_service.dart';
-import '../../auth/auth_service.dart';
+import '../theme/theme_provider.dart';
+import '../services/profile_image_service.dart';
+import '../auth/auth_service.dart';
+import '../routes/app_routes.dart';
+import '../services/secure_storage_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String email;
@@ -22,15 +24,10 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
-  bool _obscurePassword = true;
-  bool _showChangePassword = false;
   bool _showPassword = false;
-  String? _password;
+  String? _storedPassword; // The actual password from secure storage
 
   String? _userName;
   String? _userEmail;
@@ -46,9 +43,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfileImage();
   }
 
+
+
   Future<void> _loadProfileImage() async {
     final image = await ProfileImageService.getProfileImage();
     if (image != null) {
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() {
         _profileImage = image;
       });
@@ -95,6 +96,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       try {
         final userData = await ensureUserExists();
         debugPrint('✅ ProfileScreen: Got user data: ${userData.name}');
+
+        // Check if widget is still mounted before calling setState
+        if (!mounted) return;
         setState(() {
           _userName = userData.name;
           _userEmail = userData.email;
@@ -103,42 +107,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } catch (e) {
         debugPrint('⚠️ ProfileScreen: Could not get/create user data: $e');
         // Use email from Cognito if user not found in database
+
+        // Check if widget is still mounted before calling setState
+        if (!mounted) return;
         setState(() {
           _userEmail = emailAttr.value;
           _nameController.text = '';
         });
       }
 
-      // If using email authentication, try to get the password
-      if (_authProvider == 'Email') {
-        try {
-          // For security reasons, we can't actually retrieve the real password
-          // from Cognito. Instead, we'll use a placeholder that can be toggled
-          // for demonstration purposes
-          setState(() {
-            _password = "Password123"; // This is just a placeholder
-          });
-        } catch (e) {
-          debugPrint('Error retrieving password: $e');
-        }
-      }
+      // Fetch stored password after auth provider is determined
+      await _fetchStoredPassword();
     } catch (e) {
       debugPrint('Error fetching profile: $e');
-    } finally {
+    }
+
+    // Check if widget is still mounted before calling setState
+    if (mounted) {
       setState(() => _isLoading = false);
     }
   }
 
   Future<void> _updateProfile() async {
+    // Check if widget is still mounted before calling setState
+    if (!mounted) return;
     setState(() => _isLoading = true);
+
     try {
       final user = await Amplify.Auth.getCurrentUser();
       final newName = _nameController.text.trim();
 
       if (newName.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter your name')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter your name')),
+          );
+        }
         return;
       }
 
@@ -162,86 +166,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final response = await Amplify.API.mutate(request: request).response;
       if (response.data != null) {
+        // Check if widget is still mounted before calling setState
+        if (!mounted) return;
         setState(() => _userName = newName);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
-        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile updated successfully')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
-    } finally {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    }
+
+    // Check if widget is still mounted before calling setState
+    if (mounted) {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _changePassword() async {
-    if (_newPasswordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all password fields')),
-      );
-      return;
-    }
-
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('New passwords do not match')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await Amplify.Auth.updatePassword(
-        oldPassword: _passwordController.text,
-        newPassword: _newPasswordController.text,
-      );
-
-      // Update the stored password
+  Future<void> _fetchStoredPassword() async {
+    if (_authProvider == 'Email') {
+      try {
+        final storedPassword = await SecureStorageService.getPassword();
+        debugPrint('🔍 Initial password fetch: ${storedPassword != null ? "Found password" : "No password found"}');
+        setState(() {
+          _storedPassword = storedPassword; // Store the actual password (can be null)
+        });
+      } catch (e) {
+        debugPrint('❌ Error retrieving password: $e');
+        setState(() {
+          _storedPassword = null; // No password available
+        });
+      }
+    } else {
+      debugPrint('🔍 Not an email account, skipping password fetch');
       setState(() {
-        _password = _newPasswordController.text;
+        _storedPassword = null; // No password for social logins
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password changed successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      setState(() {
-        _showChangePassword = false;
-        _passwordController.clear();
-        _newPasswordController.clear();
-        _confirmPasswordController.clear();
-      });
-    } on AuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.message}')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _refreshStoredPassword() async {
+    debugPrint('� Refreshing stored password...');
+    await _fetchStoredPassword();
   }
 
   Future<void> _changeProfilePicture() async {
     final file = await ProfileImageService.showImagePickerDialog(context);
     if (file != null) {
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() {
         _profileImage = FileImage(file);
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile picture updated'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile picture updated'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     }
   }
 
@@ -407,25 +399,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
-                                      _showPassword ? (_password ?? "Password") : "••••••••",
-                                      style: TextStyle(
-                                        color: theme.textTheme.bodyMedium?.color,
-                                        letterSpacing: _showPassword ? 0 : 2,
+                                    Expanded(
+                                      child: Text(
+                                        _showPassword
+                                          ? (_storedPassword ?? "Password not available")
+                                          : "••••••••",
+                                        style: TextStyle(
+                                          color: theme.textTheme.bodyMedium?.color,
+                                          letterSpacing: _showPassword ? 0 : 2,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.right,
                                       ),
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _showPassword = !_showPassword;
-                                        });
-                                      },
-                                      child: Icon(
-                                        _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                        color: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
-                                        size: 20,
+                                    SizedBox(
+                                      width: 24, // Fixed width to match chevron_right icon
+                                      height: 24, // Fixed height to match chevron_right icon
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _showPassword = !_showPassword;
+                                          });
+                                        },
+                                        child: Icon(
+                                          _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                          color: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
+                                          size: 24, // Match the size of chevron_right
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -443,66 +444,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               trailing: Icon(
                                 Icons.chevron_right,
                                 color: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
+                                size: 24, // Explicit size for consistency
                               ),
-                              onTap: () {
-                                setState(() {
-                                  _showChangePassword = !_showChangePassword;
-                                });
-
-                                if (_showChangePassword) {
-                                  // Show change password dialog
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('Change Password'),
-                                      content: SingleChildScrollView(
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            TextField(
-                                              controller: _passwordController,
-                                              obscureText: _obscurePassword,
-                                              decoration: const InputDecoration(
-                                                labelText: "Current Password",
-                                                border: OutlineInputBorder(),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            TextField(
-                                              controller: _newPasswordController,
-                                              obscureText: _obscurePassword,
-                                              decoration: const InputDecoration(
-                                                labelText: "New Password",
-                                                border: OutlineInputBorder(),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            TextField(
-                                              controller: _confirmPasswordController,
-                                              obscureText: _obscurePassword,
-                                              decoration: const InputDecoration(
-                                                labelText: "Confirm New Password",
-                                                border: OutlineInputBorder(),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                            _changePassword();
-                                          },
-                                          child: const Text('Change Password'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
+                              onTap: () async {
+                                // Navigate to change password screen and refresh password if changed
+                                final result = await Navigator.pushNamed(context, AppRoutes.changePassword);
+                                debugPrint('🔍 Change password result: $result');
+                                if (result == true) {
+                                  // Password was changed successfully, refresh the stored password
+                                  debugPrint('🔄 Refreshing stored password...');
+                                  await _refreshStoredPassword();
+                                } else {
+                                  debugPrint('⚠️ Password change was cancelled or failed');
                                 }
                               },
                               showDivider: true,

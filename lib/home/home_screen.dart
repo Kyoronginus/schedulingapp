@@ -59,6 +59,9 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         final userData = await ensureUserExists();
         debugPrint('✅ HomeScreen: Got user data: ${userData.name}');
+
+        // Check if widget is still mounted before calling setState
+        if (!mounted) return;
         setState(() => _userName = userData.name);
       } catch (e) {
         debugPrint('⚠️ HomeScreen: Could not get/create user data, redirecting to profile: $e');
@@ -105,10 +108,13 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
       );
-      await Amplify.API.mutate(request: request);
+      await Amplify.API.mutate(request: request).response;
+
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() => _userName = name);
     } catch (e) {
-      print('❌ User creation failed: $e');
+      debugPrint('❌ User creation failed: $e');
     }
   }
 
@@ -142,6 +148,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadAllSchedules() async {
     try {
       final schedules = await ScheduleService.loadAllSchedules();
+
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() {
         _groupedSchedules = _groupSchedulesByDate(schedules);
         _isLoading = false;
@@ -150,6 +159,9 @@ class _HomeScreenState extends State<HomeScreen> {
       // ScaffoldMessenger.of(context).showSnackBar(
       //   SnackBar(content: Text('Failed to load schedules: $e')),
       // );
+
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
