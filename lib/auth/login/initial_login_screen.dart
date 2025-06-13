@@ -20,16 +20,20 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final success = await signInWithGoogle(context);
 
-      if (success) {
+      if (success && mounted) {
         // Navigate to home screen on successful login
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google Sign In Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign In Error: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -39,16 +43,20 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final success = await signInWithFacebook(context);
 
-      if (success) {
+      if (success && mounted) {
         // Navigate to home screen on successful login
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Facebook Sign In Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Facebook Sign In Error: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -249,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(width: 12),
             Text(
               text,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),

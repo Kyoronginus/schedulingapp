@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../amplifyconfiguration.dart';
 import '../models/User.dart';
 import '../services/secure_storage_service.dart';
+import '../services/oauth_conflict_service.dart';
 import 'dart:convert';
 
 Future<void> initAmplify() async {
@@ -11,24 +12,22 @@ Future<void> initAmplify() async {
     final authPlugin = AmplifyAuthCognito();
     await Amplify.addPlugin(authPlugin);
     await Amplify.configure(amplifyconfig);
-    print('✅ Amplify configured');
+    debugPrint('✅ Amplify configured');
   } catch (e) {
-    print('⚠️ Amplify already configured: $e');
+    debugPrint('⚠️ Amplify already configured: $e');
   }
 }
 
 Future<void> signUp(String email, String password) async {
-  final userAttributes = {
-    CognitoUserAttributeKey.email: email,
-  };
+  final userAttributes = {CognitoUserAttributeKey.email: email};
 
   final result = await Amplify.Auth.signUp(
     username: email,
     password: password,
-    options: CognitoSignUpOptions(userAttributes: userAttributes),
+    options: SignUpOptions(userAttributes: userAttributes),
   );
 
-  print('✅ Sign up result: ${result.isSignUpComplete}');
+  debugPrint('✅ Sign up result: ${result.isSignUpComplete}');
 }
 
 Future<void> confirmCode(String email, String code) async {
@@ -37,25 +36,25 @@ Future<void> confirmCode(String email, String code) async {
     confirmationCode: code,
   );
 
-  print('✅ Confirm sign up: ${result.isSignUpComplete}');
+  debugPrint('✅ Confirm sign up: ${result.isSignUpComplete}');
 }
 
 Future<void> login(String email, String password) async {
-  try{
+  try {
     final result = await Amplify.Auth.signIn(
       username: email,
       password: password,
     );
 
-    if(!result.isSignedIn){
+    if (!result.isSignedIn) {
       final nextStep = result.nextStep.signInStep;
-      if (nextStep == AuthSignInStep.confirmSignUp){
+      if (nextStep == AuthSignInStep.confirmSignUp) {
         throw Exception(
           'Your account is not confirmed. Please verify your email.',
         );
       } else {
         throw Exception(
-          'Login failed. Make sure your email and password are correct.'
+          'Login failed. Make sure your email and password are correct.',
         );
       }
     }
@@ -73,9 +72,8 @@ Future<void> login(String email, String password) async {
       debugPrint('⚠️ Could not create user record: $e');
       // Don't throw here - user can complete profile setup later
     }
-
   } on AuthException catch (e) {
-  throw Exception(e.message);
+    throw Exception(e.message);
   }
 }
 
@@ -94,18 +92,20 @@ Future<User> ensureUserExists() async {
     // Get email and name from Cognito attributes
     final emailAttr = attributes.firstWhere(
       (attr) => attr.userAttributeKey == CognitoUserAttributeKey.email,
-      orElse: () => const AuthUserAttribute(
-        userAttributeKey: CognitoUserAttributeKey.email,
-        value: '',
-      ),
+      orElse:
+          () => const AuthUserAttribute(
+            userAttributeKey: CognitoUserAttributeKey.email,
+            value: '',
+          ),
     );
 
     final nameAttr = attributes.firstWhere(
       (attr) => attr.userAttributeKey == CognitoUserAttributeKey.name,
-      orElse: () => const AuthUserAttribute(
-        userAttributeKey: CognitoUserAttributeKey.name,
-        value: '',
-      ),
+      orElse:
+          () => const AuthUserAttribute(
+            userAttributeKey: CognitoUserAttributeKey.name,
+            value: '',
+          ),
     );
 
     final email = emailAttr.value;
@@ -133,19 +133,19 @@ Future<User> ensureUserExists() async {
         }
       ''',
       variables: {
-        'input': {
-          'id': authUser.userId,
-          'email': email,
-          'name': name,
-        }
+        'input': {'id': authUser.userId, 'email': email, 'name': name},
       },
     );
 
     final response = await Amplify.API.mutate(request: request).response;
 
     if (response.hasErrors) {
-      debugPrint('❌ AuthService: GraphQL errors creating user: ${response.errors}');
-      throw Exception('Failed to create user: ${response.errors.map((e) => e.message).join(', ')}');
+      debugPrint(
+        '❌ AuthService: GraphQL errors creating user: ${response.errors}',
+      );
+      throw Exception(
+        'Failed to create user: ${response.errors.map((e) => e.message).join(', ')}',
+      );
     }
 
     if (response.data == null) {
@@ -187,13 +187,17 @@ Future<User> getCurrentUser() async {
       variables: {'id': authUser.userId},
     );
 
-    debugPrint('🔍 AuthService: Sending GraphQL query for user: ${authUser.userId}');
+    debugPrint(
+      '🔍 AuthService: Sending GraphQL query for user: ${authUser.userId}',
+    );
     final response = await Amplify.API.query(request: request).response;
 
     // Check for GraphQL errors
     if (response.hasErrors) {
       debugPrint('❌ AuthService: GraphQL errors: ${response.errors}');
-      throw Exception('GraphQL errors: ${response.errors.map((e) => e.message).join(', ')}');
+      throw Exception(
+        'GraphQL errors: ${response.errors.map((e) => e.message).join(', ')}',
+      );
     }
 
     // Check if response data exists
@@ -215,15 +219,20 @@ Future<User> getCurrentUser() async {
     // Check if getUser data exists
     final userData = responseJson['getUser'];
     if (userData == null) {
-      debugPrint('❌ AuthService: User not found in database for ID: ${authUser.userId}');
-      throw Exception('User not found in database. Please complete your profile setup.');
+      debugPrint(
+        '❌ AuthService: User not found in database for ID: ${authUser.userId}',
+      );
+      throw Exception(
+        'User not found in database. Please complete your profile setup.',
+      );
     }
 
     // Create and return User object
     final user = User.fromJson(userData);
-    debugPrint('✅ AuthService: Successfully created User object: ${user.toString()}');
+    debugPrint(
+      '✅ AuthService: Successfully created User object: ${user.toString()}',
+    );
     return user;
-
   } on AuthException catch (e) {
     debugPrint('❌ AuthService: Auth exception: ${e.message}');
     throw Exception('Authentication error: ${e.message}');
@@ -239,8 +248,10 @@ Future<bool> signInWithGoogle(BuildContext context) async {
     // Start the sign-in process
     final result = await Amplify.Auth.signInWithWebUI(
       provider: AuthProvider.google,
-      options: const CognitoSignInWithWebUIOptions(
-        isPreferPrivateSession: false,
+      options: const SignInWithWebUIOptions(
+        pluginOptions: CognitoSignInWithWebUIPluginOptions(
+          isPreferPrivateSession: false,
+        ),
       ),
     );
 
@@ -262,10 +273,37 @@ Future<bool> signInWithGoogle(BuildContext context) async {
       return false;
     }
   } on AmplifyException catch (e) {
-    print('❌ Google Sign In Error: ${e.message}');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Google Sign In Error: ${e.message}')),
-    );
+    debugPrint('❌ Google Sign In Error: ${e.message}');
+
+    if (!context.mounted) return false;
+
+    // Handle specific OAuth configuration errors
+    if (e.message.contains('CognitoOAuthConfig') ||
+        e.message.contains('OAuth') ||
+        e.message.contains('identity provider')) {
+      OAuthConflictService.showOAuthConfigurationError(context, 'Google');
+      return false;
+    }
+
+    // Handle account linking conflicts
+    if (e.message.contains('already exists') ||
+        e.message.contains('linked to another account')) {
+      final email = await OAuthConflictService.extractEmailFromOAuthUser();
+      if (email != null && context.mounted) {
+        OAuthConflictService.showAccountConflictDialog(context, {
+          'email': email,
+          'existingMethod': 'email/password',
+          'attemptedMethod': 'Google'
+        });
+      }
+      return false;
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google Sign In Error: ${e.message}')),
+      );
+    }
     return false;
   }
 }
@@ -276,8 +314,10 @@ Future<bool> signInWithFacebook(BuildContext context) async {
     // Start the sign-in process
     final result = await Amplify.Auth.signInWithWebUI(
       provider: AuthProvider.facebook,
-      options: const CognitoSignInWithWebUIOptions(
-        isPreferPrivateSession: false,
+      options: const SignInWithWebUIOptions(
+        pluginOptions: CognitoSignInWithWebUIPluginOptions(
+          isPreferPrivateSession: false,
+        ),
       ),
     );
 
@@ -299,10 +339,39 @@ Future<bool> signInWithFacebook(BuildContext context) async {
       return false;
     }
   } on AmplifyException catch (e) {
-    print('❌ Facebook Sign In Error: ${e.message}');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Facebook Sign In Error: ${e.message}')),
-    );
+    debugPrint('❌ Facebook Sign In Error: ${e.message}');
+
+    if (!context.mounted) return false;
+
+    // Handle specific OAuth configuration errors
+    if (e.message.contains('CognitoOAuthConfig') ||
+        e.message.contains('OAuth') ||
+        e.message.contains('identity provider')) {
+      OAuthConflictService.showOAuthConfigurationError(context, 'Facebook');
+      return false;
+    }
+
+    // Handle account linking conflicts
+    if (e.message.contains('already exists') ||
+        e.message.contains('linked to another account')) {
+      final email = await OAuthConflictService.extractEmailFromOAuthUser();
+      if (email != null && context.mounted) {
+        OAuthConflictService.showAccountConflictDialog(context, {
+          'email': email,
+          'existingMethod': 'email/password',
+          'attemptedMethod': 'Facebook'
+        });
+      }
+      return false;
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Facebook Sign In Error: ${e.message}')),
+      );
+    }
     return false;
   }
 }
+
+

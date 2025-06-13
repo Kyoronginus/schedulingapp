@@ -32,7 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _userName;
   String? _userEmail;
   String? _authProvider;
-  int _currentIndex = 3; // Updated to reflect new navigation order
+  final int _currentIndex = 3;
 
   ImageProvider? _profileImage;
 
@@ -75,7 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Try to determine auth provider
       try {
         final session = await Amplify.Auth.fetchAuthSession(
-          options: FetchAuthSessionOptions(),
+          options: const FetchAuthSessionOptions(),
         ) as CognitoAuthSession;
 
         final identityIdResult = session.identityIdResult;

@@ -1,6 +1,7 @@
 import '../../models/User.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class InviteMemberService {
   Future<User?> findUserByEmail(String email) async {
@@ -42,7 +43,7 @@ class InviteMemberService {
         name: userData['name'],
       );
     } catch (e) {
-      print('Error finding user by email: $e');
+      debugPrint('Error finding user by email: $e');
       rethrow;
     }
   }
@@ -77,9 +78,9 @@ class InviteMemberService {
         throw Exception('failed to create GroupUser');
       }
 
-      print('✅ successfully created GroupUser: ${response.data}');
+      debugPrint('✅ successfully created GroupUser: ${response.data}');
     } catch (e) {
-      print('🔴 Error creating GroupUser: $e');
+      debugPrint('🔴 Error creating GroupUser: $e');
       rethrow;
     }
   }

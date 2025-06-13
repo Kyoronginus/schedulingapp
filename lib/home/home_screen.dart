@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
           value: '',
         ),
       );
-      final email = emailAttr.value ?? 'no-email@example.com';
+      final email = emailAttr.value;
       debugPrint('📧 HomeScreen: User email: $email');
 
       // 2. Use AuthService to ensure user exists and get user data
@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint('❌ HomeScreen: Error fetching user data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Failed to fetch user data. Please try again.'),
             backgroundColor: Colors.orange,
           ),
