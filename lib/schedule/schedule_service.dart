@@ -5,6 +5,7 @@ import 'schedule_extensions.dart';
 import '../dynamo/group_service.dart';
 import 'package:flutter/foundation.dart';
 import '../services/notification_service.dart';
+import '../services/timezone_service.dart';
 
 class ScheduleService {
   static Future<void> createSchedule(Schedule schedule) async {
@@ -112,9 +113,10 @@ class ScheduleService {
         await Future.delayed(const Duration(milliseconds: 500));
         await NotificationService.addCreatedScheduleNotification(createdSchedule);
 
-        final startTime = createdSchedule.startTime.getDateTimeInUtc();
+        // Use local timezone for notification timing calculations
+        final startTimeLocal = TimezoneService.utcToLocal(createdSchedule.startTime);
         final now = DateTime.now();
-        final timeDifference = startTime.difference(now);
+        final timeDifference = startTimeLocal.difference(now);
 
         if (timeDifference.inHours > 24) {
           await NotificationService.addUpcomingScheduleNotification(createdSchedule);

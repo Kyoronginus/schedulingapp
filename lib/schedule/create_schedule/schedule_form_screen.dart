@@ -8,6 +8,7 @@ import '../../models/Group.dart';
 import '../../auth/auth_service.dart';
 import '../../dynamo/group_service.dart';
 import '../../theme/theme_provider.dart';
+import '../../services/timezone_service.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 
@@ -121,7 +122,6 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
   void _validateTimeSelections() {
     if (_selectedDate == null || _startTime == null) return;
 
-    final now = DateTime.now();
     final selectedStartDateTime = DateTime(
       _selectedDate!.year,
       _selectedDate!.month,
@@ -130,11 +130,8 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
       _startTime!.minute,
     );
 
-    // If selected date is today and start time is in the past, reset it
-    if (selectedStartDateTime.isBefore(now) &&
-        _selectedDate!.year == now.year &&
-        _selectedDate!.month == now.month &&
-        _selectedDate!.day == now.day) {
+    // If selected time is in the past (in local timezone), reset it
+    if (!TimezoneService.isLocalTimeInFuture(selectedStartDateTime)) {
       setState(() {
         _startTime = null;
         _endTime = null;
@@ -201,8 +198,8 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
           title: _titleController.text,
           description: _descriptionController.text,
           location: _locationController.text,
-          startTime: TemporalDateTime(startDateTime),
-          endTime: TemporalDateTime(endDateTime),
+          startTime: TimezoneService.localToUtc(startDateTime),
+          endTime: TimezoneService.localToUtc(endDateTime),
           group: _selectedGroup,
         );
 
@@ -237,8 +234,8 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
           location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
-          startTime: TemporalDateTime(startDateTime),
-          endTime: TemporalDateTime(endDateTime),
+          startTime: TimezoneService.localToUtc(startDateTime),
+          endTime: TimezoneService.localToUtc(endDateTime),
           user: currentUser, // Pass the User object directly
           group: _selectedGroup!, // Explicitly set group
         );
@@ -623,7 +620,7 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
     );
 
     if (selectedTime != null) {
-      // For today, validate that time is in the future
+      // For today, validate that time is in the future (using local timezone)
       if (isToday) {
         final selectedDateTime = DateTime(
           now.year,
@@ -633,7 +630,7 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
           selectedTime.minute,
         );
 
-        if (selectedDateTime.isBefore(now)) {
+        if (!TimezoneService.isLocalTimeInFuture(selectedDateTime)) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Selected time must be in the future')),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 
 import '../routes/app_routes.dart';
+import '../services/notification_service.dart';
 import '../utils/utils_functions.dart';
 
 //onboarding screen for the app
@@ -26,16 +27,25 @@ class _SplashScreenState extends State<SplashScreen> {
       final isSignedIn = result.isSignedIn;
 
       if (isSignedIn) {
-        // User is signed in, navigate to home screen
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        // Initialize notification service for the current user
+        await NotificationService.initialize();
+
+        // Check if context is still mounted before navigation
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
+        }
       } else {
         // No user is signed in, navigate to register screen
-        Navigator.pushReplacementNamed(context, AppRoutes.register);
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, AppRoutes.register);
+        }
       }
     } catch (e) {
       // Error checking auth status, default to register screen
       debugPrint('Error checking auth status: $e');
-      Navigator.pushReplacementNamed(context, AppRoutes.register);
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.register);
+      }
     }
   }
 

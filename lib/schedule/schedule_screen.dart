@@ -12,6 +12,7 @@ import '../dynamo/group_service.dart';
 import 'schedule_service.dart';
 import '../theme/theme_provider.dart';
 import '../utils/utils_functions.dart';
+import '../services/timezone_service.dart';
 import 'create_schedule/schedule_form_screen.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -179,10 +180,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   ) {
     final Map<DateTime, List<Schedule>> grouped = {};
     for (final schedule in schedules) {
+      // Use local timezone for date grouping
+      final localStartTime = TimezoneService.utcToLocal(schedule.startTime);
       final date = DateTime(
-        schedule.startTime.getDateTimeInUtc().year,
-        schedule.startTime.getDateTimeInUtc().month,
-        schedule.startTime.getDateTimeInUtc().day,
+        localStartTime.year,
+        localStartTime.month,
+        localStartTime.day,
       );
       if (grouped[date] == null) {
         grouped[date] = [];
@@ -741,13 +744,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final schedules =
         _groupedSchedules.values
             .expand((list) => list)
-            .where((s) => isSameDay(s.startTime.getDateTimeInUtc(), day))
+            .where((s) => isSameDay(TimezoneService.utcToLocal(s.startTime), day))
             .toList();
 
-    // Sort schedules by start time
+    // Sort schedules by start time (using local timezone)
     schedules.sort(
-      (a, b) => a.startTime.getDateTimeInUtc().compareTo(
-        b.startTime.getDateTimeInUtc(),
+      (a, b) => TimezoneService.utcToLocal(a.startTime).compareTo(
+        TimezoneService.utcToLocal(b.startTime),
       ),
     );
 
@@ -796,9 +799,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Time range
+                      // Time range (in local timezone)
                       Text(
-                        '${_formatTime(schedule.startTime.getDateTimeInUtc())}-${_formatTime(schedule.endTime.getDateTimeInUtc())}',
+                        '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))}-${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
                         style: TextStyle(
                           color: dotColor,
                           fontWeight: FontWeight.bold,
@@ -1102,7 +1105,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               child: ScheduleFormOverlay(
                 scheduleToEdit: schedule,
                 onClose: _closeCreateForm,
-                selectedDate: schedule.startTime.getDateTimeInUtc(),
+                selectedDate: TimezoneService.utcToLocal(schedule.startTime),
                 initialGroup: _isPersonalCalendar ? null : _selectedGroup,
               ),
             ),

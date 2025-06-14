@@ -1,6 +1,5 @@
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_api/amplify_api.dart';
-import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:flutter/material.dart';
 import '../routes/app_routes.dart';
 import '../models/User.dart';
@@ -27,25 +26,25 @@ class _SetUserNameScreenState extends State<SetUserNameScreen> {
       final userId = currentUser.userId;
 
       final attributes = await Amplify.Auth.fetchUserAttributes();
-      final email = attributes
-          .firstWhere(
-              (attr) => attr.userAttributeKey == CognitoUserAttributeKey.email)
-          .value;
+      final email =
+          attributes
+              .firstWhere(
+                (attr) =>
+                    attr.userAttributeKey == CognitoUserAttributeKey.email,
+              )
+              .value;
 
       // Create a new User instance
-      final newUser = User(
-        id: userId,
-        name: name,
-        email: email,
-      );
+      final newUser = User(id: userId, name: name, email: email);
 
       final request = ModelMutations.create(newUser);
       final response = await Amplify.API.mutate(request: request).response;
 
       if (response.hasErrors) {
-        print('GraphQL Errors: ${response.errors}');
+        debugPrint('GraphQL Errors: ${response.errors}');
         throw Exception(
-            'Failed to create user: ${response.errors.map((e) => e.message).join(', ')}');
+          'Failed to create user: ${response.errors.map((e) => e.message).join(', ')}',
+        );
       }
 
       if (response.data == null) {
@@ -54,11 +53,11 @@ class _SetUserNameScreenState extends State<SetUserNameScreen> {
 
       Navigator.pushReplacementNamed(context, AppRoutes.home);
     } catch (e) {
-      print("❌ Error saving name: $e");
+      debugPrint("❌ Error saving name: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content:
-                Text("Error: ${e.toString().replaceAll('Exception: ', '')}")),
+          content: Text("Error: ${e.toString().replaceAll('Exception: ', '')}"),
+        ),
       );
     } finally {
       setState(() => _isSaving = false);
@@ -73,23 +72,23 @@ class _SetUserNameScreenState extends State<SetUserNameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Set Your Name")),
+      appBar: AppBar(title: const Text("Set Your Name")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text("Please enter your name:"),
+            const Text("Please enter your name:"),
             TextField(controller: _nameController),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
                   onPressed: _isSaving ? null : _saveName,
-                  child: _isSaving ? CircularProgressIndicator() : Text("Save"),
+                  child: _isSaving ? const CircularProgressIndicator() : const Text("Save"),
                 ),
                 TextButton(
                   onPressed: _isSaving ? null : _skip,
-                  child: Text("Skip"),
+                  child: const Text("Skip"),
                 ),
               ],
             ),

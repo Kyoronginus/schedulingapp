@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
 
 class SecureStorageService {
   static const _storage = FlutterSecureStorage(
@@ -50,6 +51,64 @@ class SecureStorageService {
       debugPrint('✅ Password cleared from secure storage');
     } catch (e) {
       debugPrint('❌ Error clearing password: $e');
+    }
+  }
+
+  /// Get current user ID for session management
+  static Future<String?> getCurrentUserId() async {
+    try {
+      final user = await Amplify.Auth.getCurrentUser();
+      return user.userId;
+    } catch (e) {
+      debugPrint('❌ Error getting current user ID: $e');
+      return null;
+    }
+  }
+
+  /// Store user-specific data with user ID prefix
+  static Future<void> storeUserData(String key, String value) async {
+    try {
+      final userId = await getCurrentUserId();
+      if (userId != null) {
+        final userSpecificKey = '${userId}_$key';
+        await _storage.write(key: userSpecificKey, value: value);
+        debugPrint('✅ User-specific data stored: $userSpecificKey');
+      }
+    } catch (e) {
+      debugPrint('❌ Error storing user-specific data: $e');
+    }
+  }
+
+  /// Retrieve user-specific data with user ID prefix
+  static Future<String?> getUserData(String key) async {
+    try {
+      final userId = await getCurrentUserId();
+      if (userId != null) {
+        final userSpecificKey = '${userId}_$key';
+        return await _storage.read(key: userSpecificKey);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error retrieving user-specific data: $e');
+      return null;
+    }
+  }
+
+  /// Clear all data for current user
+  static Future<void> clearCurrentUserData() async {
+    try {
+      final userId = await getCurrentUserId();
+      if (userId != null) {
+        final allKeys = await _storage.readAll();
+        for (final key in allKeys.keys) {
+          if (key.startsWith('${userId}_')) {
+            await _storage.delete(key: key);
+          }
+        }
+        debugPrint('✅ Current user data cleared for user: $userId');
+      }
+    } catch (e) {
+      debugPrint('❌ Error clearing current user data: $e');
     }
   }
 

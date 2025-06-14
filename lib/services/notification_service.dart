@@ -4,15 +4,33 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:schedulingapp/models/Schedule.dart';
 import 'package:schedulingapp/models/Notification.dart';
 import 'package:schedulingapp/models/NotificationType.dart';
+import 'package:schedulingapp/services/timezone_service.dart';
 
 import 'package:flutter/foundation.dart';
 
 class NotificationService {
   static List<Notification> _cachedNotifications = [];
   static bool _isInitialized = false;
+  static String? _currentUserId;
 
   // Initialize the notification service
   static Future<void> initialize() async {
+    // Get current user ID for session management
+    try {
+      final user = await Amplify.Auth.getCurrentUser();
+      final newUserId = user.userId;
+
+      // If user changed, clear cache and reinitialize
+      if (_currentUserId != newUserId) {
+        _cachedNotifications.clear();
+        _currentUserId = newUserId;
+        _isInitialized = false;
+      }
+    } catch (e) {
+      debugPrint('Error getting current user in NotificationService: $e');
+      _currentUserId = null;
+    }
+
     if (_isInitialized) return;
 
     await _loadNotifications();
@@ -33,6 +51,7 @@ class NotificationService {
               isRead
               timestamp
               scheduleId
+              readByUsers
               schedule {
                 id
                 title
@@ -68,18 +87,30 @@ class NotificationService {
             schedule = Schedule.fromJson(Map<String, dynamic>.from(scheduleData));
           }
 
+          // Check if current user has read this notification
+          final readByUsers = item['readByUsers'] as List<dynamic>? ?? [];
+
+          // For backward compatibility: if readByUsers is empty and isRead is true,
+          // treat it as read by all users (legacy behavior)
+          final legacyIsRead = item['isRead'] as bool? ?? false;
+          final isReadByCurrentUser = _currentUserId != null &&
+              (readByUsers.contains(_currentUserId) ||
+               (readByUsers.isEmpty && legacyIsRead));
+
           return Notification(
             id: item['id'],
             type: NotificationType.values.firstWhere((e) => e.name == item['type']),
-            isRead: item['isRead'],
+            isRead: isReadByCurrentUser, // User-specific read state
             timestamp: TemporalDateTime(DateTime.parse(item['timestamp'])),
             schedule: schedule,
             message: item['message'],
+            readByUsers: List<String>.from(readByUsers),
           );
         }).toList();
 
-        // Sort notifications by timestamp (newest first)
-        _cachedNotifications.sort((a, b) => b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc()));
+        // Sort notifications by timestamp (newest first) - using local time for comparison
+        _cachedNotifications.sort((a, b) =>
+          TimezoneService.utcToLocal(b.timestamp).compareTo(TimezoneService.utcToLocal(a.timestamp)));
       }
     } catch (e) {
       debugPrint('Error loading notifications: $e');
@@ -120,6 +151,7 @@ class NotificationService {
         timestamp: TemporalDateTime.now(),
         isRead: false,
         message: message,
+        readByUsers: [], // Initialize empty array
       );
 
       // Create notification in the cloud using GraphQL API
@@ -133,6 +165,7 @@ class NotificationService {
               timestamp
               scheduleId
               message
+              readByUsers
             }
           }
         ''',
@@ -143,6 +176,7 @@ class NotificationService {
             'timestamp': notification.timestamp.format(),
             'scheduleId': schedule.id,
             'message': notification.message,
+            'readByUsers': [], // Initialize empty array
           },
         },
       );
@@ -188,6 +222,7 @@ class NotificationService {
         timestamp: TemporalDateTime.now(),
         isRead: false,
         message: message,
+        readByUsers: [], // Initialize empty array
       );
 
       // Create notification in the cloud using GraphQL API
@@ -201,6 +236,7 @@ class NotificationService {
               timestamp
               scheduleId
               message
+              readByUsers
             }
           }
         ''',
@@ -212,6 +248,7 @@ class NotificationService {
             'timestamp': notification.timestamp.format(),
             'scheduleId': schedule.id,
             'message': notification.message,
+            'readByUsers': [], // Initialize empty array
           },
         },
       );
@@ -229,38 +266,90 @@ class NotificationService {
     }
   }
 
-  // Mark a notification as read
-  static Future<void> markAsRead(String notificationId) async {
+  // Mark a notification as read for the current user
+  static Future<bool> markAsRead(String notificationId) async {
     await initialize();
 
-    final index = _cachedNotifications.indexWhere((n) => n.id == notificationId);
-    if (index != -1) {
+    if (_currentUserId == null) {
+      debugPrint('❌ Cannot mark notification as read: No current user');
+      return false;
+    }
 
-      // Update notification in the cloud using GraphQL API
-      final request = GraphQLRequest<String>(
-        document: '''
-          mutation UpdateNotification(\$input: UpdateNotificationInput!) {
-            updateNotification(input: \$input) {
-              id
-              isRead
-            }
+    try {
+      // First, get the current notification to get existing readByUsers
+      const getNotificationQuery = '''
+        query GetNotification(\$id: ID!) {
+          getNotification(id: \$id) {
+            id
+            readByUsers
           }
-        ''',
+        }
+      ''';
+
+      final getRequest = GraphQLRequest<String>(
+        document: getNotificationQuery,
+        variables: {'id': notificationId},
+      );
+
+      final getResponse = await Amplify.API.query(request: getRequest).response;
+      if (getResponse.hasErrors) {
+        debugPrint('❌ Error getting notification: ${getResponse.errors.first.message}');
+        return false;
+      }
+
+      final data = getResponse.data;
+      if (data == null) {
+        debugPrint('❌ No notification data found');
+        return false;
+      }
+
+      final notificationData = json.decode(data)['getNotification'];
+      final currentReadByUsers = List<String>.from(notificationData['readByUsers'] ?? []);
+
+      // Add current user to readByUsers if not already present
+      if (!currentReadByUsers.contains(_currentUserId)) {
+        currentReadByUsers.add(_currentUserId!);
+      }
+
+      // Update the notification with the new readByUsers array
+      const updateNotificationMutation = '''
+        mutation UpdateNotification(\$input: UpdateNotificationInput!) {
+          updateNotification(input: \$input) {
+            id
+            readByUsers
+          }
+        }
+      ''';
+
+      final updateRequest = GraphQLRequest<String>(
+        document: updateNotificationMutation,
         variables: {
           'input': {
             'id': notificationId,
-            'isRead': true,
+            'readByUsers': currentReadByUsers,
           },
         },
       );
 
-      final response = await Amplify.API.mutate(request: request).response;
-      if (response.hasErrors) {
-        debugPrint('Error marking notification as read: ${response.errors.first.message}');
+      final updateResponse = await Amplify.API.mutate(request: updateRequest).response;
+      if (updateResponse.hasErrors) {
+        debugPrint('❌ Error marking notification as read: ${updateResponse.errors.first.message}');
+        return false;
       } else {
-        debugPrint('✅ Notification marked as read successfully');
-        await _loadNotifications(); // Refresh cache from backend
+        debugPrint('✅ Notification marked as read for user: $_currentUserId');
+        // Update cache
+        final index = _cachedNotifications.indexWhere((n) => n.id == notificationId);
+        if (index != -1) {
+          _cachedNotifications[index] = _cachedNotifications[index].copyWith(
+            isRead: true, // Mark as read for current user
+            readByUsers: currentReadByUsers,
+          );
+        }
+        return true;
       }
+    } catch (e) {
+      debugPrint('❌ Error marking notification as read: $e');
+      return false;
     }
   }
 
@@ -268,36 +357,17 @@ class NotificationService {
   static Future<void> markAllAsRead() async {
     await initialize();
 
-    final List<Notification> notificationsToUpdate = _cachedNotifications.where((n) => !n.isRead).toList();
+    try {
+      final List<Notification> notificationsToUpdate = _cachedNotifications.where((n) => !n.isRead).toList();
 
-    for (final notification in notificationsToUpdate) {
-
-      // Update notification in the cloud using GraphQL API
-      final request = GraphQLRequest<String>(
-        document: '''
-          mutation UpdateNotification(\$input: UpdateNotificationInput!) {
-            updateNotification(input: \$input) {
-              id
-              isRead
-            }
-          }
-        ''',
-        variables: {
-          'input': {
-            'id': notification.id,
-            'isRead': true,
-          },
-        },
-      );
-
-      final response = await Amplify.API.mutate(request: request).response;
-      if (response.hasErrors) {
-        debugPrint('Error marking notification as read: ${response.errors.first.message}');
-      } else {
-        debugPrint('✅ Notification marked as read successfully');
+      for (final notification in notificationsToUpdate) {
+        await markAsRead(notification.id);
       }
+
+      debugPrint('✅ All notifications marked as read');
+    } catch (e) {
+      debugPrint('❌ Error marking all notifications as read: $e');
     }
-    await _loadNotifications(); // Refresh cache from backend after all updates
   }
 
   // Get message for a notification
@@ -305,11 +375,11 @@ class NotificationService {
     switch (notification.type) {
       case NotificationType.CREATED:
         final userName = notification.schedule?.user?.name ?? 'Someone';
-        return '$userName created an event ${_getTimeAgo(notification.timestamp.getDateTimeInUtc())}';
+        return '$userName created an event ${_getTimeAgo(TimezoneService.utcToLocal(notification.timestamp))}';
       case NotificationType.UPCOMING:
-        final startTime = notification.schedule!.startTime.getDateTimeInUtc();
+        final startTimeLocal = TimezoneService.utcToLocal(notification.schedule!.startTime);
         final now = DateTime.now();
-        final difference = startTime.difference(now);
+        final difference = startTimeLocal.difference(now);
 
         if (difference.inHours < 1) {
           return 'Event will start in ${difference.inMinutes} minutes';
@@ -335,8 +405,48 @@ class NotificationService {
     }
   }
 
-  // Get real notifications (for backward compatibility with the sample method)
-  static Future<List<Notification>> getSampleNotifications() async {
-    return getNotifications();
+  /// Clear all cached notifications (for session cleanup)
+  static void clearCache() {
+    _cachedNotifications.clear();
+    _isInitialized = false;
+    _currentUserId = null;
+    debugPrint('✅ Notification cache cleared');
+  }
+
+  /// Delete a specific notification
+  static Future<bool> deleteNotification(String notificationId) async {
+    try {
+      const deleteNotificationMutation = '''
+        mutation DeleteNotification(\$input: DeleteNotificationInput!) {
+          deleteNotification(input: \$input) {
+            id
+          }
+        }
+      ''';
+
+      final request = GraphQLRequest<String>(
+        document: deleteNotificationMutation,
+        variables: {
+          'input': {
+            'id': notificationId,
+          }
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+
+      if (response.hasErrors) {
+        debugPrint('❌ Error deleting notification: ${response.errors.first.message}');
+        return false;
+      } else {
+        debugPrint('✅ Notification deleted successfully: $notificationId');
+        // Remove from cache
+        _cachedNotifications.removeWhere((n) => n.id == notificationId);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('❌ Error deleting notification: $e');
+      return false;
+    }
   }
 }

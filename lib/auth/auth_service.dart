@@ -293,7 +293,7 @@ Future<bool> signInWithGoogle(BuildContext context) async {
         OAuthConflictService.showAccountConflictDialog(context, {
           'email': email,
           'existingMethod': 'email/password',
-          'attemptedMethod': 'Google'
+          'attemptedMethod': 'Google',
         });
       }
       return false;
@@ -359,7 +359,7 @@ Future<bool> signInWithFacebook(BuildContext context) async {
         OAuthConflictService.showAccountConflictDialog(context, {
           'email': email,
           'existingMethod': 'email/password',
-          'attemptedMethod': 'Facebook'
+          'attemptedMethod': 'Facebook',
         });
       }
       return false;
@@ -373,5 +373,3 @@ Future<bool> signInWithFacebook(BuildContext context) async {
     return false;
   }
 }
-
-

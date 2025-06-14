@@ -5,6 +5,7 @@ import '../widgets/bottom_nav_bar.dart';
 import '../models/Notification.dart' as models;
 import '../models/NotificationType.dart';
 import '../services/notification_service.dart';
+import '../services/timezone_service.dart';
 import '../theme/theme_provider.dart';
 
 
@@ -43,14 +44,41 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  Future<void> _markAsRead(String notificationId) async {
-    try {
-      await NotificationService.markAsRead(notificationId);
-      await _loadNotifications();
-    } catch (e) {
-      debugPrint('Error marking notification as read: $e');
+  Future<void> _deleteNotification(String notificationId) async {
+    final success = await NotificationService.deleteNotification(notificationId);
+    if (success) {
+      setState(() {
+        _notifications.removeWhere((n) => n.id == notificationId);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notification deleted')),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete notification')),
+        );
+      }
     }
   }
+
+  Future<void> _markAsRead(String notificationId) async {
+    final success = await NotificationService.markAsRead(notificationId);
+    if (success) {
+      setState(() {
+        final index = _notifications.indexWhere((n) => n.id == notificationId);
+        if (index != -1) {
+          _notifications[index] = _notifications[index].copyWith(
+            isRead: true,
+          );
+        }
+      });
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -125,36 +153,52 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     // Skip if schedule is null
                     if (schedule == null) return const SizedBox.shrink();
 
-                    // Format the date for display
-                    final startDate = schedule.startTime.getDateTimeInUtc();
-                    final day = startDate.day.toString().padLeft(2, '0');
-                    final month = DateFormat('MMMM').format(startDate);
-                    final year = startDate.year.toString();
+                    // Format the date for display (in local timezone)
+                    final startDateLocal = TimezoneService.utcToLocal(schedule.startTime);
+                    final day = startDateLocal.day.toString().padLeft(2, '0');
+                    final month = DateFormat('MMMM').format(startDateLocal);
+                    final year = startDateLocal.year.toString();
 
-                    // Format the time for display
-                    final startTime = DateFormat('HH:mm').format(startDate);
-                    final endTime = DateFormat('HH:mm').format(
-                      schedule.endTime.getDateTimeInUtc(),
-                    );
+                    // Format the time for display (in local timezone)
+                    final startTime = DateFormat('HH:mm').format(startDateLocal);
+                    final endDateLocal = TimezoneService.utcToLocal(schedule.endTime);
+                    final endTime = DateFormat('HH:mm').format(endDateLocal);
 
-                    return GestureDetector(
-                      onTap: () => _markAsRead(notification.id),
-                      child: Container(
+                    return Dismissible(
+                      key: Key(notification.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.red,
                           borderRadius: BorderRadius.circular(12),
-                          border: notification.isRead
-                              ? Border.all(color: Colors.grey.withValues(alpha: 25), width: 1)
-                              : null,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withValues(alpha: 25),
-                              blurRadius: 3,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
                         ),
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      onDismissed: (direction) {
+                        _deleteNotification(notification.id);
+                      },
+                      child: GestureDetector(
+                        onTap: () => _markAsRead(notification.id),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: notification.isRead ? Colors.green[50] : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withValues(alpha: 25),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
                         child: Opacity(
                           opacity: notification.isRead ? 0.7 : 1.0,
                           child: IntrinsicHeight(
@@ -255,12 +299,41 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                                 maxLines: 2,
                                               ),
                                             ),
-                                            if (notification.isRead)
-                                              const Icon(
-                                                Icons.check_circle_outline,
-                                                size: 16,
-                                                color: Colors.grey,
+                                            // Read/Unread indicator
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: notification.isRead
+                                                    ? Colors.green[100]
+                                                    : Colors.blue[100],
+                                                borderRadius: BorderRadius.circular(12),
                                               ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    notification.isRead
+                                                        ? Icons.check_circle
+                                                        : Icons.circle,
+                                                    size: 12,
+                                                    color: notification.isRead
+                                                        ? Colors.green[700]
+                                                        : Colors.blue,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    notification.isRead ? 'Read' : 'New',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: notification.isRead
+                                                          ? Colors.green[700]
+                                                          : Colors.blue,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ],
@@ -272,7 +345,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           ),
                         ),
                       ),
-                    );
+                    ));
                   },
                 ),
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
