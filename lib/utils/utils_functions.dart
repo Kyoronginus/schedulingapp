@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 Color panaceaTeal20 = const Color.fromARGB(255, 158, 239, 240);
 
 // Primary color for the app based on design
-Color primaryColor = const Color(0xFF4A80F0); // Blue color from design
+Color primaryColor = const Color(0xFF735BF2); 
+Color secondaryColor = const Color(0xFFF2F2F2);
 
 MaterialColor createMaterialColor(String hexColor) {
   // Add alpha value if not provided

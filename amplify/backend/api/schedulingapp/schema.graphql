@@ -91,4 +91,5 @@ type Notification
   timestamp: AWSDateTime!
   isRead: Boolean!
   message: String
+  readByUsers: [String] # Array of user IDs who have read this notification
 }

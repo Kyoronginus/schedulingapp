@@ -28,7 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
-  flutter_svg: ^2.0.7
+  flutter_svg: ^2.1.0
   amplify_api: ^1.0.0
   flutter:
     sdk: flutter
