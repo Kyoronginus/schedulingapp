@@ -19,6 +19,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _obscurePassword = true;
 
   Future<void> _handleLogin() async {
     if (!mounted) return;
@@ -173,10 +174,22 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                         labelText: "Password",
                         labelStyle: TextStyle(color: primaryColor),
                         prefixIcon: Icon(Icons.lock, color: primaryColor),
+                        // 2. Add the visibility toggle icon button
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: primaryColor,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       ),
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                     ),
                   ),
                   // Forgot Password link

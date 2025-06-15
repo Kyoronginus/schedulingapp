@@ -12,6 +12,7 @@ import '../../models/User.dart';
 import '../invite/invite_member_screen.dart';
 
 import '../../theme/theme_provider.dart';
+import '../../widgets/smart_back_button.dart';
 
 import 'package:provider/provider.dart';
 
@@ -20,10 +21,10 @@ class GroupScreen extends StatefulWidget {
   const GroupScreen({super.key});
 
   @override
-  _GroupScreenState createState() => _GroupScreenState();
+  State<GroupScreen> createState() => _GroupScreenState();
 }
 
-class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin {
+class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin, NavigationMemoryMixin {
   final int _currentIndex = 1; // Group is the 2nd tab (index 1)
   List<Group> _groups = [];
   Group? _selectedGroup;
@@ -199,7 +200,9 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
     final isDarkMode = themeProvider.isDarkMode;
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3);
 
-    return Scaffold(
+    return NavigationMemoryWrapper(
+      currentRoute: '/addGroup',
+      child: Scaffold(
       appBar: CustomAppBar(
         title: Text(
           "Groups",
@@ -264,6 +267,7 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
         child: const Icon(Icons.person_add, color: Colors.white),
       ) : null,
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
+      ),
     );
   }
 
@@ -395,13 +399,18 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16.0),
-          itemCount: members.length,
-          itemBuilder: (context, index) {
-            final member = members[index];
-            return _buildMemberCard(member);
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {}); // Trigger rebuild to reload members
           },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: members.length,
+            itemBuilder: (context, index) {
+              final member = members[index];
+              return _buildMemberCard(member);
+            },
+          ),
         );
       },
     );
@@ -605,6 +614,10 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
 
                         setState(() => isSaving = true);
 
+                        // Capture context before async operation
+                        final navigator = Navigator.of(context);
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+
                         try {
                           await GroupService.createGroup(
                             name: name,
@@ -612,8 +625,8 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                           );
 
                           if (mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            navigator.pop();
+                            scaffoldMessenger.showSnackBar(
                               const SnackBar(
                                   content: Text('Group created successfully!')),
                             );
@@ -623,14 +636,16 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                           _loadGroups();
                         } catch (e) {
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            scaffoldMessenger.showSnackBar(
                               SnackBar(
                                   content: Text(
                                       'Failed to create group: ${e.toString()}')),
                             );
                           }
                         } finally {
-                          setState(() => isSaving = false);
+                          if (mounted) {
+                            setState(() => isSaving = false);
+                          }
                         }
                       },
                 child: isSaving

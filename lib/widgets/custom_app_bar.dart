@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../utils/utils_functions.dart';
 import '../theme/theme_provider.dart';
+import 'smart_back_button.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget title;
@@ -58,22 +59,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: true,
       leading:
           showBackButton
-              ? IconButton(
-                icon: Icon(Icons.arrow_back_ios, color: iconColor),
-                onPressed: () {
-                  // Check if we're on one of the main navigation screens
-                  final currentRoute = ModalRoute.of(context)?.settings.name;
-                  if (currentRoute == '/schedule' ||
-                      currentRoute == '/addGroup' ||
-                      currentRoute == '/profile') {
-                    // Navigate to home instead of popping
-                    Navigator.pushReplacementNamed(context, '/home');
-                  } else {
-                    // Normal back button behavior
-                    Navigator.pop(context);
-                  }
-                },
-              )
+              ? SmartBackButton(
+                  color: iconColor,
+                  size: 20,
+                )
               : null,
       actions:
           actions ??

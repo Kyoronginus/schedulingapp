@@ -51,16 +51,22 @@ class _SetUserNameScreenState extends State<SetUserNameScreen> {
         throw Exception('Failed to create user: No data returned');
       }
 
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
     } catch (e) {
       debugPrint("❌ Error saving name: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: ${e.toString().replaceAll('Exception: ', '')}"),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${e.toString().replaceAll('Exception: ', '')}"),
+          ),
+        );
+      }
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 

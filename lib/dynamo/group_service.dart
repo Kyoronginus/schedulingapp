@@ -359,6 +359,79 @@ class GroupService {
 
 
 
+  // Update group information (name and description)
+  static Future<bool> updateGroup(String groupId, String name, String? description) async {
+    try {
+      final request = GraphQLRequest<String>(
+        document: '''
+        mutation UpdateGroup(\$input: UpdateGroupInput!) {
+          updateGroup(input: \$input) {
+            id
+            name
+            description
+            ownerId
+            createdAt
+            updatedAt
+          }
+        }
+        ''',
+        variables: {
+          'input': {
+            'id': groupId,
+            'name': name,
+            'description': description,
+          }
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+
+      if (response.hasErrors) {
+        debugPrint('Error updating group: ${response.errors.first.message}');
+        return false;
+      }
+
+      debugPrint('✅ Group updated successfully');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error updating group: $e');
+      return false;
+    }
+  }
+
+  // Delete group (only for group owners)
+  static Future<bool> deleteGroup(String groupId) async {
+    try {
+      final request = GraphQLRequest<String>(
+        document: '''
+        mutation DeleteGroup(\$input: DeleteGroupInput!) {
+          deleteGroup(input: \$input) {
+            id
+          }
+        }
+        ''',
+        variables: {
+          'input': {
+            'id': groupId,
+          }
+        },
+      );
+
+      final response = await Amplify.API.mutate(request: request).response;
+
+      if (response.hasErrors) {
+        debugPrint('Error deleting group: ${response.errors.first.message}');
+        return false;
+      }
+
+      debugPrint('✅ Group deleted successfully');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error deleting group: $e');
+      return false;
+    }
+  }
+
   // Helper method to update invitation status
   static Future<void> _updateInvitationStatus(String invitationId, InvitationStatus status) async {
     final request = GraphQLRequest<String>(
