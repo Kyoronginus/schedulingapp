@@ -8,18 +8,21 @@ import '../utils/utils_functions.dart';
 import '../auth/logout.dart';
 
 import '../theme/theme_provider.dart';
-import '../services/profile_image_service.dart';
+import '../services/store_profile_service.dart';
+import '../services/refresh_service.dart';
+import '../widgets/profile_avatar.dart';
 import '../auth/auth_service.dart';
+import 'package:image_picker/image_picker.dart';
 import '../routes/app_routes.dart';
 import '../services/secure_storage_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String email;
 
-  const ProfileScreen({Key? key, required this.email}) : super(key: key);
+  const ProfileScreen({super.key, required this.email});
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
@@ -32,28 +35,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _userName;
   String? _userEmail;
   String? _authProvider;
+  String? _userId;
   final int _currentIndex = 3;
 
-  ImageProvider? _profileImage;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
     super.initState();
     _fetchUserProfile();
-    _loadProfileImage();
-  }
-
-
-
-  Future<void> _loadProfileImage() async {
-    final image = await ProfileImageService.getProfileImage();
-    if (image != null) {
-      // Check if widget is still mounted before calling setState
-      if (!mounted) return;
-      setState(() {
-        _profileImage = image;
-      });
-    }
   }
 
   Future<void> _fetchUserProfile() async {
@@ -61,6 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       // Get current user
       final user = await Amplify.Auth.getCurrentUser();
+      _userId = user.userId;
 
       // Fetch user attributes
       final attributes = await Amplify.Auth.fetchUserAttributes();
@@ -118,6 +109,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Fetch stored password after auth provider is determined
       await _fetchStoredPassword();
+
+
     } catch (e) {
       debugPrint('Error fetching profile: $e');
     }
@@ -128,67 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _updateProfile() async {
-    // Check if widget is still mounted before calling setState
-    if (!mounted) return;
-    setState(() => _isLoading = true);
 
-    try {
-      final user = await Amplify.Auth.getCurrentUser();
-      final newName = _nameController.text.trim();
-
-      if (newName.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please enter your name')),
-          );
-        }
-        return;
-      }
-
-      final request = GraphQLRequest<String>(
-        document: '''
-          mutation UpdateUser(\$input: UpdateUserInput!) {
-            updateUser(input: \$input) {
-              id
-              name
-              email
-            }
-          }
-        ''',
-        variables: {
-          'input': {
-            'id': user.userId,
-            'name': newName,
-          }
-        },
-      );
-
-      final response = await Amplify.API.mutate(request: request).response;
-      if (response.data != null) {
-        // Check if widget is still mounted before calling setState
-        if (!mounted) return;
-        setState(() => _userName = newName);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated successfully')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      }
-    }
-
-    // Check if widget is still mounted before calling setState
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-  }
 
   Future<void> _fetchStoredPassword() async {
     if (_authProvider == 'Email') {
@@ -218,21 +151,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _changeProfilePicture() async {
-    final file = await ProfileImageService.showImagePickerDialog(context);
-    if (file != null) {
-      // Check if widget is still mounted before calling setState
-      if (!mounted) return;
+    if (_userId == null) return;
+
+    try {
       setState(() {
-        _profileImage = FileImage(file);
+        _isUploadingImage = true;
       });
 
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 300,
+        maxHeight: 300,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        final url = await CentralizedProfileImageService.uploadProfilePicture(image, _userId!);
+
+        if (url != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile picture updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Trigger a rebuild to refresh the avatar
+          setState(() {});
+
+          // Notify other screens to refresh
+          RefreshService().notifyProfileChange();
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to upload profile picture'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile picture updated'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text('Error uploading image: $e'),
+            backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
       }
     }
   }
@@ -261,12 +232,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
           ))
         : SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
+            child: RefreshIndicator(
+              onRefresh: _fetchUserProfile,
+              color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
                     const SizedBox(height: 20),
 
                     // Profile header with avatar and info
@@ -287,41 +262,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Column(
                         children: [
-                          // Profile avatar with initials
+                          // Profile avatar with upload functionality
                           Stack(
                             children: [
-                              CircleAvatar(
-                                radius: 50,
-                                backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-                                backgroundImage: _profileImage,
-                                child: _profileImage == null ? Text(
-                                  _getInitials(),
-                                  style: const TextStyle(
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                              if (_userId != null)
+                                ProfileAvatar(
+                                  userId: _userId!,
+                                  userName: _userName ?? "User",
+                                  size: 100.0,
+                                  showBorder: true,
+                                  borderColor: theme.cardTheme.color ?? Colors.white,
+                                )
+                              else
+                                Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                                    border: Border.all(color: theme.cardTheme.color ?? Colors.white, width: 2),
                                   ),
-                                ) : null,
-                              ),
-                              // Add photo button
+                                  child: Center(
+                                    child: Text(
+                                      _getInitials(),
+                                      style: const TextStyle(
+                                        fontSize: 40,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              // Add photo button with loading state
                               Positioned(
                                 right: 0,
                                 bottom: 0,
                                 child: GestureDetector(
-                                  onTap: _changeProfilePicture,
+                                  onTap: _isUploadingImage ? null : _changeProfilePicture,
                                   child: Container(
                                     height: 30,
                                     width: 30,
                                     decoration: BoxDecoration(
-                                      color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                                      color: _isUploadingImage
+                                        ? Colors.grey
+                                        : (isDarkMode ? const Color(0xFF4CAF50) : primaryColor),
                                       shape: BoxShape.circle,
                                       border: Border.all(color: theme.cardTheme.color ?? Colors.white, width: 2),
                                     ),
-                                    child: const Icon(
-                                      Icons.add,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
+                                    child: _isUploadingImage
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.camera_alt,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
                                   ),
                                 ),
                               ),
@@ -491,7 +492,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
 
                     const SizedBox(height: 40),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

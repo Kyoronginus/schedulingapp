@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 import '../splash/splash_screen.dart';
-import '../auth/login/login_screen.dart';
-import '../auth/login/initial_login_screen.dart';
+import '../auth/login/login_email_screen.dart';
+import '../auth/login/login_picker_screen.dart';
 import '../auth/password/forgot_password_screen.dart';
-import '../auth/password/reset_password_screen.dart';
 import '../auth/password/change_password_screen.dart';
 import '../schedule/schedule_screen.dart';
 import '../auth/register/register_screen.dart';
@@ -20,7 +19,6 @@ class AppRoutes {
   static const String emailLogin = '/emailLogin';
   static const String register = '/register';
   static const String forgotPassword = '/forgotPassword';
-  static const String resetPassword = '/resetPassword';
   static const String changePassword = '/changePassword';
   static const String splash = '/';
   static const String schedule = '/schedule';
@@ -36,9 +34,8 @@ class AppRoutes {
         AppRoutes.emailLogin: (context) => const EmailLoginScreen(),
         AppRoutes.register: (context) => const RegisterScreen(),
         AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
-        AppRoutes.resetPassword: (context) => const ResetPasswordScreen(email: ''),
         AppRoutes.changePassword: (context) => const ChangePasswordScreen(),
-        AppRoutes.splash: (context) => SplashScreen(),
+        AppRoutes.splash: (context) => const SplashScreen(),
         AppRoutes.schedule: (context) => const ScheduleScreen(),
         AppRoutes.setUserName: (context) => const SetUserNameScreen(),
         AppRoutes.addGroup: (context) => const GroupScreen(),

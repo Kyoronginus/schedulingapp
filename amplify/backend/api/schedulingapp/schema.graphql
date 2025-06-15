@@ -13,8 +13,11 @@ type User
   id: ID!
   email: String! @index(name: "byEmail", queryField: "listUsersByEmail")
   name: String!
+  profilePictureUrl: String
   groups: [GroupUser] @hasMany(indexName: "byUser", fields: ["id"])
   schedules: [Schedule] @hasMany(indexName: "byUser", fields: ["id"])
+  receivedInvitations: [GroupInvitation] @hasMany(indexName: "byInvitedUser", fields: ["id"])
+  sentInvitations: [GroupInvitation] @hasMany(indexName: "byInvitedByUser", fields: ["id"])
 }
 
 
@@ -32,6 +35,7 @@ type Group
   ownerId: ID! @index(name: "byOwner", sortKeyFields: ["name"])
   members: [GroupUser] @hasMany(indexName: "byGroup", fields: ["id"])
   schedules: [Schedule] @hasMany(indexName: "byGroup", fields: ["id"])
+  invitations: [GroupInvitation] @hasMany(indexName: "byGroup", fields: ["id"])
 }
 
 type GroupUser
@@ -48,6 +52,33 @@ type GroupUser
   group: Group @belongsTo(fields: ["groupId"])
   user: User @belongsTo(fields: ["userId"])
   isAdmin: Boolean!
+}
+
+type GroupInvitation
+  @model
+  @auth(rules: [
+    { allow: owner },
+    { allow: private, provider: userPools },
+    { allow: public, provider: apiKey, operations: [read] }
+  ])
+  {
+  id: ID!
+  groupId: ID! @index(name: "byGroup")
+  group: Group @belongsTo(fields: ["groupId"])
+  invitedUserId: ID! @index(name: "byInvitedUser")
+  invitedUser: User @belongsTo(fields: ["invitedUserId"])
+  invitedByUserId: ID! @index(name: "byInvitedByUser")
+  invitedByUser: User @belongsTo(fields: ["invitedByUserId"])
+  status: InvitationStatus!
+  isAdmin: Boolean!
+  createdAt: AWSDateTime!
+  notifications: [Notification] @hasMany(indexName: "byGroupInvitation", fields: ["id"])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
 }
 
 type Schedule
@@ -74,6 +105,7 @@ type Schedule
 enum NotificationType {
   CREATED
   UPCOMING
+  INVITATION
 }
 
 type Notification
@@ -85,11 +117,13 @@ type Notification
   ])
   {
   id: ID!
-  scheduleId: ID! @index(name: "bySchedule")
+  scheduleId: ID @index(name: "bySchedule")
   schedule: Schedule @belongsTo(fields: ["scheduleId"])
+  groupInvitationId: ID @index(name: "byGroupInvitation")
+  groupInvitation: GroupInvitation @belongsTo(fields: ["groupInvitationId"])
   type: NotificationType!
   timestamp: AWSDateTime!
   isRead: Boolean!
   message: String
-  readByUsers: [String] # Array of user IDs who have read this notification
+  readByUsers: [String]
 }

@@ -7,8 +7,10 @@ import '../utils/utils_functions.dart';
 
 //onboarding screen for the app
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
@@ -19,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToHomeScreen() async {
-    await Future.delayed(Duration(seconds: 2), () {});
+    await Future.delayed(const Duration(seconds: 2), () {});
 
     try {
       // Check if user is signed in

@@ -63,15 +63,6 @@ Future<void> login(String email, String password) async {
 
     // Store the password securely for display purposes
     await SecureStorageService.storePassword(password);
-
-    // Ensure user exists in DynamoDB after successful login
-    try {
-      await ensureUserExists();
-      debugPrint('✅ User record verified/created in database');
-    } catch (e) {
-      debugPrint('⚠️ Could not create user record: $e');
-      // Don't throw here - user can complete profile setup later
-    }
   } on AuthException catch (e) {
     throw Exception(e.message);
   }

@@ -3,7 +3,7 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import '../routes/app_routes.dart';
 import '../services/secure_storage_service.dart';
 import '../services/notification_service.dart';
-import '../services/profile_image_service.dart';
+import '../services/profile_picture_service.dart';
 
 Future<void> logout(BuildContext context) async {
   try {

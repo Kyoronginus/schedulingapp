@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../models/Schedule.dart';
 import '../../models/User.dart';
@@ -9,6 +8,9 @@ import '../../auth/auth_service.dart';
 import '../../dynamo/group_service.dart';
 import '../../theme/theme_provider.dart';
 import '../../services/timezone_service.dart';
+import '../../services/refresh_service.dart';
+import '../../widgets/keyboard_aware_scaffold.dart';
+import '../../widgets/scrollable_time_picker.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 
@@ -244,6 +246,9 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
         await ScheduleService.createSchedule(newSchedule);
         debugPrint('✅ ScheduleForm: Schedule created successfully!');
 
+        // Notify other screens to refresh
+        RefreshService().notifyScheduleChange();
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -356,11 +361,12 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
             ),
 
             // Form content
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            Expanded(
+              child: KeyboardAwareForm(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   // Title field
                   TextField(
                     controller: _titleController,
@@ -562,7 +568,8 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
                       ),
                     ],
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -603,20 +610,10 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
         ? _startTime ?? TimeOfDay(hour: nextHour, minute: 0)
         : _endTime ?? TimeOfDay(hour: (nextHour + 1) % 24, minute: 0);
 
-    final selectedTime = await showTimePicker(
+    final selectedTime = await showScrollableTimePicker(
       context: context,
       initialTime: initialTime,
-      builder: (BuildContext context, Widget? child) {
-        // Only apply time validation for today
-        if (!isToday) return child!;
-
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            alwaysUse24HourFormat: false,
-          ),
-          child: child!,
-        );
-      },
+      use24HourFormat: false,
     );
 
     if (selectedTime != null) {

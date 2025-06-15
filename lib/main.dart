@@ -6,6 +6,7 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'amplifyconfiguration.dart';
 import 'package:amplify_api/amplify_api.dart';
 import 'package:amplify_datastore/amplify_datastore.dart' show AmplifyDataStore;
+import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:schedulingapp/models/ModelProvider.dart';
 import 'package:schedulingapp/theme/theme_provider.dart';
 import 'package:schedulingapp/services/notification_service.dart';
@@ -23,6 +24,9 @@ void main() async {
     // Add DataStore plugin - required for notifications and schedules
     final datastorePlugin = AmplifyDataStore(modelProvider: ModelProvider.instance);
     await Amplify.addPlugin(datastorePlugin);
+
+    // Add Storage plugin for profile pictures
+    await Amplify.addPlugin(AmplifyStorageS3());
 
     await Amplify.configure(amplifyconfig);
 

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'invite_member_service.dart'; // Import the service
 import '../../widgets/custom_app_bar.dart';
+import '../../dynamo/group_service.dart';
 
 class InviteMemberScreen extends StatefulWidget {
   final String groupId;
   const InviteMemberScreen({required this.groupId, super.key});
 
   @override
-  _InviteMemberScreenState createState() => _InviteMemberScreenState();
+  State<InviteMemberScreen> createState() => _InviteMemberScreenState();
 }
 
 class _InviteMemberScreenState extends State<InviteMemberScreen> {
@@ -20,9 +21,11 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter an email')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter an email')),
+        );
+      }
       return;
     }
 
@@ -33,21 +36,25 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
         throw Exception('User not found');
       }
 
-      // Use the service to create the GroupUser
-      await _inviteMemberService.createGroupUser(
-        userId: user.id,
+      // Create a group invitation instead of directly adding to group
+      await GroupService.createGroupInvitation(
         groupId: widget.groupId,
+        invitedUserId: user.id,
         isAdmin: _isAdmin,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User invited successfully')),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invitation sent successfully! The user will receive a notification.')),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to invite user: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send invitation: ${e.toString()}')),
+        );
+      }
     }
   }
 

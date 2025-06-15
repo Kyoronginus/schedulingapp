@@ -1,58 +1,98 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import '../../utils/utils_functions.dart';
+import '../../routes/app_routes.dart';
+import '../../widgets/pin_input_widget.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
-import 'set_new_password_screen.dart';
+import '../../utils/utils_functions.dart';
+import '../auth_service.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key});
+class ConfirmSignUpScreen extends StatefulWidget {
+  final String email;
+
+  const ConfirmSignUpScreen({super.key, required this.email});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  State<ConfirmSignUpScreen> createState() => _ConfirmSignUpScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _emailController = TextEditingController();
+class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
   bool _isLoading = false;
-  String? _errorMessage;
+  String _message = "";
+  String _verificationCode = "";
+  String? _pinError;
 
-  Future<void> _sendResetCode() async {
-    if (_emailController.text.trim().isEmpty) {
+  Future<void> _confirmSignUp() async {
+    if (_verificationCode.length != 6) {
       setState(() {
-        _errorMessage = 'Please enter your email address';
+        _pinError = "Please enter the complete 6-digit code";
       });
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
+      _message = "";
+      _pinError = null;
     });
 
     try {
-      final email = _emailController.text.trim();
-      
-      // Request password reset code
-      await Amplify.Auth.resetPassword(username: email);
+      final result = await Amplify.Auth.confirmSignUp(
+        username: widget.email,
+        confirmationCode: _verificationCode,
+      );
 
-      // Navigate to password collection screen
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ForgotPasswordPasswordScreen(email: email),
-          ),
-        );
+      if (!mounted) return;
+      if (result.isSignUpComplete) {
+        debugPrint('✅ ConfirmSignUp: Email confirmation successful');
+
+        // Create user record in DynamoDB immediately after successful verification
+        try {
+          await ensureUserExists();
+          debugPrint('✅ User record created in database during registration');
+        } catch (e) {
+          debugPrint('⚠️ Could not create user record during registration: $e');
+          // Don't throw here - user can complete profile setup later
+        }
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
       }
     } on AuthException catch (e) {
+      if (!mounted) return;
       setState(() {
-        _errorMessage = e.message;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'An error occurred: $e';
+        _message = '❌ ${e.message}';
       });
     } finally {
+      // ignore: control_flow_in_finally
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _resendCode() async{
+    if (!mounted) return;
+    setState((){
+      _isLoading = true;
+      _message = "";
+    });
+
+    try{
+      final result = await Amplify.Auth.resendSignUpCode(username: widget.email);
+      if (!mounted) return;
+      setState(() {
+        _message = '✅ Code resent to ${result.codeDeliveryDetails.destination}';
+      });
+    } on AuthException catch (e){
+      if (!mounted) return;
+      setState(() {
+        _message = '❌ ${e.message}';
+      });
+    } finally{
+      // ignore: control_flow_in_finally
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -65,7 +105,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       backgroundColor: const Color(0xFFF2F2F2),
       appBar: AppBar(
         title: const Text(
-          "Forgot Password",
+          "Verify Your Account",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -109,7 +149,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          Icons.email_outlined,
+                          Icons.verified_user,
                           size: 40,
                           color: primaryColor,
                         ),
@@ -119,7 +159,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                       // Title
                       const Text(
-                        "Reset Your Password",
+                        "Enter Verification Code",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -132,7 +172,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                       // Description
                       Text(
-                        "Enter your email address and we'll send you a verification code to reset your password",
+                        "We've sent a 6-digit verification code to:",
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey[600],
@@ -140,54 +180,46 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         textAlign: TextAlign.center,
                       ),
 
-                      const SizedBox(height: 32),
-                      // Email field
-                      TextField(
-                        controller: _emailController,
-                        decoration: InputDecoration(
-                          labelText: "Email",
-                          labelStyle: TextStyle(color: primaryColor),
-                          prefixIcon: Icon(Icons.email, color: primaryColor),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: BorderSide(color: primaryColor, width: 1.5),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      const SizedBox(height: 8),
+
+                      // Email
+                      Text(
+                        widget.email,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: primaryColor,
                         ),
-                        keyboardType: TextInputType.emailAddress,
+                        textAlign: TextAlign.center,
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
-                      // Error message
-                      if (_errorMessage != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.red[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red[200]!),
-                          ),
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
+                      // PIN Input
+                      PinInputWidget(
+                        onCompleted: (pin) {
+                          setState(() {
+                            _verificationCode = pin;
+                            _pinError = null;
+                          });
+                          _confirmSignUp();
+                        },
+                        onChanged: (pin) {
+                          setState(() {
+                            _verificationCode = pin;
+                            _pinError = null;
+                          });
+                        },
+                        errorText: _pinError,
+                      ),
 
-                      // Send Reset Code button
+                      const SizedBox(height: 32),
+
+                      // Confirm button
                       SizedBox(
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _sendResetCode,
+                          onPressed: _isLoading ? null : _confirmSignUp,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
@@ -199,7 +231,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           child: _isLoading
                               ? const CircularProgressIndicator(color: Colors.white)
                               : const Text(
-                                  "Send Reset Code",
+                                  "Confirm Sign Up",
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -210,19 +242,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                       const SizedBox(height: 16),
 
-                      // Back to login link
+                      // Resend code option
                       TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
+                        onPressed: _isLoading ? null : _resendCode,
                         child: Text(
-                          "Back to Login",
+                          "Resend Code",
                           style: TextStyle(
                             color: primaryColor,
                             fontSize: 14,
                           ),
                         ),
                       ),
+
+                      // Message
+                      if (_message.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Text(
+                            _message,
+                            style: TextStyle(
+                              color: _message.startsWith("✅") ? Colors.green : Colors.red,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                     ],
                   ),
                 ),

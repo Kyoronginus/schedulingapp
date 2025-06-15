@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import '../../utils/utils_functions.dart'; // Assuming primaryColor is defined here
 import '../../services/secure_storage_service.dart';
+import '../../widgets/keyboard_aware_scaffold.dart';
+import '../../routes/app_routes.dart';
+import 'password_verification_screen.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -20,15 +23,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _newPasswordFocus = FocusNode();
   final _confirmPasswordFocus = FocusNode();
 
-  bool _isLoading = false;
   String? _errorMessage;
   bool _obscureCurrentPassword = true;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   // State for responsive UI feedback
   bool _passwordsMatch = false;
-  bool _hasAttemptedSubmit = false;
+  final bool _hasAttemptedSubmit = false;
   bool _currentPasswordMatches = false;
   String? _storedPassword;
 
@@ -108,80 +111,32 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  Future<void> _changePassword() async {
-    setState(() {
-      _hasAttemptedSubmit = true;
-    });
 
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (!_currentPasswordMatches) {
-       setState(() {
-        _errorMessage = 'Please enter your correct current password.';
-      });
-      return;
-    }
-
-    if (!_passwordsMatch) {
-      setState(() {
-        _errorMessage = 'New passwords do not match';
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await Amplify.Auth.updatePassword(
-        oldPassword: _currentPasswordController.text,
-        newPassword: _newPasswordController.text,
-      );
-
-      // Store the new password securely
-      await SecureStorageService.storePassword(_newPasswordController.text);
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password changed successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      // Navigate back to profile screen
-      Navigator.pop(context, true); // Return true to indicate success
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.message;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'An unexpected error occurred: $e';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Password is required';
     }
+
+    List<String> requirements = [];
+
     if (value.length < 8) {
-      return 'Password must be at least 8 characters';
+      requirements.add('at least 8 characters');
     }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      requirements.add('uppercase letter');
+    }
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      requirements.add('lowercase letter');
+    }
+    if (!RegExp(r'\d').hasMatch(value)) {
+      requirements.add('number');
+    }
+
+    if (requirements.isNotEmpty) {
+      return 'Password needs: ${requirements.join(', ')}';
+    }
+
     return null;
   }
 
@@ -215,6 +170,73 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return null;
   }
 
+  Future<void> _validateAndSendVerificationCode() async {
+    // Validate all password fields
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Check current password matches
+    if (!_currentPasswordMatches) {
+      setState(() {
+        _errorMessage = 'Current password is incorrect';
+      });
+      return;
+    }
+
+    // Check new passwords match
+    if (!_passwordsMatch) {
+      setState(() {
+        _errorMessage = 'New passwords do not match';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Get current user email from attributes
+      final attributes = await Amplify.Auth.fetchUserAttributes();
+      final emailAttr = attributes.firstWhere(
+        (attr) => attr.userAttributeKey == CognitoUserAttributeKey.email,
+        orElse: () => throw Exception('Email not found in user attributes'),
+      );
+      final email = emailAttr.value;
+
+      // Send verification code
+      await Amplify.Auth.resetPassword(username: email);
+
+      if (mounted) {
+        // Navigate to verification screen with password data
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PasswordVerificationScreen(
+              email: email,
+              newPassword: _newPasswordController.text,
+              mode: PasswordResetMode.changePassword,
+            ),
+          ),
+        );
+      }
+    } on AuthException catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to send verification code: ${e.message}';
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'An error occurred: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // --- UI State Calculation ---
@@ -238,7 +260,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         isValid: passwordsHaveInput && _passwordsMatch,
         hasMismatch: passwordMismatch);
 
-    return Scaffold(
+    return KeyboardAwareScaffold(
+      backgroundColor: Colors.transparent,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -246,7 +269,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             end: Alignment.bottomCenter,
             colors: [
               primaryColor,
-              primaryColor.withOpacity(0.8),
+              primaryColor.withValues(alpha: 0.8),
             ],
           ),
         ),
@@ -285,10 +308,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
             // Content
             Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Form(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
                     key: _formKey,
                     autovalidateMode: _hasAttemptedSubmit
                         ? AutovalidateMode.onUserInteraction
@@ -308,7 +330,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
+                                  color: Colors.black.withValues(alpha: 0.2),
                                   spreadRadius: 2,
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
@@ -527,13 +549,34 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           ],
                         ),
 
+                        const SizedBox(height: 16),
+
+                        // Forgot Password link
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, AppRoutes.forgotPassword);
+                            },
+                            child: const Text(
+                              "Forgot Password?",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+
                         const SizedBox(height: 24),
 
-                        // Change password button
+                        // Change password button - validates and sends verification code
                         SizedBox(
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: _isLoading ? null : _changePassword,
+                            onPressed: _isLoading ? null : _validateAndSendVerificationCode,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: primaryColor,
@@ -573,10 +616,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
   }
 }

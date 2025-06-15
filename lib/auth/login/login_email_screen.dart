@@ -4,6 +4,7 @@ import '../../utils/utils_functions.dart';
 import '../password/forgot_password_screen.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/exception_message.dart';
+import '../../widgets/keyboard_aware_scaffold.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 
 class EmailLoginScreen extends StatefulWidget {
@@ -56,7 +57,8 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return KeyboardAwareScaffold(
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           // Background gradient
@@ -74,12 +76,11 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
             ),
           ),
           // Content
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                   const Spacer(flex: 1),
                   // Logo or app icon
                   Center(
@@ -259,8 +260,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                       ),
                     ],
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         ],

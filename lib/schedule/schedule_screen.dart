@@ -6,6 +6,7 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
 
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/refresh_controller.dart';
 import '../models/Schedule.dart';
 import '../models/Group.dart';
 import '../dynamo/group_service.dart';
@@ -13,6 +14,8 @@ import 'schedule_service.dart';
 import '../theme/theme_provider.dart';
 import '../utils/utils_functions.dart';
 import '../services/timezone_service.dart';
+import '../services/refresh_service.dart';
+import '../widgets/smart_back_button.dart';
 import 'create_schedule/schedule_form_screen.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -32,11 +35,10 @@ class ScheduleScreen extends StatefulWidget {
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
-class _ScheduleScreenState extends State<ScheduleScreen> {
+class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMixin {
   final int _currentIndex = 0; // Schedule is the 1st tab (index 0)
-  List<Group> _groups = [];
   Group? _selectedGroup;
-  bool _isPersonalCalendar = false;
+  final bool _isPersonalCalendar = false;
   bool _isLoading = true;
   Map<DateTime, List<Schedule>> _groupedSchedules = {};
   DateTime _focusedDay = DateTime.now();
@@ -53,6 +55,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     super.initState();
     _getCurrentUserId();
     _loadGroups();
+
+    // Listen for refresh notifications
+    RefreshService().scheduleChanges.listen((_) {
+      if (mounted) {
+        _loadSchedules();
+      }
+    });
+
+    RefreshService().groupChanges.listen((_) {
+      if (mounted) {
+        _loadGroups();
+      }
+    });
   }
 
   Future<void> _getCurrentUserId() async {
@@ -120,7 +135,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       // Check if widget is still mounted before calling setState
       if (!mounted) return;
       setState(() {
-        _groups = groups;
         if (groups.isNotEmpty) {
           _selectedGroup = groups.first;
         }
@@ -218,21 +232,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   // Removed unused method _navigateToAddGroup
 
-  void _selectGroup(Group group) {
-    setState(() {
-      _selectedGroup = group;
-      _isPersonalCalendar = false;
-    });
-    _loadSchedules();
-  }
-
-  void _selectPersonalCalendar() {
-    setState(() {
-      _isPersonalCalendar = true;
-    });
-    _loadSchedules();
-  }
-
   void _updateMonthYear(int month, int year) {
     setState(() {
       _focusedDay = DateTime(year, month, 1);
@@ -248,25 +247,32 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
 
-    return Scaffold(
+    return NavigationMemoryWrapper(
+      currentRoute: '/schedule',
+      child: Scaffold(
       backgroundColor: const Color(0xFFF1F1F1),
-      body: Stack(
-        children: [
-          // Main content
-          _isLoading
-              ? Center(
-                child: CircularProgressIndicator(
-                  color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-                ),
-              )
-              : Padding(
-                padding: const EdgeInsets.only(
-                  top: 42.0,
-                  left: 17.0,
-                  right: 17.0
-                ),
-                child: Column(
-                  children: [
+      body: RefreshController(
+        onRefresh: _loadSchedules,
+        child: Stack(
+          children: [
+            // Main content
+            _isLoading
+                ? Center(
+                  child: CircularProgressIndicator(
+                    color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                  ),
+                )
+                : RefreshIndicator(
+                onRefresh: _loadSchedules,
+                color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: 42.0,
+                    left: 17.0,
+                    right: 17.0
+                  ),
+                  child: Column(
+                    children: [
                     // Top row with calendar selector and month/year selector
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -393,7 +399,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
                     // Schedule list
                     Expanded(child: _buildScheduleList()),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
@@ -409,6 +416,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
         ],
       ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _toggleCreateForm,
         backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
@@ -418,10 +426,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
+      ),
     );
   }
 
-  static const double _selectorHeight = 44.0;
+
 
   Widget _buildMonthYearSelector() {
     final themeProvider = Provider.of<ThemeProvider>(context);

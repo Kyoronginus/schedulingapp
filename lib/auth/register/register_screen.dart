@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../verification/confirm_signup_screen.dart';
+import 'confirm_signup_screen.dart';
 import '../../utils/utils_functions.dart';
 import '../../routes/app_routes.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../auth_service.dart';
+import '../../widgets/keyboard_aware_scaffold.dart';
+import '../../widgets/enhanced_password_field.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,8 +20,44 @@ class _RegisterPageState extends State<RegisterScreen> {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
   final nameController = TextEditingController();
+  final FocusNode _passwordFocus = FocusNode();
+  final FocusNode _confirmPasswordFocus = FocusNode();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _passwordsMatch = false;
+  String? _confirmPasswordInlineError;
+
+  @override
+  void initState() {
+    super.initState();
+    // Add listeners to controllers to update the UI in real-time
+    passwordController.addListener(_validateMatchingPasswords);
+    confirmPasswordController.addListener(_validateMatchingPasswords);
+  }
+
+  @override
+  void dispose() {
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
+    super.dispose();
+  }
+
+  void _validateMatchingPasswords() {
+    final password = passwordController.text;
+    final confirmPassword = confirmPasswordController.text;
+
+    setState(() {
+      _passwordsMatch = password.isNotEmpty &&
+                      confirmPassword.isNotEmpty &&
+                      password == confirmPassword;
+
+      if (confirmPassword.isNotEmpty && password != confirmPassword) {
+        _confirmPasswordInlineError = "Passwords do not match";
+      } else {
+        _confirmPasswordInlineError = null;
+      }
+    });
+  }
 
   Future<void> _registerUser() async {
     if (!mounted) return;
@@ -60,11 +96,12 @@ class _RegisterPageState extends State<RegisterScreen> {
       final signUpResult = await Amplify.Auth.signUp(
         username: email,
         password: password,
-        options: CognitoSignUpOptions(
+        options: SignUpOptions(
           userAttributes: {
             CognitoUserAttributeKey.email: email,
             CognitoUserAttributeKey.name: name,
-        }),
+          },
+        ),
       );
 
       if (!mounted) return;
@@ -187,15 +224,12 @@ class _RegisterPageState extends State<RegisterScreen> {
         borderSide: BorderSide(color: primaryColor, width: 1.5),
       ),
     );
-    return Scaffold(
-      backgroundColor: Color(0XFFF2F2F2),
-      body: SafeArea(
-        child: Container(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+    return KeyboardAwareScaffold(
+      backgroundColor: const Color(0XFFF2F2F2),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 0),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
                 const SizedBox(height: 48),
                 // Create account text
                 Container(
@@ -206,7 +240,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                     boxShadow: [
                       BoxShadow(
                         // Warna bayangan dibuat sedikit transparan
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         // Seberapa menyebar bayangannya
                         spreadRadius: 2,
                         // Seberapa kabur bayangannya
@@ -253,24 +287,27 @@ class _RegisterPageState extends State<RegisterScreen> {
                         ),
                       const SizedBox(height: 16),
                       // Password field
-                        TextField(
-                          controller: passwordController,
-                          decoration: inputDecorationTheme.copyWith(
-                            labelText: "Password",
-                            hintText: "Enter your password"
-                          ),
-                          obscureText: true,
-                        ),
+                      EnhancedPasswordField(
+                        controller: passwordController,
+                        focusNode: _passwordFocus,
+                        hintText: "Enter your password",
+                        showValidationIcon: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty,
+                        isValid: _passwordsMatch,
+                        hasMismatch: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty && !_passwordsMatch,
+                        onChanged: _validateMatchingPasswords,
+                      ),
                       const SizedBox(height: 16),
                       // Confirm Password field
-                        TextField(
-                          controller: confirmPasswordController,
-                          decoration: inputDecorationTheme.copyWith(
-                            labelText: "Confirm Password",
-                            hintText: "Confirm your password"
-                          ),
-                          obscureText: true,
-                        ),
+                      EnhancedPasswordField(
+                        controller: confirmPasswordController,
+                        focusNode: _confirmPasswordFocus,
+                        hintText: "Confirm your password",
+                        showValidationIcon: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty,
+                        isValid: _passwordsMatch,
+                        hasMismatch: confirmPasswordController.text.isNotEmpty && !_passwordsMatch,
+                        inlineError: _confirmPasswordInlineError,
+                        onChanged: _validateMatchingPasswords,
+                      ),
                       const SizedBox(height: 16),
                       // Register button
                       SizedBox(
@@ -379,10 +416,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-              ],
-            ),
-          ),
-        ),
+        ],
       ),
     );
   }

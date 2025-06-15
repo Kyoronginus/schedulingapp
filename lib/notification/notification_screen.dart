@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/refresh_controller.dart';
 import '../models/Notification.dart' as models;
 import '../models/NotificationType.dart';
+import '../models/InvitationStatus.dart';
 import '../services/notification_service.dart';
 import '../services/timezone_service.dart';
+import '../dynamo/group_service.dart';
 import '../theme/theme_provider.dart';
 
 
@@ -32,7 +35,30 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     try {
       // Get real notifications from the service
-      final notifications = await NotificationService.getNotifications();
+      final allNotifications = await NotificationService.getNotifications();
+
+      // Filter out declined invitations
+      final notifications = allNotifications.where((notification) {
+        // Keep all non-invitation notifications
+        if (notification.type != NotificationType.INVITATION) {
+          return true;
+        }
+        // For invitation notifications, only keep pending ones
+        return notification.groupInvitation?.status == InvitationStatus.PENDING;
+      }).toList();
+
+      // Sort notifications: invitations first, then by timestamp
+      notifications.sort((a, b) {
+        // Invitations always come first
+        if (a.type == NotificationType.INVITATION && b.type != NotificationType.INVITATION) {
+          return -1;
+        }
+        if (b.type == NotificationType.INVITATION && a.type != NotificationType.INVITATION) {
+          return 1;
+        }
+        // If both are invitations or both are not invitations, sort by timestamp
+        return b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc());
+      });
 
       setState(() {
         _notifications = notifications;
@@ -134,7 +160,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
         automaticallyImplyLeading: false,
         titleSpacing: 16,
       ),
-      body: _isLoading
+      body: RefreshController(
+        onRefresh: _loadNotifications,
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _notifications.isEmpty
               ? Center(
@@ -148,9 +176,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   itemBuilder: (context, index) {
                     final notification = _notifications[index];
+
+                    // Handle invitation notifications differently
+                    if (notification.type == NotificationType.INVITATION) {
+                      return _buildInvitationNotification(notification);
+                    }
+
                     final schedule = notification.schedule;
 
-                    // Skip if schedule is null
+                    // Skip if schedule is null for non-invitation notifications
                     if (schedule == null) return const SizedBox.shrink();
 
                     // Format the date for display (in local timezone)
@@ -348,8 +382,255 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ));
                   },
                 ),
+      ),
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
     );
+  }
+
+  Widget _buildInvitationNotification(models.Notification notification) {
+    final invitation = notification.groupInvitation;
+    if (invitation == null) return const SizedBox.shrink();
+
+    return Dismissible(
+      key: Key(notification.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+          size: 24,
+        ),
+      ),
+      onDismissed: (direction) {
+        _deleteNotification(notification.id);
+      },
+      child: GestureDetector(
+        onTap: () => _markAsRead(notification.id),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: notification.isRead ? Colors.green[50] : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 25),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Opacity(
+            opacity: notification.isRead ? 0.7 : 1.0,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Icon column (similar to date column in regular notifications)
+                  Container(
+                    width: 60,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.group_add,
+                          color: Colors.orange[700],
+                          size: 32,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Invite',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Vertical divider
+                  Container(
+                    width: 1,
+                    color: Colors.grey[300],
+                  ),
+                  // Content column
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Title
+                          const Text(
+                            'Group Invitation',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Invitation message
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  NotificationService.getNotificationMessage(notification),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                ),
+                              ),
+                              // Read/Unread indicator
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: notification.isRead
+                                      ? Colors.green[100]
+                                      : Colors.blue[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      notification.isRead
+                                          ? Icons.check_circle
+                                          : Icons.circle,
+                                      size: 12,
+                                      color: notification.isRead
+                                          ? Colors.green[700]
+                                          : Colors.blue,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      notification.isRead ? 'Read' : 'New',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                        color: notification.isRead
+                                            ? Colors.green[700]
+                                            : Colors.blue,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Accept/Decline icon buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              // Accept button with checkmark icon
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: IconButton(
+                                  onPressed: () => _acceptInvitation(invitation.id),
+                                  icon: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 36,
+                                    minHeight: 36,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Decline button with X icon
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: IconButton(
+                                  onPressed: () => _declineInvitation(invitation.id),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 36,
+                                    minHeight: 36,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _acceptInvitation(String invitationId) async {
+    try {
+      await GroupService.acceptGroupInvitation(invitationId);
+
+      // Refresh notifications to get the latest state
+      await _loadNotifications();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invitation accepted! You are now a member of the group.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to accept invitation: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _declineInvitation(String invitationId) async {
+    try {
+      await GroupService.declineGroupInvitation(invitationId);
+
+      // Refresh notifications to get the latest state
+      await _loadNotifications();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invitation declined')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to decline invitation: $e')),
+        );
+      }
+    }
   }
 
   Color _getNotificationColor(models.Notification notification, Color defaultColor) {
@@ -359,6 +640,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return Colors.purple;
       case NotificationType.UPCOMING:
         return Colors.blue;
+      case NotificationType.INVITATION:
+        return Colors.orange;
     }
   }
 }

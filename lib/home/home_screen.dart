@@ -5,6 +5,7 @@ import '../routes/app_routes.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/smart_back_button.dart';
 import '../../models/Schedule.dart'; // Import Schedule model
 import '../../schedule/schedule_service.dart'; // Import ScheduleService
 import '../../auth/auth_service.dart'; // Import AuthService
@@ -13,11 +14,11 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0; // Use schedule index since we're removing home tab
+class _HomeScreenState extends State<HomeScreen> with NavigationMemoryMixin {
+  final int _currentIndex = 0;
   String? _userName;
   Map<DateTime, List<Schedule>> _groupedSchedules = {};
   DateTime _focusedDay = DateTime.now();
@@ -32,7 +33,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Redirect to the schedule screen after a short delay
     Future.delayed(Duration.zero, () {
-      Navigator.pushReplacementNamed(context, AppRoutes.schedule);
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.schedule);
+      }
     });
   }
 
@@ -85,65 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _createUserProfile(
-      {required String email, required String userId}) async {
-    final name = await _promptForName();
-    if (name == null || name.isEmpty) return;
 
-    try {
-      final request = GraphQLRequest<String>(
-        document: '''
-      mutation CreateUser(\$input: CreateUserInput!) {
-        createUser(input: \$input) {
-          id
-          name
-        }
-      }
-      ''',
-        variables: {
-          'input': {
-            'id': userId,
-            'email': email,
-            'name': name,
-          }
-        },
-      );
-      await Amplify.API.mutate(request: request).response;
-
-      // Check if widget is still mounted before calling setState
-      if (!mounted) return;
-      setState(() => _userName = name);
-    } catch (e) {
-      debugPrint('❌ User creation failed: $e');
-    }
-  }
-
-  Future<String?> _promptForName() async {
-    String? name;
-    await showDialog(
-      context: context,
-      builder: (context) {
-        final nameController = TextEditingController();
-        return AlertDialog(
-          title: const Text("Enter Your Name"),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(labelText: "Name"),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                name = nameController.text.trim();
-                Navigator.of(context).pop();
-              },
-              child: const Text("Submit"),
-            ),
-          ],
-        );
-      },
-    );
-    return name;
-  }
 
   Future<void> _loadAllSchedules() async {
     try {
@@ -156,9 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('Failed to load schedules: $e')),
-      // );
+      debugPrint('Failed to load schedules: $e');
 
       // Check if widget is still mounted before calling setState
       if (!mounted) return;
@@ -223,7 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return NavigationMemoryWrapper(
+      currentRoute: '/home',
+      child: Scaffold(
       appBar: const CustomAppBar(
         title: Text("Home Screen"),
         showBackButton: false, // Hide back button on home screen
@@ -237,46 +182,59 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.pushNamed(context, AppRoutes.login);
                   },
                 )
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Welcome, $_userName ！',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    await _fetchUserName();
+                    await _loadAllSchedules();
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Welcome, $_userName ！',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    TableCalendar(
-                      firstDay: DateTime.utc(2000, 1, 1),
-                      lastDay: DateTime.utc(2100, 12, 31),
-                      focusedDay: _focusedDay,
-                      selectedDayPredicate: (day) =>
-                          isSameDay(_selectedDay, day),
-                      eventLoader: _getSchedulesForDay,
-                      onDaySelected: (selectedDay, focusedDay) {
-                        setState(() {
-                          _selectedDay = selectedDay;
-                          _focusedDay = focusedDay;
-                        });
-                      },
-                      calendarStyle: const CalendarStyle(
-                        markerDecoration: BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
+                        TableCalendar(
+                          firstDay: DateTime.utc(2000, 1, 1),
+                          lastDay: DateTime.utc(2100, 12, 31),
+                          focusedDay: _focusedDay,
+                          selectedDayPredicate: (day) =>
+                              isSameDay(_selectedDay, day),
+                          eventLoader: _getSchedulesForDay,
+                          onDaySelected: (selectedDay, focusedDay) {
+                            setState(() {
+                              _selectedDay = selectedDay;
+                              _focusedDay = focusedDay;
+                            });
+                          },
+                          calendarStyle: const CalendarStyle(
+                            markerDecoration: BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 300,
+                          child: _buildScheduleList(),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 10),
-                    Expanded(child: _buildScheduleList()),
-                  ],
+                  ),
                 ),
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
+      ),
     );
   }
 }
