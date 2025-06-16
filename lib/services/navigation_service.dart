@@ -14,7 +14,6 @@ class NavigationService {
   static const Set<String> _authRoutes = {
     AppRoutes.login,
     AppRoutes.register,
-    AppRoutes.emailLogin,
     AppRoutes.forgotPassword,
     AppRoutes.splash,
   };

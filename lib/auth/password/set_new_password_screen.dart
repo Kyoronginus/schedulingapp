@@ -233,7 +233,8 @@ class _ForgotPasswordPasswordScreenState extends State<ForgotPasswordPasswordScr
                       EnhancedPasswordField(
                         controller: _newPasswordController,
                         focusNode: _newPasswordFocus,
-                        hintText: "Enter new password",
+                        hintText: "Enter your new password",
+                        labelText: "New password",
                         showValidationIcon: _newPasswordController.text.isNotEmpty && _confirmPasswordController.text.isNotEmpty,
                         isValid: _passwordsMatch,
                         hasMismatch: _newPasswordController.text.isNotEmpty && _confirmPasswordController.text.isNotEmpty && !_passwordsMatch,
@@ -246,7 +247,8 @@ class _ForgotPasswordPasswordScreenState extends State<ForgotPasswordPasswordScr
                       EnhancedPasswordField(
                         controller: _confirmPasswordController,
                         focusNode: _confirmPasswordFocus,
-                        hintText: "Confirm new password",
+                        hintText: "Confirm your new password",
+                        labelText: "Confirm new password",
                         showValidationIcon: _newPasswordController.text.isNotEmpty && _confirmPasswordController.text.isNotEmpty,
                         isValid: _passwordsMatch,
                         hasMismatch: _confirmPasswordController.text.isNotEmpty && !_passwordsMatch,

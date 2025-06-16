@@ -7,6 +7,7 @@ class EnhancedPasswordField extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
   final String hintText;
+  final String labelText;
   final String? Function(String?)? validator;
   final bool showValidationIcon;
   final bool isValid;
@@ -19,6 +20,7 @@ class EnhancedPasswordField extends StatefulWidget {
     required this.controller,
     this.focusNode,
     required this.hintText,
+    required this.labelText,
     this.validator,
     this.showValidationIcon = false,
     this.isValid = false,
@@ -50,7 +52,7 @@ class _EnhancedPasswordFieldState extends State<EnhancedPasswordField> {
       if (widget.hasMismatch) return Colors.red;
       return widget.isValid ? Colors.green : primaryColor;
     }
-    return Colors.white; // Default color when not focused
+    return primaryColor; // Default color when not focused
   }
 
   Widget? _getValidationIcon() {
@@ -74,9 +76,11 @@ class _EnhancedPasswordFieldState extends State<EnhancedPasswordField> {
           focusNode: widget.focusNode,
           decoration: InputDecoration(
             hintText: widget.hintText,
+            hintStyle: const TextStyle(color: Color(0xFF999999)),
+            labelText: widget.labelText,
+            labelStyle: const TextStyle(color: Color(0xFF999999)),
             fillColor: Colors.white,
             filled: true,
-            prefixIcon: Icon(Icons.lock_outline, color: primaryColor),
             suffixIcon: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -97,16 +101,15 @@ class _EnhancedPasswordFieldState extends State<EnhancedPasswordField> {
               ],
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(10.0),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: Colors.white, width: 2),
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(color: secondaryColor, width: 1.5),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: BorderSide(color: _getBorderColor(), width: 2),
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(color: _getBorderColor(), width: 1.5),
             ),
           ),
           obscureText: _obscurePassword,

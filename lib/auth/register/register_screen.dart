@@ -254,7 +254,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
-                        "Create Account",
+                        "Create your Account",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -264,9 +264,6 @@ class _RegisterPageState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 8),
                       // Name field
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
                           TextField(
                               controller: nameController,
                               decoration: inputDecorationTheme.copyWith(
@@ -274,8 +271,6 @@ class _RegisterPageState extends State<RegisterScreen> {
                                 hintText: "Enter your name",
                               ),
                             ),
-                        ],
-                      ),
                       const SizedBox(height: 16),
                       // Email field
                       TextField(
@@ -291,6 +286,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                         controller: passwordController,
                         focusNode: _passwordFocus,
                         hintText: "Enter your password",
+                        labelText: "Password",
                         showValidationIcon: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty,
                         isValid: _passwordsMatch,
                         hasMismatch: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty && !_passwordsMatch,
@@ -302,6 +298,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                         controller: confirmPasswordController,
                         focusNode: _confirmPasswordFocus,
                         hintText: "Confirm your password",
+                        labelText: "Confirm password",
                         showValidationIcon: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty,
                         isValid: _passwordsMatch,
                         hasMismatch: confirmPasswordController.text.isNotEmpty && !_passwordsMatch,
@@ -339,7 +336,7 @@ class _RegisterPageState extends State<RegisterScreen> {
                             _errorMessage!,
                             style: const TextStyle(
                               color: Colors.red,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.normal,
                             ),
                             textAlign: TextAlign.center,
                           ),

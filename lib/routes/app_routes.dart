@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 import '../splash/splash_screen.dart';
-import '../auth/login/login_email_screen.dart';
-import '../auth/login/login_picker_screen.dart';
+import '../auth/login/login_screen.dart';
 import '../auth/password/forgot_password_screen.dart';
 import '../auth/password/change_password_screen.dart';
 import '../schedule/schedule_screen.dart';
@@ -31,7 +30,6 @@ class AppRoutes {
   static Map<String, WidgetBuilder> get routes => {
         AppRoutes.home: (context) => const HomeScreen(),
         AppRoutes.login: (context) => const LoginScreen(),
-        AppRoutes.emailLogin: (context) => const EmailLoginScreen(),
         AppRoutes.register: (context) => const RegisterScreen(),
         AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
         AppRoutes.changePassword: (context) => const ChangePasswordScreen(),

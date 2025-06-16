@@ -113,7 +113,7 @@ class _PasswordVerificationScreenState extends State<PasswordVerificationScreen>
         // Navigate back to login screen
         Navigator.pushNamedAndRemoveUntil(
           context,
-          AppRoutes.emailLogin,
+          AppRoutes.login,
           (route) => false,
         );
       } else {
