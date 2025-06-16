@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "auth": {
+      "schedulingapp30672a99": [
+        "read",
+        "update"
+      ]
+    }
+  },
+  "lambdaLayers": []
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../routes/app_routes.dart';
 import '../utils/utils_functions.dart';
@@ -39,48 +40,93 @@ class BottomNavBar extends StatelessWidget {
     final isDarkMode = themeProvider.isDarkMode;
 
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
-    final inactiveColor = isDarkMode ? Colors.grey.shade600 : Colors.grey;
+    final inactiveColor = isDarkMode ? Colors.grey.shade600 : const Color(0xFF8F9BB3);
     final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    
 
-    return BottomNavigationBar(
-      items: <BottomNavigationBarItem>[
-        BottomNavigationBarItem(
-          icon: Icon(
-            Icons.calendar_today,
-            color: currentIndex == 0 ? activeColor : inactiveColor,
-          ),
-          label: 'Schedule',
+    return Container(
+      height: 115.0,
+      decoration: BoxDecoration(
+       color: backgroundColor, // Properti color dipindahkan ke dalam decoration
+       borderRadius: const BorderRadius.only(
+         topLeft: Radius.circular(24.0),   // Sudut kiri atas melengkung
+         topRight: Radius.circular(24.0),  // Sudut kanan atas melengkung
+       ),
+       boxShadow: [ // Anda bisa menambahkan bayangan di sini jika mau
+         BoxShadow(
+           color: Colors.black.withOpacity(0.1),
+           blurRadius: 10,
+         ),
+       ],
+     ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+         topLeft: Radius.circular(24.0),
+         topRight: Radius.circular(24.0),
         ),
-        BottomNavigationBarItem(
-          icon: Icon(
-            Icons.group,
-            color: currentIndex == 1 ? activeColor : inactiveColor,
-          ),
-          label: 'Group',
+        child: BottomNavigationBar(
+          items: <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              label: 'Schedule',
+              icon: SvgPicture.asset(
+                 'assets/icons/calendar_navbar-icon.svg',
+                 width: 34,
+                 height: 34,
+                 colorFilter: ColorFilter.mode(
+                   // Logika ternary langsung di sini
+                   currentIndex == 0 ? activeColor : inactiveColor,
+                   BlendMode.srcIn,
+                 ),
+              )
+            ),
+            BottomNavigationBarItem(
+              label: 'Group',
+              icon: SvgPicture.asset(
+                 'assets/icons/group-icon.svg',
+                 width: 34,
+                 height: 34,
+                 colorFilter: ColorFilter.mode(
+                   // Logika ternary langsung di sini
+                   currentIndex == 1 ? activeColor : inactiveColor,
+                   BlendMode.srcIn,
+                 ),
+              )
+            ),
+            BottomNavigationBarItem(
+              label: 'Notification',
+              icon: SvgPicture.asset(
+                 'assets/icons/notification-icon.svg',
+                 width: 34,
+                 height: 34,
+                 colorFilter: ColorFilter.mode(
+                   // Logika ternary langsung di sini
+                   currentIndex == 2 ? activeColor : inactiveColor,
+                   BlendMode.srcIn,
+                 ),
+              )
+            ),
+            BottomNavigationBarItem(
+              label: 'Profile',
+              icon: SvgPicture.asset(
+                 'assets/icons/profile-icon.svg',
+                 width: 34,
+                 height: 34,
+                 colorFilter: ColorFilter.mode(
+                   // Logika ternary langsung di sini
+                   currentIndex == 3 ? activeColor : inactiveColor,
+                   BlendMode.srcIn,
+                 ),
+              )
+            ),
+          ],
+          currentIndex: currentIndex,
+          backgroundColor: backgroundColor, 
+          type: BottomNavigationBarType.fixed,
+          selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: activeColor),
+          unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: inactiveColor),
+          onTap: (index) => _onItemTapped(context, index),
         ),
-        BottomNavigationBarItem(
-          icon: Icon(
-            Icons.notifications,
-            color: currentIndex == 2 ? activeColor : inactiveColor,
-          ),
-          label: 'Notifications',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(
-            Icons.person,
-            color: currentIndex == 3 ? activeColor : inactiveColor,
-          ),
-          label: 'Profile',
-        ),
-      ],
-      currentIndex: currentIndex,
-      selectedItemColor: activeColor,
-      unselectedItemColor: inactiveColor,
-      backgroundColor: backgroundColor,
-      type: BottomNavigationBarType.fixed,
-      selectedLabelStyle: const TextStyle(fontSize: 12),
-      unselectedLabelStyle: const TextStyle(fontSize: 12),
-      onTap: (index) => _onItemTapped(context, index),
+      ),
     );
   }
 }
