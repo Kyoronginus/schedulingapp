@@ -5,6 +5,8 @@ import '../amplifyconfiguration.dart';
 import '../models/User.dart';
 import '../services/secure_storage_service.dart';
 import '../services/oauth_conflict_service.dart';
+
+import '../services/session_mapping_service.dart';
 import 'dart:convert';
 
 Future<void> initAmplify() async {
@@ -68,93 +70,31 @@ Future<void> login(String email, String password) async {
   }
 }
 
-/// Creates a user record in DynamoDB if it doesn't exist
+/// Gets the current user using session mapping (Lambda triggers handle user creation)
 Future<User> ensureUserExists() async {
   try {
-    // First try to get the existing user
-    return await getCurrentUser();
+    debugPrint('🔍 AuthService: Getting user with session mapping...');
+
+    // Use session mapping service to get the current user
+    // This handles linked accounts and maps to the primary user record
+    return await SessionMappingService.getCurrentUser();
   } catch (e) {
-    debugPrint('🔍 AuthService: User not found, creating new user record...');
+    debugPrint('❌ AuthService: Error getting user with session mapping: $e');
 
-    // If user doesn't exist, create it
-    final authUser = await Amplify.Auth.getCurrentUser();
-    final attributes = await Amplify.Auth.fetchUserAttributes();
+    // If session mapping fails, try the legacy getCurrentUser method as fallback
+    try {
+      debugPrint('🔄 AuthService: Falling back to legacy getCurrentUser...');
+      return await getCurrentUser();
+    } catch (fallbackError) {
+      debugPrint('❌ AuthService: Legacy fallback also failed: $fallbackError');
 
-    // Get email and name from Cognito attributes
-    final emailAttr = attributes.firstWhere(
-      (attr) => attr.userAttributeKey == CognitoUserAttributeKey.email,
-      orElse:
-          () => const AuthUserAttribute(
-            userAttributeKey: CognitoUserAttributeKey.email,
-            value: '',
-          ),
-    );
-
-    final nameAttr = attributes.firstWhere(
-      (attr) => attr.userAttributeKey == CognitoUserAttributeKey.name,
-      orElse:
-          () => const AuthUserAttribute(
-            userAttributeKey: CognitoUserAttributeKey.name,
-            value: '',
-          ),
-    );
-
-    final email = emailAttr.value;
-    final name = nameAttr.value;
-
-    if (email.isEmpty) {
-      throw Exception('Email is required to create user profile');
-    }
-
-    if (name.isEmpty) {
-      throw Exception('Name is required to create user profile');
-    }
-
-    debugPrint('🔍 AuthService: Creating user with email: $email, name: $name');
-
-    // Create user in DynamoDB
-    final request = GraphQLRequest<String>(
-      document: '''
-        mutation CreateUser(\$input: CreateUserInput!) {
-          createUser(input: \$input) {
-            id
-            email
-            name
-          }
-        }
-      ''',
-      variables: {
-        'input': {'id': authUser.userId, 'email': email, 'name': name},
-      },
-    );
-
-    final response = await Amplify.API.mutate(request: request).response;
-
-    if (response.hasErrors) {
-      debugPrint(
-        '❌ AuthService: GraphQL errors creating user: ${response.errors}',
-      );
+      // If both methods fail, the user record should have been created by Lambda triggers
+      // This suggests a configuration issue or the triggers aren't working properly
       throw Exception(
-        'Failed to create user: ${response.errors.map((e) => e.message).join(', ')}',
+        'User record not found. This may indicate an issue with account setup. '
+        'Please try signing out and signing in again, or contact support if the problem persists.'
       );
     }
-
-    if (response.data == null) {
-      debugPrint('❌ AuthService: No data returned from user creation');
-      throw Exception('Failed to create user: No data returned');
-    }
-
-    final responseJson = jsonDecode(response.data!);
-    final userData = responseJson['createUser'];
-
-    if (userData == null) {
-      debugPrint('❌ AuthService: No createUser data in response');
-      throw Exception('Failed to create user: Invalid response');
-    }
-
-    final user = User.fromJson(userData);
-    debugPrint('✅ AuthService: Successfully created user: ${user.toString()}');
-    return user;
   }
 }
 
@@ -172,6 +112,8 @@ Future<User> getCurrentUser() async {
             id
             email
             name
+            primaryAuthMethod
+            linkedAuthMethods
           }
         }
       ''',
@@ -249,14 +191,8 @@ Future<bool> signInWithGoogle(BuildContext context) async {
     if (result.isSignedIn) {
       debugPrint('✅ Google Sign In Success');
 
-      // Ensure user exists in DynamoDB after successful Google login
-      try {
-        await ensureUserExists();
-        debugPrint('✅ User record verified/created in database');
-      } catch (e) {
-        debugPrint('⚠️ Could not create user record: $e');
-        // Don't throw here - user can complete profile setup later
-      }
+      // Lambda triggers handle all account linking and user creation automatically
+      debugPrint('ℹ️ Account linking and user creation handled by Lambda triggers');
 
       return true;
     } else {
@@ -315,14 +251,8 @@ Future<bool> signInWithFacebook(BuildContext context) async {
     if (result.isSignedIn) {
       debugPrint('✅ Facebook Sign In Success');
 
-      // Ensure user exists in DynamoDB after successful Facebook login
-      try {
-        await ensureUserExists();
-        debugPrint('✅ User record verified/created in database');
-      } catch (e) {
-        debugPrint('⚠️ Could not create user record: $e');
-        // Don't throw here - user can complete profile setup later
-      }
+      // Lambda triggers handle all account linking and user creation automatically
+      debugPrint('ℹ️ Account linking and user creation handled by Lambda triggers');
 
       return true;
     } else {

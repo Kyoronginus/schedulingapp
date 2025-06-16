@@ -1,55 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 
-/// Service for handling OAuth authentication conflicts and errors
+/// Service for handling OAuth authentication UI dialogs and errors
+/// Note: Conflict detection is now handled by Lambda triggers
 class OAuthConflictService {
-  
-  /// Check if an email is already associated with a different auth method
-  static Future<Map<String, String>?> checkEmailConflict(String email, String attemptedProvider) async {
-    try {
-      // Try to sign in with email/password to check if account exists
-      // This is a safe way to check without actually signing in
-      await Amplify.Auth.signIn(
-        username: email,
-        password: 'dummy_password_for_check',
-      );
-      
-      // If we get here without exception, account exists with email/password
-      return {
-        'email': email,
-        'existingMethod': 'email/password',
-        'attemptedMethod': attemptedProvider,
-      };
-    } on AuthException catch (e) {
-      // Check specific error types
-      if (e.message.contains('UserNotFoundException')) {
-        // No account exists with this email - safe to proceed
-        return null;
-      } else if (e.message.contains('NotAuthorizedException') || 
-                 e.message.contains('Incorrect username or password')) {
-        // Account exists but wrong password - this means email/password account exists
-        return {
-          'email': email,
-          'existingMethod': 'email/password',
-          'attemptedMethod': attemptedProvider,
-        };
-      } else if (e.message.contains('UserNotConfirmedException')) {
-        // Account exists but not confirmed
-        return {
-          'email': email,
-          'existingMethod': 'email/password (unconfirmed)',
-          'attemptedMethod': attemptedProvider,
-        };
-      }
-      
-      // For other errors, assume no conflict
-      debugPrint('Unexpected auth error during conflict check: ${e.message}');
-      return null;
-    } catch (e) {
-      debugPrint('Error checking email conflict: $e');
-      return null;
-    }
-  }
 
   /// Extract email from OAuth user attributes after successful sign-in
   static Future<String?> extractEmailFromOAuthUser() async {
@@ -268,14 +222,5 @@ class OAuthConflictService {
     );
   }
 
-  /// Check if OAuth is properly configured
-  static bool isOAuthConfigured() {
-    try {
-      // This is a simple check - in a real implementation, you might
-      // want to verify the actual OAuth configuration
-      return true; // Assume configured for now
-    } catch (e) {
-      return false;
-    }
-  }
+
 }

@@ -41,6 +41,8 @@ class InviteMemberService {
         id: userData['id'],
         email: userData['email'],
         name: userData['name'],
+        primaryAuthMethod: userData['primaryAuthMethod'],
+        linkedAuthMethods: userData['linkedAuthMethods'],
       );
     } catch (e) {
       debugPrint('Error finding user by email: $e');

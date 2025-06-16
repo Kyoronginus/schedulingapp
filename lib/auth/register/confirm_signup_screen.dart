@@ -4,7 +4,6 @@ import '../../routes/app_routes.dart';
 import '../../widgets/pin_input_widget.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
 import '../../utils/utils_functions.dart';
-import '../auth_service.dart';
 
 class ConfirmSignUpScreen extends StatefulWidget {
   final String email;
@@ -46,14 +45,9 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
       if (result.isSignUpComplete) {
         debugPrint('✅ ConfirmSignUp: Email confirmation successful');
 
-        // Create user record in DynamoDB immediately after successful verification
-        try {
-          await ensureUserExists();
-          debugPrint('✅ User record created in database during registration');
-        } catch (e) {
-          debugPrint('⚠️ Could not create user record during registration: $e');
-          // Don't throw here - user can complete profile setup later
-        }
+        // Note: User record creation is now handled by Lambda triggers
+        // No need to manually create user record here
+        debugPrint('ℹ️ User record will be created by post-confirmation Lambda trigger');
 
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, AppRoutes.login);

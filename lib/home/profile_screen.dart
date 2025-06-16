@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:provider/provider.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -15,6 +14,7 @@ import '../auth/auth_service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../routes/app_routes.dart';
 import '../services/secure_storage_service.dart';
+import '../services/auth_method_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String email;
@@ -63,48 +63,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
 
-      // Try to determine auth provider
-      try {
-        final session = await Amplify.Auth.fetchAuthSession(
-          options: const FetchAuthSessionOptions(),
-        ) as CognitoAuthSession;
-
-        final identityIdResult = session.identityIdResult;
-        final id = identityIdResult.value;
-        if (id.contains('google')) {
-          _authProvider = 'Google';
-        } else if (id.contains('facebook')) {
-          _authProvider = 'Facebook';
-        } else {
-          _authProvider = 'Email';
-        }
-      } catch (e) {
-        debugPrint('Error determining auth provider: $e');
-        _authProvider = 'Email';
-      }
+      // Initialize auth provider to default
+      _authProvider = 'Email';
 
       // Fetch user data from API using AuthService
       try {
         final userData = await ensureUserExists();
         debugPrint('✅ ProfileScreen: Got user data: ${userData.name}');
 
+        // Get authentication method from user data
+        final authMethodDisplayName = AuthMethodService.getAuthMethodDisplayName(userData.primaryAuthMethod);
+
         // Check if widget is still mounted before calling setState
         if (!mounted) return;
         setState(() {
           _userName = userData.name;
           _userEmail = userData.email;
+          _authProvider = authMethodDisplayName;
           _nameController.text = _userName ?? '';
         });
       } catch (e) {
         debugPrint('⚠️ ProfileScreen: Could not get/create user data: $e');
         // Use email from Cognito if user not found in database
+        // Try to detect auth method as fallback
+        try {
+          final currentAuthMethod = await AuthMethodService.detectCurrentAuthMethod();
+          final authMethodDisplayName = AuthMethodService.getAuthMethodDisplayName(currentAuthMethod);
 
-        // Check if widget is still mounted before calling setState
-        if (!mounted) return;
-        setState(() {
-          _userEmail = emailAttr.value;
-          _nameController.text = '';
-        });
+          // Check if widget is still mounted before calling setState
+          if (!mounted) return;
+          setState(() {
+            _userEmail = emailAttr.value;
+            _authProvider = authMethodDisplayName;
+            _nameController.text = '';
+          });
+        } catch (authError) {
+          debugPrint('⚠️ ProfileScreen: Could not detect auth method: $authError');
+          // Check if widget is still mounted before calling setState
+          if (!mounted) return;
+          setState(() {
+            _userEmail = emailAttr.value;
+            _authProvider = 'Email'; // Default fallback
+            _nameController.text = '';
+          });
+        }
       }
 
       // Fetch stored password after auth provider is determined
@@ -389,78 +391,92 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             showDivider: true,
                           ),
 
-                          // Password field (only for email accounts)
-                          if (_authProvider == 'Email')
-                            _buildSettingItemNew(
-                              icon: Icons.lock_outline,
-                              iconColor: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
-                              title: "Password",
-                              trailing: SizedBox(
-                                width: 100, // Fixed width for the trailing widget
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        _showPassword
-                                          ? (_storedPassword ?? "Password not available")
-                                          : "••••••••",
-                                        style: TextStyle(
-                                          color: theme.textTheme.bodyMedium?.color,
-                                          letterSpacing: _showPassword ? 0 : 2,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.right,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    SizedBox(
-                                      width: 24, // Fixed width to match chevron_right icon
-                                      height: 24, // Fixed height to match chevron_right icon
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _showPassword = !_showPassword;
-                                          });
-                                        },
-                                        child: Icon(
-                                          _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                          color: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
-                                          size: 24, // Match the size of chevron_right
+                          // Password field (show for all accounts but with different content)
+                          _buildSettingItemNew(
+                            icon: Icons.lock_outline,
+                            iconColor: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
+                            title: "Password",
+                            trailing: SizedBox(
+                              width: 100, // Fixed width for the trailing widget
+                              child: _authProvider == 'Email'
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _showPassword
+                                            ? (_storedPassword ?? "Password not available")
+                                            : "••••••••",
+                                          style: TextStyle(
+                                            color: theme.textTheme.bodyMedium?.color,
+                                            letterSpacing: _showPassword ? 0 : 2,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.right,
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
+                                      SizedBox(
+                                        width: 24, // Fixed width to match chevron_right icon
+                                        height: 24, // Fixed height to match chevron_right icon
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _showPassword = !_showPassword;
+                                            });
+                                          },
+                                          child: Icon(
+                                            _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                            color: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
+                                            size: 24, // Match the size of chevron_right
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    "N/A",
+                                    style: TextStyle(
+                                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                  ],
-                                ),
-                              ),
-                              showDivider: true,
+                                    textAlign: TextAlign.right,
+                                  ),
                             ),
+                            showDivider: true,
+                          ),
 
-                          // Change password option (only for email accounts)
-                          if (_authProvider == 'Email')
-                            _buildSettingItemNew(
-                              icon: Icons.info_outline,
-                              iconColor: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
-                              title: "Change Password",
-                              trailing: Icon(
-                                Icons.chevron_right,
-                                color: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
-                                size: 24, // Explicit size for consistency
-                              ),
-                              onTap: () async {
-                                // Navigate to change password screen and refresh password if changed
-                                final result = await Navigator.pushNamed(context, AppRoutes.changePassword);
-                                debugPrint('🔍 Change password result: $result');
-                                if (result == true) {
-                                  // Password was changed successfully, refresh the stored password
-                                  debugPrint('🔄 Refreshing stored password...');
-                                  await _refreshStoredPassword();
-                                } else {
-                                  debugPrint('⚠️ Password change was cancelled or failed');
-                                }
-                              },
-                              showDivider: true,
+                          // Change password option (show for all but disable for OAuth)
+                          _buildSettingItemNew(
+                            icon: Icons.info_outline,
+                            iconColor: _authProvider == 'Email'
+                              ? (isDarkMode ? const Color(0xFF4CAF50) : Colors.grey)
+                              : Colors.grey.withValues(alpha: 0.5),
+                            title: "Change Password",
+                            titleColor: _authProvider == 'Email'
+                              ? (theme.textTheme.bodyLarge?.color ?? Colors.black87)
+                              : Colors.grey.withValues(alpha: 0.5),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: _authProvider == 'Email'
+                                ? (isDarkMode ? const Color(0xFF4CAF50) : Colors.grey)
+                                : Colors.grey.withValues(alpha: 0.5),
+                              size: 24, // Explicit size for consistency
                             ),
+                            onTap: _authProvider == 'Email' ? () async {
+                              // Navigate to change password screen and refresh password if changed
+                              final result = await Navigator.pushNamed(context, AppRoutes.changePassword);
+                              debugPrint('🔍 Change password result: $result');
+                              if (result == true) {
+                                // Password was changed successfully, refresh the stored password
+                                debugPrint('🔄 Refreshing stored password...');
+                                await _refreshStoredPassword();
+                              } else {
+                                debugPrint('⚠️ Password change was cancelled or failed');
+                              }
+                            } : null, // Disable for OAuth users
+                            showDivider: true,
+                          ),
 
                           // Dark mode toggle
                           _buildSettingItemNew(

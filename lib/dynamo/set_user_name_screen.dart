@@ -3,6 +3,7 @@ import 'package:amplify_api/amplify_api.dart';
 import 'package:flutter/material.dart';
 import '../routes/app_routes.dart';
 import '../models/User.dart';
+import '../models/AuthMethod.dart';
 
 class SetUserNameScreen extends StatefulWidget {
   const SetUserNameScreen({super.key});
@@ -34,8 +35,14 @@ class _SetUserNameScreenState extends State<SetUserNameScreen> {
               )
               .value;
 
-      // Create a new User instance
-      final newUser = User(id: userId, name: name, email: email);
+      // Create a new User instance with authentication method detection
+      final newUser = User(
+        id: userId,
+        name: name,
+        email: email,
+        primaryAuthMethod: AuthMethod.EMAIL, // Default for manual user creation
+        linkedAuthMethods: [AuthMethod.EMAIL], // Default for manual user creation
+      );
 
       final request = ModelMutations.create(newUser);
       final response = await Amplify.API.mutate(request: request).response;
