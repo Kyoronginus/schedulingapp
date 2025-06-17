@@ -144,8 +144,6 @@ class _PasswordVerificationScreenState extends State<PasswordVerificationScreen>
         // Pop back to change password screen first with success result
         Navigator.of(context).pop(true);
 
-        // Then pop the change password screen with success result
-        Navigator.of(context).pop(true);
       }
     } on AuthException catch (e) {
       if (mounted) {

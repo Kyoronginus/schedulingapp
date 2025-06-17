@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../auth/login/login_screen.dart';
 import '../auth/password/forgot_password_screen.dart';
-import '../auth/password/change_password_screen.dart';
+import '../auth/password/change_password_dialog.dart';
 import '../schedule/schedule_screen.dart';
 import '../auth/register/register_screen.dart';
 import '../dynamo/set_user_name_screen.dart';
@@ -16,7 +16,7 @@ class AppRoutes {
   static const String emailLogin = '/emailLogin';
   static const String register = '/register';
   static const String forgotPassword = '/forgotPassword';
-  static const String changePassword = '/changePassword';
+  // static const String changePassword = '/changePassword';
   static const String inviteMember = '/inviteMember';
   static const String setUserName = '/setUserName';
   static const String addGroup = '/group';
@@ -28,7 +28,7 @@ class AppRoutes {
         AppRoutes.login: (context) => const LoginScreen(),
         AppRoutes.register: (context) => const RegisterScreen(),
         AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
-        AppRoutes.changePassword: (context) => const ChangePasswordScreen(),
+        // AppRoutes.changePassword: (context) => const ChangePasswordScreen(),
         AppRoutes.setUserName: (context) => const SetUserNameScreen(),
         AppRoutes.addGroup: (context) => const GroupScreen(),
         AppRoutes.inviteMember: (context) =>

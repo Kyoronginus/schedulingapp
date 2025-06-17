@@ -3,7 +3,7 @@
   "policyUUID": "94eef5a2",
   "bucketName": "profileimages",
   "storageAccess": "auth",
-  "guestAccess": [],
+  "guestAccess": ["READ"],
   "authAccess": [
     "CREATE_AND_UPDATE",
     "READ",

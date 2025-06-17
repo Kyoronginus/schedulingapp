@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:provider/provider.dart';
-import '../widgets/custom_app_bar.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../utils/utils_functions.dart';
 import '../auth/logout.dart';
-
+import '../auth/password/change_password_dialog.dart';
 import '../theme/theme_provider.dart';
 import '../services/store_profile_service.dart';
 import '../services/refresh_service.dart';
 import '../widgets/profile_avatar.dart';
 import '../auth/auth_service.dart';
 import 'package:image_picker/image_picker.dart';
-import '../routes/app_routes.dart';
 import '../services/secure_storage_service.dart';
 import '../services/auth_method_service.dart';
 
@@ -45,7 +43,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _fetchUserProfile();
   }
+  void _showChangePasswordDialog() async {
+    // `showDialog` adalah fungsi bawaan Flutter untuk menampilkan modal
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // User harus menekan tombol untuk menutup
+      builder: (BuildContext context) {
+        // Panggil widget ChangePasswordScreen yang sudah kita ubah
+        return const ChangePasswordDialog(); 
+      },
+    );
 
+    // Kode ini akan berjalan SETELAH dialog ditutup
+    if (result == true) {
+      // Jika password berhasil diubah, kita refresh data password di halaman profil
+      debugPrint('🔄 Password changed successfully, refreshing stored password...');
+      await _refreshStoredPassword();
+    }
+  }
   Future<void> _fetchUserProfile() async {
     setState(() => _isLoading = true);
     try {
@@ -432,18 +447,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 : Colors.grey.withValues(alpha: 0.5),
                               size: 24, // Explicit size for consistency
                             ),
-                            onTap: _authProvider == 'Email' ? () async {
-                              // Navigate to change password screen and refresh password if changed
-                              final result = await Navigator.pushNamed(context, AppRoutes.changePassword);
-                              debugPrint('🔍 Change password result: $result');
-                              if (result == true) {
-                                // Password was changed successfully, refresh the stored password
-                                debugPrint('🔄 Refreshing stored password...');
-                                await _refreshStoredPassword();
-                              } else {
-                                debugPrint('⚠️ Password change was cancelled or failed');
-                              }
-                            } : null, // Disable for OAuth users
+                            onTap: _authProvider == 'Email' ? _showChangePasswordDialog : null, // Disable for OAuth users
                             showDivider: true,
                           ),
 

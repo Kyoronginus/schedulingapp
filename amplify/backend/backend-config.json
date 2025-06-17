@@ -107,19 +107,19 @@
     }
   },
   "parameters": {
-    "AMPLIFY_auth_schedulingapp30672a99_facebookAppId": {
+    "AMPLIFY_function_postAuthentication_deploymentBucketName": {
       "usedBy": [
         {
-          "category": "auth",
-          "resourceName": "schedulingapp30672a99"
+          "category": "function",
+          "resourceName": "postAuthentication"
         }
       ]
     },
-    "AMPLIFY_auth_schedulingapp30672a99_googleClientId": {
+    "AMPLIFY_function_postAuthentication_s3Key": {
       "usedBy": [
         {
-          "category": "auth",
-          "resourceName": "schedulingapp30672a99"
+          "category": "function",
+          "resourceName": "postAuthentication"
         }
       ]
     },
@@ -139,6 +139,22 @@
         }
       ]
     },
+    "AMPLIFY_function_preAuthentication_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "preAuthentication"
+        }
+      ]
+    },
+    "AMPLIFY_function_preAuthentication_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "preAuthentication"
+        }
+      ]
+    },
     "AMPLIFY_function_preSignUp_deploymentBucketName": {
       "usedBy": [
         {
@@ -152,22 +168,6 @@
         {
           "category": "function",
           "resourceName": "preSignUp"
-        }
-      ]
-    },
-    "AMPLIFY_function_preTokenGen_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "preTokenGen"
-        }
-      ]
-    },
-    "AMPLIFY_function_preTokenGen_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "preTokenGen"
         }
       ]
     }
