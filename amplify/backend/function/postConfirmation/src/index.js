@@ -17,7 +17,7 @@ const dynamodb = new AWS.DynamoDB.DocumentClient();
 exports.handler = async (event) => {
   console.log('🔍 PostConfirmation trigger event:', JSON.stringify(event, null, 2));
 
-  const id = event.userName;
+  const id = event.request.userAttributes.sub;
   const { email, name } = event.request.userAttributes;
 
   const authProvider = event.userName.includes('_') ? event.userName.split('_')[0].toUpperCase() : 'EMAIL';

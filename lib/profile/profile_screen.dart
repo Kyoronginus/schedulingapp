@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:provider/provider.dart';
-import 'dart:async';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../utils/utils_functions.dart';
@@ -40,25 +39,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final int _currentIndex = 3;
 
   bool _isUploadingImage = false;
-  StreamSubscription<void>? _profileChangeSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchUserProfile();
-
-    // Listen for profile changes to refresh the screen
-    _profileChangeSubscription = RefreshService().profileChanges.listen((_) {
-      if (mounted) {
-        _fetchUserProfile();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _profileChangeSubscription?.cancel();
-    super.dispose();
   }
 
   Future<void> _fetchUserProfile() async {
@@ -99,34 +84,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       } catch (e) {
         debugPrint('⚠️ ProfileScreen: Could not get/create user data: $e');
-        // Use data from Cognito if user not found in database
-        // This is common for OAuth users who haven't been created in DynamoDB yet
+        // Use email from Cognito if user not found in database
+        // Try to detect auth method as fallback
         try {
           final currentAuthMethod = await AuthMethodService.detectCurrentAuthMethod();
           final authMethodDisplayName = AuthMethodService.getAuthMethodDisplayName(currentAuthMethod);
-
-          // Try to get name from Cognito attributes for OAuth users
-          String? cognitoName;
-          try {
-            final nameAttr = attributes.firstWhere(
-              (attr) => attr.userAttributeKey == CognitoUserAttributeKey.name,
-              orElse: () => const AuthUserAttribute(
-                userAttributeKey: CognitoUserAttributeKey.name,
-                value: '',
-              ),
-            );
-            cognitoName = nameAttr.value.isNotEmpty ? nameAttr.value : null;
-          } catch (nameError) {
-            debugPrint('⚠️ ProfileScreen: Could not get name from Cognito: $nameError');
-          }
 
           // Check if widget is still mounted before calling setState
           if (!mounted) return;
           setState(() {
             _userEmail = emailAttr.value;
             _authProvider = authMethodDisplayName;
-            _userName = cognitoName ?? emailAttr.value.split('@')[0]; // Use email prefix as fallback
-            _nameController.text = _userName ?? '';
+            _nameController.text = '';
           });
         } catch (authError) {
           debugPrint('⚠️ ProfileScreen: Could not detect auth method: $authError');
@@ -135,8 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             _userEmail = emailAttr.value;
             _authProvider = 'Email'; // Default fallback
-            _userName = emailAttr.value.split('@')[0]; // Use email prefix as fallback
-            _nameController.text = _userName ?? '';
+            _nameController.text = '';
           });
         }
       }
@@ -210,15 +178,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: Colors.green,
             ),
           );
-
-          // Notify other screens to refresh first
-          RefreshService().notifyProfileChange();
-
-          // Add a small delay to ensure the upload is fully processed
-          await Future.delayed(const Duration(milliseconds: 500));
-
-          // Then trigger a rebuild to refresh the current screen
+          // Trigger a rebuild to refresh the avatar
           setState(() {});
+
+          // Notify other screens to refresh
+          RefreshService().notifyProfileChange();
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -255,16 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: CustomAppBar(
-        title: Text(
-          "Profile",
-          style: TextStyle(
-            color: isDarkMode ? const Color(0xFF4CAF50) : Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : null,
-      ),
+      backgroundColor: const Color(0xFFF1F1F1),
       body: _isLoading
         ? Center(child: CircularProgressIndicator(
             color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
@@ -280,26 +235,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                    const SizedBox(height: 20),
-
+                    const SizedBox(height: 56),
                     // Profile header with avatar and info
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: theme.cardTheme.color,
-                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white, // Menggunakan warna kartu dari tema (putih di light mode)
+                        borderRadius: BorderRadius.circular(16), // Membuat sudut melengkung
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha:0.05),
+                            color: Colors.black.withOpacity(0.1), // Bayangan yang sangat lembut
                             spreadRadius: 1,
                             blurRadius: 10,
-                            offset: const Offset(0, 2),
+                            offset: const Offset(0, 4), // Posisi bayangan (sedikit ke bawah)
                           ),
                         ],
-                      ),
+                                
+                        ),
                       child: Column(
                         children: [
+                          const SizedBox(height: 16),
                           // Profile avatar with upload functionality
                           Stack(
                             children: [
@@ -366,7 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
                           // User name
                           Text(
                             _userName ?? "User",
@@ -385,30 +341,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color: theme.textTheme.bodyMedium?.color,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Settings container
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: theme.cardTheme.color,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha:0.05),
-                            spreadRadius: 1,
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          // Account platform
+                          const SizedBox(height:8),
                           _buildSettingItemNew(
                             icon: Icons.account_circle_outlined,
                             iconColor: isDarkMode ? const Color(0xFF4CAF50) : Colors.grey,
@@ -542,8 +475,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 40),
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
