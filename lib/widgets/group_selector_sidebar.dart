@@ -11,19 +11,25 @@ import '../dynamo/group_service.dart';
 class GroupSelectorSidebar extends StatefulWidget {
   final List<Group> groups;
   final Group? selectedGroup;
+  final bool isPersonalMode;
   final Function(Group) onGroupSelected;
+  final VoidCallback? onPersonalModeSelected;
   final VoidCallback onCreateGroup;
   final VoidCallback? onGroupsChanged;
   final String? currentUserId;
+  final bool showPersonalOption;
 
   const GroupSelectorSidebar({
     super.key,
     required this.groups,
     required this.selectedGroup,
+    required this.isPersonalMode,
     required this.onGroupSelected,
+    this.onPersonalModeSelected,
     required this.onCreateGroup,
     this.onGroupsChanged,
     this.currentUserId,
+    this.showPersonalOption = false,
   });
 
   @override
@@ -90,13 +96,17 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
 
           // Groups list
           Expanded(
-            child: widget.groups.isEmpty
+            child: widget.groups.isEmpty && !widget.showPersonalOption
                 ? _buildEmptyState()
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: widget.groups.length,
+                    itemCount: _getItemCount(),
                     itemBuilder: (context, index) {
-                      final group = widget.groups[index];
+                      if (widget.showPersonalOption && index == 0) {
+                        return _buildPersonalOption();
+                      }
+                      final groupIndex = widget.showPersonalOption ? index - 1 : index;
+                      final group = widget.groups[groupIndex];
                       return _buildGroupBox(group);
                     },
                   ),
@@ -131,6 +141,74 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  int _getItemCount() {
+    return widget.groups.length + (widget.showPersonalOption ? 1 : 0);
+  }
+
+  Widget _buildPersonalOption() {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+    final isSelected = widget.isPersonalMode;
+    final backgroundColor = isSelected
+        ? (isDarkMode ? const Color(0xFF4CAF50).withValues(alpha: 0.2) : const Color(0xFF2196F3).withValues(alpha: 0.1))
+        : (isDarkMode ? const Color(0xFF2E2E2E) : Colors.white);
+    final borderColor = isSelected
+        ? (isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3))
+        : (isDarkMode ? Colors.grey[700]! : Colors.grey[300]!);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onPersonalModeSelected,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person,
+                  color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3),
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Personal',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'View all your schedules and notifications',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

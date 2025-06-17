@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/refresh_controller.dart';
+import '../widgets/group_selector_sidebar.dart';
 import '../models/Notification.dart' as models;
 import '../models/NotificationType.dart';
 import '../models/InvitationStatus.dart';
@@ -11,6 +12,7 @@ import '../services/notification_service.dart';
 import '../services/timezone_service.dart';
 import '../dynamo/group_service.dart';
 import '../theme/theme_provider.dart';
+import '../providers/group_selection_provider.dart';
 import '../services/refresh_service.dart';
 
 
@@ -21,15 +23,34 @@ class NotificationScreen extends StatefulWidget {
   State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _NotificationScreenState extends State<NotificationScreen> with TickerProviderStateMixin {
   final int _currentIndex = 2; // Index for notification in bottom nav (0=Schedule, 1=Group, 2=Notification, 3=Profile)
   List<models.Notification> _notifications = [];
   bool _isLoading = true;
   StreamSubscription<void>? _profileRefreshSubscription;
 
+  // Sidebar state
+  bool _isSidebarOpen = false;
+  late AnimationController _sidebarAnimationController;
+  late Animation<double> _sidebarAnimation;
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize sidebar animation
+    _sidebarAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _sidebarAnimation = Tween<double>(
+      begin: -1.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(
+      parent: _sidebarAnimationController,
+      curve: Curves.easeInOut,
+    ));
+
     _loadNotifications();
 
     // Listen for profile changes to refresh notifications with updated user data
@@ -43,15 +64,49 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   void dispose() {
     _profileRefreshSubscription?.cancel();
+    _sidebarAnimationController.dispose();
     super.dispose();
+  }
+
+  void _toggleSidebar() {
+    setState(() {
+      _isSidebarOpen = !_isSidebarOpen;
+    });
+
+    if (_isSidebarOpen) {
+      _sidebarAnimationController.forward();
+    } else {
+      _sidebarAnimationController.reverse();
+    }
+  }
+
+  void _closeSidebar() {
+    if (_isSidebarOpen) {
+      setState(() {
+        _isSidebarOpen = false;
+      });
+      _sidebarAnimationController.reverse();
+    }
   }
 
   Future<void> _loadNotifications() async {
     setState(() => _isLoading = true);
 
     try {
-      // Get real notifications from the service
-      final allNotifications = await NotificationService.getNotifications();
+      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+
+      // Get notifications based on group selection
+      List<models.Notification> allNotifications;
+      if (groupProvider.isPersonalMode) {
+        // Load all notifications for personal mode
+        allNotifications = await NotificationService.getNotifications();
+      } else if (groupProvider.selectedGroup != null) {
+        // Load notifications for specific group
+        allNotifications = await NotificationService.getNotificationsForGroup(groupProvider.selectedGroup!.id);
+      } else {
+        // No group selected, load all notifications
+        allNotifications = await NotificationService.getNotifications();
+      }
 
       // Filter out declined invitations
       final notifications = allNotifications.where((notification) {
@@ -125,58 +180,82 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final groupProvider = Provider.of<GroupSelectionProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
     final backgroundColor = isDarkMode ? const Color(0xFF121212) : Colors.grey[100];
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.calendar_today, size: 16, color: Colors.black),
-                  SizedBox(width: 8),
-                  Text(
-                    'Calendar 1',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+      body: Stack(
+        children: [
+          // Main content
+          GestureDetector(
+            onTap: _closeSidebar,
+            child: Column(
+              children: [
+                // Custom app bar
+                Container(
+                  color: backgroundColor,
+                  padding: const EdgeInsets.only(top: 40, left: 16, right: 16, bottom: 8),
+                  child: Row(
+                    children: [
+                      // Group selector button
+                      GestureDetector(
+                        onTap: _toggleSidebar,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? Colors.grey[800] : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha((0.1 * 255).round()),
+                                offset: const Offset(0, 4),
+                                blurRadius: 15,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
+                                size: 16,
+                                color: isDarkMode ? Colors.white : Colors.black
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                groupProvider.currentSelectionName,
+                                style: TextStyle(
+                                  color: isDarkMode ? Colors.white : Colors.black,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () async {
+                          await NotificationService.markAllAsRead();
+                          await _loadNotifications();
+                        },
+                        icon: const Icon(Icons.mark_email_read, size: 18),
+                        label: const Text('Mark All Read'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: isDarkMode ? Colors.white : Colors.black87,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            TextButton.icon(
-              onPressed: () async {
-                await NotificationService.markAllAsRead();
-                await _loadNotifications();
-              },
-              icon: const Icon(Icons.mark_email_read, size: 18),
-              label: const Text('Mark All Read'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-            ),
-          ],
-        ),
-        automaticallyImplyLeading: false,
-        titleSpacing: 16,
-      ),
-      body: RefreshController(
+                ),
+                // Main content
+                Expanded(
+                  child: RefreshController(
         onRefresh: _loadNotifications,
         child: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -397,7 +476,56 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       ),
                     ));
                   },
+                    ),
+                  ),
                 ),
+              ],
+            ),
+          ),
+
+          // Sidebar overlay
+          if (_isSidebarOpen)
+            GestureDetector(
+              onTap: _closeSidebar,
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.5),
+              ),
+            ),
+
+          // Animated sidebar
+          AnimatedBuilder(
+            animation: _sidebarAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(_sidebarAnimation.value * 320, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: GroupSelectorSidebar(
+                    groups: groupProvider.groups,
+                    selectedGroup: groupProvider.selectedGroup,
+                    isPersonalMode: groupProvider.isPersonalMode,
+                    showPersonalOption: true,
+                    onGroupSelected: (group) {
+                      groupProvider.selectGroup(group);
+                      _closeSidebar();
+                      _loadNotifications();
+                    },
+                    onPersonalModeSelected: () {
+                      groupProvider.selectPersonalMode();
+                      _closeSidebar();
+                      _loadNotifications();
+                    },
+                    onCreateGroup: () {
+                      _closeSidebar();
+                      // TODO: Add create group functionality
+                    },
+                    currentUserId: groupProvider.currentUserId,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
     );

@@ -9,6 +9,7 @@ import 'package:amplify_datastore/amplify_datastore.dart' show AmplifyDataStore;
 import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:schedulingapp/models/ModelProvider.dart';
 import 'package:schedulingapp/theme/theme_provider.dart';
+import 'package:schedulingapp/providers/group_selection_provider.dart';
 import 'package:schedulingapp/services/notification_service.dart';
 
 void main() async {
@@ -34,8 +35,11 @@ void main() async {
     await NotificationService.initialize();
 
     runApp(
-      ChangeNotifierProvider(
-        create: (_) => ThemeProvider(),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => GroupSelectionProvider()),
+        ],
         child: const SchedulingApp(),
       ),
     );
@@ -46,8 +50,11 @@ void main() async {
     await NotificationService.initialize();
 
     runApp(
-      ChangeNotifierProvider(
-        create: (_) => ThemeProvider(),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => GroupSelectionProvider()),
+        ],
         child: const SchedulingApp(),
       ),
     );

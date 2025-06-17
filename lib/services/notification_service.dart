@@ -302,6 +302,211 @@ class NotificationService {
     return _cachedNotifications;
   }
 
+  // Get notifications for a specific group
+  static Future<List<Notification>> getNotificationsForGroup(String groupId) async {
+    await initialize(); // Ensure service is initialized
+
+    try {
+      if (_currentUserId == null) {
+        debugPrint('❌ Cannot load group notifications: No current user');
+        return [];
+      }
+
+      List<Notification> groupNotifications = [];
+
+      // Get invitation notifications for this specific group
+      const groupInvitationsQuery = '''
+        query GetGroupInvitations(\$userId: ID!, \$groupId: ID!) {
+          listGroupInvitations(filter: {
+            and: [
+              {invitedUserId: {eq: \$userId}},
+              {groupId: {eq: \$groupId}}
+            ]
+          }) {
+            items {
+              id
+            }
+          }
+        }
+      ''';
+
+      final groupInvitationsRequest = GraphQLRequest<String>(
+        document: groupInvitationsQuery,
+        variables: {'userId': _currentUserId, 'groupId': groupId},
+      );
+      final groupInvitationsResponse = await Amplify.API.query(request: groupInvitationsRequest).response;
+
+      List<String> groupInvitationIds = [];
+      if (!groupInvitationsResponse.hasErrors) {
+        final invitationsData = json.decode(groupInvitationsResponse.data ?? '{}');
+        final invitationItems = invitationsData['listGroupInvitations']?['items'] ?? [];
+        groupInvitationIds = invitationItems.map<String>((item) => item['id'] as String).toList();
+      }
+
+      // Fetch invitation notifications for this group
+      for (final invitationId in groupInvitationIds) {
+        const invitationNotificationsQuery = '''
+          query GetInvitationNotifications(\$invitationId: ID!) {
+            listNotifications(filter: {
+              and: [
+                {type: {eq: INVITATION}},
+                {groupInvitationId: {eq: \$invitationId}}
+              ]
+            }) {
+              items {
+                id
+                type
+                isRead
+                timestamp
+                scheduleId
+                groupInvitationId
+                readByUsers
+                groupInvitation {
+                  id
+                  status
+                  isAdmin
+                  invitedUserId
+                  group {
+                    id
+                    name
+                  }
+                  invitedByUser {
+                    id
+                    name
+                    email
+                    primaryAuthMethod
+                    linkedAuthMethods
+                  }
+                }
+              }
+            }
+          }
+        ''';
+
+        final invitationRequest = GraphQLRequest<String>(
+          document: invitationNotificationsQuery,
+          variables: {'invitationId': invitationId},
+        );
+        final invitationResponse = await Amplify.API.query(request: invitationRequest).response;
+
+        if (!invitationResponse.hasErrors) {
+          final invitationData = json.decode(invitationResponse.data ?? '{}');
+          final invitationItems = invitationData['listNotifications']?['items'] ?? [];
+
+          for (final item in invitationItems) {
+            try {
+              final notification = Notification.fromJson(item);
+              if (!groupNotifications.any((n) => n.id == notification.id)) {
+                groupNotifications.add(notification);
+              }
+            } catch (e) {
+              debugPrint('❌ Error parsing group invitation notification: $e');
+            }
+          }
+        }
+      }
+
+      // Get schedule notifications for this specific group
+      const groupSchedulesQuery = '''
+        query GetGroupSchedules(\$groupId: ID!) {
+          listSchedules(filter: {groupId: {eq: \$groupId}}) {
+            items {
+              id
+            }
+          }
+        }
+      ''';
+
+      final groupSchedulesRequest = GraphQLRequest<String>(
+        document: groupSchedulesQuery,
+        variables: {'groupId': groupId},
+      );
+      final groupSchedulesResponse = await Amplify.API.query(request: groupSchedulesRequest).response;
+
+      if (!groupSchedulesResponse.hasErrors) {
+        final schedulesData = json.decode(groupSchedulesResponse.data ?? '{}');
+        final scheduleItems = schedulesData['listSchedules']?['items'] ?? [];
+        final scheduleIds = scheduleItems.map<String>((item) => item['id'] as String).toList();
+
+        // Fetch notifications for these schedules
+        for (final scheduleId in scheduleIds) {
+          const scheduleNotificationsQuery = '''
+            query GetScheduleNotifications(\$scheduleId: ID!) {
+              listNotifications(filter: {
+                and: [
+                  {type: {ne: INVITATION}},
+                  {scheduleId: {eq: \$scheduleId}}
+                ]
+              }) {
+                items {
+                  id
+                  type
+                  isRead
+                  timestamp
+                  scheduleId
+                  groupInvitationId
+                  readByUsers
+                  schedule {
+                    id
+                    title
+                    startTime
+                    endTime
+                    groupId
+                    user {
+                      id
+                      name
+                      email
+                      primaryAuthMethod
+                      linkedAuthMethods
+                    }
+                  }
+                }
+              }
+            }
+          ''';
+
+          final scheduleRequest = GraphQLRequest<String>(
+            document: scheduleNotificationsQuery,
+            variables: {'scheduleId': scheduleId},
+          );
+          final scheduleResponse = await Amplify.API.query(request: scheduleRequest).response;
+
+          if (!scheduleResponse.hasErrors) {
+            final scheduleData = json.decode(scheduleResponse.data ?? '{}');
+            final notificationItems = scheduleData['listNotifications']?['items'] ?? [];
+
+            for (final item in notificationItems) {
+              try {
+                final notification = Notification.fromJson(item);
+                if (!groupNotifications.any((n) => n.id == notification.id)) {
+                  groupNotifications.add(notification);
+                }
+              } catch (e) {
+                debugPrint('❌ Error parsing group schedule notification: $e');
+              }
+            }
+          }
+        }
+      }
+
+      // Process notifications to set correct isRead status for current user
+      final processedNotifications = groupNotifications.map((notification) {
+        final isReadByCurrentUser = notification.readByUsers?.contains(_currentUserId) ?? false;
+        return notification.copyWith(isRead: isReadByCurrentUser);
+      }).toList();
+
+      // Sort notifications by timestamp (newest first)
+      processedNotifications.sort((a, b) =>
+        TimezoneService.utcToLocal(b.timestamp).compareTo(TimezoneService.utcToLocal(a.timestamp)));
+
+      debugPrint('✅ Loaded ${processedNotifications.length} notifications for group $groupId');
+      return processedNotifications;
+    } catch (e) {
+      debugPrint('❌ Error loading group notifications: $e');
+      return [];
+    }
+  }
+
   // Add a notification for a newly created schedule
   static Future<void> addCreatedScheduleNotification(Schedule schedule) async {
     await initialize();

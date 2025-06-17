@@ -8,11 +8,11 @@ import '../widgets/bottom_nav_bar.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/group_selector_sidebar.dart';
 import '../dynamo/group_service.dart';
-import '../models/Group.dart';
 import '../models/User.dart';
 import '../schedule/invite/invite_member_screen.dart';
 
 import '../theme/theme_provider.dart';
+import '../providers/group_selection_provider.dart';
 import '../widgets/smart_back_button.dart';
 import '../services/refresh_service.dart';
 
@@ -28,10 +28,6 @@ class GroupScreen extends StatefulWidget {
 
 class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin, NavigationMemoryMixin {
   final int _currentIndex = 1; // Group is the 2nd tab (index 1)
-  List<Group> _groups = [];
-  Group? _selectedGroup;
-  bool _isLoading = true;
-  String? _currentUserId;
   final Map<String, bool> _isAdminCache = {};
 
   // Sidebar state
@@ -56,8 +52,6 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
       parent: _sidebarAnimationController,
       curve: Curves.easeInOut,
     ));
-    _getCurrentUserId();
-    _loadGroups();
 
     // Listen for profile changes to refresh group member data
     _refreshSubscription = RefreshService().profileChanges.listen((_) {
@@ -74,26 +68,16 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
     super.dispose();
   }
 
-  Future<void> _getCurrentUserId() async {
-    try {
-      final user = await Amplify.Auth.getCurrentUser();
-      if (mounted) {
-        setState(() {
-          _currentUserId = user.userId;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error getting current user: $e');
-    }
-  }
-
   Future<bool> _isUserAdmin(String groupId) async {
     // Check cache first
     if (_isAdminCache.containsKey(groupId)) {
       return _isAdminCache[groupId]!;
     }
 
-    if (_currentUserId == null) {
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+    final currentUserId = groupProvider.currentUserId;
+
+    if (currentUserId == null) {
       return false;
     }
 
@@ -114,7 +98,7 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
             }
           }
         ''',
-        variables: {'userId': _currentUserId, 'groupId': groupId},
+        variables: {'userId': currentUserId, 'groupId': groupId},
       );
 
       final response = await Amplify.API.query(request: request).response;
@@ -132,24 +116,6 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
     } catch (e) {
       debugPrint('Error checking admin status: $e');
       return false;
-    }
-  }
-
-  Future<void> _loadGroups() async {
-    try {
-      final groups = await GroupService.getUserGroups();
-      setState(() {
-        _groups = groups;
-        _selectedGroup = groups.isNotEmpty ? groups.first : null;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load groups: $e')),
-        );
-      }
-      setState(() => _isLoading = false);
     }
   }
 
@@ -200,16 +166,12 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
     }
   }
 
-  void _onGroupSelected(Group group) {
-    setState(() {
-      _selectedGroup = group;
-    });
-    _closeSidebar();
-  }
+
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final groupProvider = Provider.of<GroupSelectionProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3);
 
@@ -232,11 +194,11 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
           // Main content
           GestureDetector(
             onTap: _closeSidebar,
-            child: _isLoading
+            child: groupProvider.isLoading
                 ? Center(child: CircularProgressIndicator(
                     color: activeColor,
                   ))
-                : _groups.isEmpty
+                : groupProvider.groups.isEmpty
                     ? _buildEmptyState()
                     : _buildGroupContent(),
           ),
@@ -259,14 +221,18 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: GroupSelectorSidebar(
-                    groups: _groups,
-                    selectedGroup: _selectedGroup,
-                    onGroupSelected: _onGroupSelected,
+                    groups: groupProvider.groups,
+                    selectedGroup: groupProvider.selectedGroup,
+                    isPersonalMode: false, // Group screen doesn't use personal mode
+                    onGroupSelected: (group) {
+                      groupProvider.selectGroup(group);
+                      _closeSidebar();
+                    },
                     onCreateGroup: () {
                       _closeSidebar();
                       _navigateToCreateGroup();
                     },
-                    currentUserId: _currentUserId,
+                    currentUserId: groupProvider.currentUserId,
                   ),
                 ),
               );
@@ -274,8 +240,8 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
           ),
         ],
       ),
-      floatingActionButton: _selectedGroup != null ? FloatingActionButton(
-        onPressed: () => _navigateToInviteMember(_selectedGroup!.id),
+      floatingActionButton: groupProvider.selectedGroup != null ? FloatingActionButton(
+        onPressed: () => _navigateToInviteMember(groupProvider.selectedGroup!.id),
         backgroundColor: activeColor,
         child: const Icon(Icons.person_add, color: Colors.white),
       ) : null,
@@ -285,6 +251,8 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
   }
 
   Widget _buildGroupContent() {
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+
     return Column(
       children: [
         // Top section with group selector
@@ -295,8 +263,8 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
 
         // Members list
         Expanded(
-          child: _selectedGroup != null
-              ? _buildMembersList(_selectedGroup!.id)
+          child: groupProvider.selectedGroup != null
+              ? _buildMembersList(groupProvider.selectedGroup!.id)
               : const Center(child: Text('Open the sidebar to select a group')),
         ),
       ],
@@ -342,6 +310,7 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
 
   Widget _buildGroupSelector() {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
     final isDarkMode = themeProvider.isDarkMode;
     final textColor = isDarkMode ? Colors.white : Colors.black;
 
@@ -370,7 +339,7 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
             ),
             const SizedBox(width: 8),
             Text(
-              _selectedGroup?.name ?? 'Select Group',
+              groupProvider.selectedGroup?.name ?? 'Select Group',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -431,6 +400,7 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
 
   Widget _buildMemberCard(User member) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
     final isDarkMode = themeProvider.isDarkMode;
 
     return Card(
@@ -479,14 +449,14 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
             ),
 
             // Three-dot menu for admin actions (only visible to admins, but not for themselves)
-            _selectedGroup != null
+            groupProvider.selectedGroup != null
                 ? FutureBuilder<bool>(
-                    future: _isUserAdmin(_selectedGroup!.id),
+                    future: _isUserAdmin(groupProvider.selectedGroup!.id),
                     builder: (context, snapshot) {
                       final isAdmin = snapshot.data ?? false;
 
                       // Hide menu for non-admins or if the member is the current user (admin themselves)
-                      if (!isAdmin || member.id == _currentUserId) {
+                      if (!isAdmin || member.id == groupProvider.currentUserId) {
                         return const SizedBox.shrink();
                       }
 
@@ -546,11 +516,12 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
   }
 
   Future<void> _removeMember(User member) async {
-    if (_selectedGroup == null) return;
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+    if (groupProvider.selectedGroup == null) return;
 
     try {
       await GroupService.removeMemberFromGroup(
-        groupId: _selectedGroup!.id,
+        groupId: groupProvider.selectedGroup!.id,
         userId: member.id,
       );
 
@@ -672,14 +643,18 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                             
                             final navigator = Navigator.of(context);
                             final scaffoldMessenger = ScaffoldMessenger.of(context);
+                            final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
 
                             try {
                               await GroupService.createGroup(
                                 name: name,
                                 description: descriptionController.text.trim(),
                               );
-                              
+
                               if(mounted) {
+                                // Refresh the groups from provider first
+                                await groupProvider.refreshGroups();
+
                                 navigator.pop();
                                 scaffoldMessenger.showSnackBar(
                                   const SnackBar(
@@ -687,7 +662,6 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                                     backgroundColor: Colors.green,
                                   ),
                                 );
-                                _loadGroups(); // Refresh the list of groups
                               }
                             } catch (e) {
                               if (mounted) {

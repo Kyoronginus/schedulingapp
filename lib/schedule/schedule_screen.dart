@@ -8,11 +8,11 @@ import 'dart:async';
 
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/refresh_controller.dart';
+import '../widgets/group_selector_sidebar.dart';
 import '../models/Schedule.dart';
-import '../models/Group.dart';
-import '../dynamo/group_service.dart';
 import 'schedule_service.dart';
 import '../theme/theme_provider.dart';
+import '../providers/group_selection_provider.dart';
 import '../utils/utils_functions.dart';
 import '../services/timezone_service.dart';
 import '../services/refresh_service.dart';
@@ -36,20 +36,22 @@ class ScheduleScreen extends StatefulWidget {
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
-class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMixin {
+class _ScheduleScreenState extends State<ScheduleScreen> with TickerProviderStateMixin, NavigationMemoryMixin {
   final int _currentIndex = 0; // Schedule is the 1st tab (index 0)
-  Group? _selectedGroup;
-  final bool _isPersonalCalendar = false;
   bool _isLoading = true;
   Map<DateTime, List<Schedule>> _groupedSchedules = {};
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   String _currentMonth = DateFormat('MMMM').format(DateTime.now());
   int _currentYear = DateTime.now().year;
-  String _currentUserId = '';
   final Map<String, bool> _isAdminCache =
       {}; // Cache to store admin status for groups
   bool _showCreateForm = false; // Flag to show/hide the create form overlay
+
+  // Sidebar state
+  bool _isSidebarOpen = false;
+  late AnimationController _sidebarAnimationController;
+  late Animation<double> _sidebarAnimation;
 
   // Refresh service subscriptions
   StreamSubscription<void>? _scheduleRefreshSubscription;
@@ -59,8 +61,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
   @override
   void initState() {
     super.initState();
-    _getCurrentUserId();
-    _loadGroups();
+
+    // Initialize sidebar animation
+    _sidebarAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _sidebarAnimation = Tween<double>(
+      begin: -1.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(
+      parent: _sidebarAnimationController,
+      curve: Curves.easeInOut,
+    ));
+
+    // Load initial data
+    _loadSchedules();
 
     // Listen for refresh notifications
     _scheduleRefreshSubscription = RefreshService().scheduleChanges.listen((_) {
@@ -71,7 +87,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
 
     _groupRefreshSubscription = RefreshService().groupChanges.listen((_) {
       if (mounted) {
-        _loadGroups();
+        _loadSchedules(); // Reload schedules when groups change
       }
     });
 
@@ -88,27 +104,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
     _scheduleRefreshSubscription?.cancel();
     _groupRefreshSubscription?.cancel();
     _profileRefreshSubscription?.cancel();
+    _sidebarAnimationController.dispose();
     super.dispose();
-  }
-
-  Future<void> _getCurrentUserId() async {
-    try {
-      final user = await Amplify.Auth.getCurrentUser();
-
-      // Check if widget is still mounted before calling setState
-      if (!mounted) return;
-      setState(() {
-        _currentUserId = user.userId;
-      });
-    } catch (e) {
-      debugPrint('Error getting current user: $e');
-    }
   }
 
   Future<bool> _isUserAdmin(String groupId) async {
     // Check cache first
     if (_isAdminCache.containsKey(groupId)) {
       return _isAdminCache[groupId]!;
+    }
+
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+    final currentUserId = groupProvider.currentUserId;
+
+    if (currentUserId == null) {
+      return false;
     }
 
     try {
@@ -128,7 +138,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
             }
           }
         ''',
-        variables: {'userId': _currentUserId, 'groupId': groupId},
+        variables: {'userId': currentUserId, 'groupId': groupId},
       );
 
       final response = await Amplify.API.query(request: request).response;
@@ -149,46 +159,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
     }
   }
 
-  Future<void> _loadGroups() async {
-    try {
-      final groups = await GroupService.getUserGroups();
-
-      // Check if widget is still mounted before calling setState
-      if (!mounted) return;
-      setState(() {
-        if (groups.isNotEmpty) {
-          _selectedGroup = groups.first;
-        }
-        _isLoading = false;
-      });
-      _loadSchedules();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to load groups: $e')));
-      }
-
-      // Check if widget is still mounted before calling setState
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-    }
-  }
-
   Future<void> _loadSchedules() async {
     // Check if widget is still mounted before calling setState
     if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
+      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
       List<Schedule> schedules = [];
 
-      if (_isPersonalCalendar) {
+      if (groupProvider.isPersonalMode) {
         // Load schedules from all groups for personal calendar
         schedules = await ScheduleService.loadAllSchedules();
-      } else if (_selectedGroup != null) {
+      } else if (groupProvider.selectedGroup != null) {
         // Load schedules for the selected group
-        schedules = await ScheduleService.getGroupSchedules(_selectedGroup!.id);
+        schedules = await ScheduleService.getGroupSchedules(groupProvider.selectedGroup!.id);
       }
 
       // Check if widget is still mounted before calling setState
@@ -261,9 +246,31 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
     });
   }
 
+  void _toggleSidebar() {
+    setState(() {
+      _isSidebarOpen = !_isSidebarOpen;
+    });
+
+    if (_isSidebarOpen) {
+      _sidebarAnimationController.forward();
+    } else {
+      _sidebarAnimationController.reverse();
+    }
+  }
+
+  void _closeSidebar() {
+    if (_isSidebarOpen) {
+      setState(() {
+        _isSidebarOpen = false;
+      });
+      _sidebarAnimationController.reverse();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final groupProvider = Provider.of<GroupSelectionProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
@@ -277,38 +284,40 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
         child: Stack(
           children: [
             // Main content
-            _isLoading
-                ? Center(
-                  child: CircularProgressIndicator(
-                    color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-                  ),
-                )
-                : RefreshIndicator(
-                onRefresh: _loadSchedules,
-                color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    top: 42.0,
-                    left: 17.0,
-                    right: 17.0
-                  ),
-                  child: Column(
-                    children: [
-                    // Top row with calendar selector and month/year selector
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 12.0,
-                      ),
-                      child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _buildCalendarSelector(),
-                             const SizedBox(width: 20),
-                            _buildMonthYearSelector(),
-                          ],
-                        ),
+            GestureDetector(
+              onTap: _closeSidebar,
+              child: _isLoading
+                  ? Center(
+                    child: CircularProgressIndicator(
+                      color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                     ),
+                  )
+                  : RefreshIndicator(
+                  onRefresh: _loadSchedules,
+                  color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      top: 42.0,
+                      left: 17.0,
+                      right: 17.0
+                    ),
+                    child: Column(
+                      children: [
+                      // Top row with calendar selector and month/year selector
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 12.0,
+                        ),
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildCalendarSelector(),
+                               const SizedBox(width: 20),
+                              _buildMonthYearSelector(),
+                            ],
+                          ),
+                      ),
 
                     // Calendar
                     TableCalendar(
@@ -397,6 +406,50 @@ calendarBuilders: CalendarBuilders(
                   ),
                 ),
               ),
+            ),
+
+            // Sidebar overlay
+            if (_isSidebarOpen)
+              GestureDetector(
+                onTap: _closeSidebar,
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.5),
+                ),
+              ),
+
+            // Animated sidebar
+            AnimatedBuilder(
+              animation: _sidebarAnimation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(_sidebarAnimation.value * 320, 0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: GroupSelectorSidebar(
+                      groups: groupProvider.groups,
+                      selectedGroup: groupProvider.selectedGroup,
+                      isPersonalMode: groupProvider.isPersonalMode,
+                      showPersonalOption: true,
+                      onGroupSelected: (group) {
+                        groupProvider.selectGroup(group);
+                        _closeSidebar();
+                        _loadSchedules();
+                      },
+                      onPersonalModeSelected: () {
+                        groupProvider.selectPersonalMode();
+                        _closeSidebar();
+                        _loadSchedules();
+                      },
+                      onCreateGroup: () {
+                        _closeSidebar();
+                        // TODO: Add create group functionality
+                      },
+                      currentUserId: groupProvider.currentUserId,
+                    ),
+                  ),
+                );
+              },
+            ),
 
           // Form overlay
           if (_showCreateForm)
@@ -405,7 +458,7 @@ calendarBuilders: CalendarBuilders(
               child: ScheduleFormOverlay(
                 onClose: _closeCreateForm,
                 selectedDate: _selectedDay ?? DateTime.now(),
-                initialGroup: _isPersonalCalendar ? null : _selectedGroup,
+                initialGroup: groupProvider.isPersonalMode ? null : groupProvider.selectedGroup,
               ),
             ),
         ],
@@ -1092,6 +1145,8 @@ calendarBuilders: CalendarBuilders(
 
   // Show edit schedule overlay
   void _showEditScheduleForm(Schedule schedule) {
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+
     setState(() {
       _showCreateForm = true;
     });
@@ -1109,7 +1164,7 @@ calendarBuilders: CalendarBuilders(
                 scheduleToEdit: schedule,
                 onClose: _closeCreateForm,
                 selectedDate: TimezoneService.utcToLocal(schedule.startTime),
-                initialGroup: _isPersonalCalendar ? null : _selectedGroup,
+                initialGroup: groupProvider.isPersonalMode ? null : groupProvider.selectedGroup,
               ),
             ),
       );
@@ -1173,10 +1228,12 @@ calendarBuilders: CalendarBuilders(
 
   // Helper method to get dot color based on schedule
   Color _getDotColor(Schedule schedule, Color defaultColor, int index) {
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+
     // Use different colors for different types of schedules
     if (schedule.group != null) {
       // For group schedules, use different colors based on group
-      if (schedule.group!.id == _selectedGroup?.id) {
+      if (schedule.group!.id == groupProvider.selectedGroup?.id) {
         return defaultColor;
       } else {
         // Different colors for different groups
@@ -1205,14 +1262,12 @@ calendarBuilders: CalendarBuilders(
 
   Widget _buildCalendarSelector() {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
     final isDarkMode = themeProvider.isDarkMode;
     final textColor = isDarkMode ? Colors.white : const Color(0xFF222B45);
 
-    // Determine the current calendar name
-    String currentCalendarName =
-        _isPersonalCalendar
-            ? "Personal"
-            : _selectedGroup?.name ?? "Calendar 111111111111111111";
+    // Determine the current calendar name using provider
+    String currentCalendarName = groupProvider.currentSelectionName;
 
     return Expanded(
       child: Container(
@@ -1223,7 +1278,7 @@ calendarBuilders: CalendarBuilders(
           child: Container(
             padding: const EdgeInsets.only(left: 17.0, right: 17.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDarkMode ? Colors.grey[800] : Colors.white,
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
@@ -1234,9 +1289,7 @@ calendarBuilders: CalendarBuilders(
               ],
             ),
             child: InkWell(
-              onTap: () {
-                // _openCalendarSidebar();
-              },
+              onTap: _toggleSidebar,
               borderRadius: BorderRadius.circular(30),
               child: Row(
                 children: [
