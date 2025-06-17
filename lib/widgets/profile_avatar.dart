@@ -64,7 +64,9 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
     });
 
     try {
+      debugPrint('🖼️ ProfileAvatar: Loading profile picture for user ${widget.userId} (${widget.userName})');
       final url = await CentralizedProfileImageService.getProfilePictureUrl(widget.userId);
+
       if (mounted) {
         // Clear cached image for this user to force refresh
         if (_profilePictureUrl != null) {
@@ -76,8 +78,15 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
           _profilePictureUrl = url != null ? '$url?t=${DateTime.now().millisecondsSinceEpoch}' : null;
           _isLoading = false;
         });
+
+        if (_profilePictureUrl != null) {
+          debugPrint('✅ ProfileAvatar: Successfully loaded profile picture URL');
+        } else {
+          debugPrint('⚠️ ProfileAvatar: No profile picture URL found, will show initials');
+        }
       }
     } catch (e) {
+      debugPrint('❌ ProfileAvatar: Error loading profile picture: $e');
       if (mounted) {
         setState(() {
           _profilePictureUrl = null;
@@ -152,7 +161,10 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
               ),
             ),
           ),
-          errorWidget: (context, url, error) => _buildInitialsAvatar(),
+          errorWidget: (context, url, error) {
+            debugPrint('❌ CachedNetworkImage error for URL $url: $error');
+            return _buildInitialsAvatar();
+          },
         ),
       ),
     );

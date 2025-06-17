@@ -6,7 +6,6 @@ import 'package:schedulingapp/models/Notification.dart';
 import 'package:schedulingapp/models/NotificationType.dart';
 import 'package:schedulingapp/models/GroupInvitation.dart';
 import 'package:schedulingapp/services/timezone_service.dart';
-import 'package:schedulingapp/services/oauth_user_service.dart';
 import 'package:schedulingapp/models/User.dart';
 
 import 'package:flutter/foundation.dart';
@@ -273,7 +272,18 @@ class NotificationService {
         }
       }
 
-      _cachedNotifications = allNotifications;
+      // Process notifications to set correct isRead status for current user
+      final processedNotifications = allNotifications.map((notification) {
+        // Check if current user is in readByUsers array
+        final isReadByCurrentUser = notification.readByUsers?.contains(_currentUserId) ?? false;
+
+        debugPrint('🔍 Processing notification ${notification.id}: readByUsers=${notification.readByUsers}, currentUser=$_currentUserId, isReadByCurrentUser=$isReadByCurrentUser');
+
+        // Return notification with corrected isRead status
+        return notification.copyWith(isRead: isReadByCurrentUser);
+      }).toList();
+
+      _cachedNotifications = processedNotifications;
 
       // Sort notifications by timestamp (newest first) - using local time for comparison
       _cachedNotifications.sort((a, b) =>

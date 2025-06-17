@@ -571,8 +571,6 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
     }
   }
 
-
-
   void _showCreateGroupDialog() {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -580,101 +578,148 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Create a New Group'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Group Name*',
-                      border: OutlineInputBorder(),
+      barrierDismissible: !isSaving, // Prevent dismissal while saving
+      builder: (context) {
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        final isDarkMode = themeProvider.isDarkMode;
+        final primaryColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3);
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+              titlePadding: const EdgeInsets.all(0),
+              contentPadding: const EdgeInsets.all(0),
+              title: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Create New Group',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
+                ),
+              ),
+              content: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Group Name*',
+                        hintText: 'e.g., Project Phoenix Team',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                      maxLength: 50,
                     ),
-                    maxLines: 3,
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        hintText: 'A short description of the group\'s purpose',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                      maxLines: 3,
+                      maxLength: 200,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                SizedBox(
+                  width: 100,
+                  child: TextButton(
+                    onPressed: isSaving ? null : () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
+                    child: const Text('Cancel'),
                   ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: isSaving
-                    ? null
-                    : () async {
-                        final name = nameController.text.trim();
-                        if (name.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Group name is required')),
-                          );
-                          return;
-                        }
+                ),
+                SizedBox(
+                  width: 100,
+                  child: ElevatedButton(
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            final name = nameController.text.trim();
+                            if (name.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Group name is required')),
+                              );
+                              return;
+                            }
 
-                        setState(() => isSaving = true);
+                            setState(() => isSaving = true);
+                            
+                            final navigator = Navigator.of(context);
+                            final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-                        // Capture context before async operation
-                        final navigator = Navigator.of(context);
-                        final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-                        try {
-                          await GroupService.createGroup(
-                            name: name,
-                            description: descriptionController.text.trim(),
-                          );
-
-                          if (mounted) {
-                            navigator.pop();
-                            scaffoldMessenger.showSnackBar(
-                              const SnackBar(
-                                  content: Text('Group created successfully!')),
-                            );
-                          }
-
-                          // Reload groups
-                          _loadGroups();
-                        } catch (e) {
-                          if (mounted) {
-                            scaffoldMessenger.showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      'Failed to create group: ${e.toString()}')),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() => isSaving = false);
-                          }
-                        }
-                      },
-                child: isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text('Create'),
-              ),
-            ],
-          );
-        },
-      ),
+                            try {
+                              await GroupService.createGroup(
+                                name: name,
+                                description: descriptionController.text.trim(),
+                              );
+                              
+                              if(mounted) {
+                                navigator.pop();
+                                scaffoldMessenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Group created successfully!'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                _loadGroups(); // Refresh the list of groups
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(content: Text('Failed to create group: ${e.toString()}')),
+                                );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() => isSaving = false);
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Create'),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
+  
 }

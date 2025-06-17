@@ -444,111 +444,145 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
   void _showEditGroupDialog(Group group) {
     final nameController = TextEditingController(text: group.name);
     final descriptionController = TextEditingController(text: group.description ?? '');
+    bool isSaving = false;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Group'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Group Name',
-                border: OutlineInputBorder(),
+      barrierDismissible: !isSaving, // Prevent dismissal while saving
+      builder: (context) {
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        final isDarkMode = themeProvider.isDarkMode;
+        final primaryColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF4A80F0);
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              maxLength: 50,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (Optional)',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-              maxLength: 200,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final description = descriptionController.text.trim();
-
-              if (name.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Group name cannot be empty')),
-                );
-                return;
-              }
-
-              final navigator = Navigator.of(context);
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-              navigator.pop();
-
-              // Show loading indicator
-              scaffoldMessenger.showSnackBar(
-                const SnackBar(
-                  content: Row(
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      SizedBox(width: 16),
-                      Text('Updating group...'),
-                    ],
+              backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+              titlePadding: const EdgeInsets.all(0),
+              contentPadding: const EdgeInsets.all(0),
+              title: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
                   ),
-                  duration: Duration(seconds: 30),
                 ),
-              );
-
-              // Update the group
-              final success = await GroupService.updateGroup(
-                group.id,
-                name,
-                description.isEmpty ? null : description,
-              );
-
-              // Hide loading indicator and show result
-              if (mounted) {
-                scaffoldMessenger.hideCurrentSnackBar();
-
-                if (success) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Group updated successfully!'),
-                      backgroundColor: Colors.green,
+                child: const Center(
+                  child: Text(
+                    'Edit Group',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-
-                  // Refresh the groups list
-                  if (widget.onGroupsChanged != null) {
-                    widget.onGroupsChanged!();
-                  }
-                } else {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Failed to update group. Please try again.'),
-                      backgroundColor: Colors.red,
+                  ),
+                ),
+              ),
+              content: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Group Name',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                      maxLength: 50,
                     ),
-                  );
-                }
-              }
-            },
-            child: const Text('Update'),
-          ),
-        ],
-      ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (Optional)',
+                        hintText: 'What is this group about?',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                      maxLines: 3,
+                      maxLength: 200,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          final name = nameController.text.trim();
+                          final description = descriptionController.text.trim();
+
+                          if (name.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Group name cannot be empty')),
+                            );
+                            return;
+                          }
+
+                          setState(() => isSaving = true);
+
+                          final navigator = Navigator.of(context);
+                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                          // Update the group
+                          final success = await GroupService.updateGroup(
+                            group.id,
+                            name,
+                            description.isEmpty ? null : description,
+                          );
+
+                          if (mounted) {
+                            navigator.pop(); // Close the dialog first
+
+                            if (success) {
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Group updated successfully!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                              if (widget.onGroupsChanged != null) {
+                                widget.onGroupsChanged!();
+                              }
+                            } else {
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to update group. Please try again.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Update'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
