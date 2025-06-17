@@ -196,7 +196,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
     for (final schedule in schedules) {
       // Use local timezone for date grouping
       final localStartTime = TimezoneService.utcToLocal(schedule.startTime);
-      final date = DateTime(
+      final date = DateTime.utc(
         localStartTime.year,
         localStartTime.month,
         localStartTime.day,
@@ -312,10 +312,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
                       startingDayOfWeek:
                           StartingDayOfWeek.monday, // Start with Monday
                       calendarStyle: CalendarStyle(
-                        markerDecoration: BoxDecoration(
-                          color: activeColor,
-                          shape: BoxShape.circle,
-                        ),
                         todayDecoration: BoxDecoration(
                           color: activeColor.withAlpha(76), // 0.3 opacity
                           shape: BoxShape.circle,
@@ -329,72 +325,49 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
                           color: Colors.black, // Default color for Saturday
                         ),
                         outsideTextStyle: TextStyle(color: Colors.grey[400]),
-                        markersMaxCount: 4,
-                        markersAlignment: Alignment.bottomCenter,
-                        markerMargin: const EdgeInsets.only(top: 4),
-                        markerSize: 6,
                       ),
                       headerVisible: false, // Hide the default header
-                      calendarBuilders: CalendarBuilders(
-                        // Custom day builder to make only Sunday red
-                        defaultBuilder: (context, day, focusedDay) {
-                          // Sunday is 7 when starting with Monday
-                          final isWeekend = day.weekday == DateTime.sunday;
-                          return Center(
-                            child: Text(
-                              day.day.toString(),
-                              style: TextStyle(
-                                color: isWeekend ? Colors.red : null,
-                              ),
-                            ),
-                          );
-                        },
-                        // Custom marker builder for dots under dates
-                        markerBuilder: (context, date, events) {
-                          if (events.isEmpty) return const SizedBox.shrink();
+                      // ... properti TableCalendar lainnya seperti onDaySelected, onPageChanged, dll.
 
-                          // Cast events to List<Schedule>
-                          final scheduleEvents =
-                              events.map((e) => e as Schedule).toList();
+// TAMBAHKAN BLOK INI:
+calendarBuilders: CalendarBuilders(
+  markerBuilder: (context, date, events) {
+    // events di sini adalah List<dynamic>, jadi kita cast ke List<Schedule>
+    final scheduleEvents = events.cast<Schedule>();
+    if (scheduleEvents.isEmpty) {
+      return null; // Jangan tampilkan apa-apa jika tidak ada acara
+    }
 
-                          // Assign a color to each unique group
-                          final colors = <Color>[];
-                          for (var schedule in scheduleEvents) {
-                            final c = _getDotColor(
-                              schedule,
-                              activeColor,
-                              colors.length,
-                            );
-                            if (!colors.contains(c)) colors.add(c);
-                          }
-
-                          // Limit to 4 dots maximum
-                          final dotsToShow =
-                              colors.length > 4 ? 4 : colors.length;
-
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                for (var i = 0; i < dotsToShow; i++)
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 1,
-                                    ),
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: colors[i],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+    // Ambil warna unik dari setiap acara pada hari itu
+    // Ini untuk mencegah satu grup yang punya 3 acara menampilkan 3 titik yang sama
+    final uniqueColors = <Color>{};
+    for (var schedule in scheduleEvents) {
+      final color = _getDotColor(schedule, activeColor, uniqueColors.length);
+      uniqueColors.add(color);
+    }
+    
+    // Tampilkan titik-titik di bawah tanggal
+    return Positioned(
+      bottom: 5, // Atur posisi vertikal titik dari bawah
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: uniqueColors
+            .take(4) // Batasi maksimal 4 titik agar tidak terlalu ramai
+            .map((color) => Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color, // Gunakan warna dari acara
+                  ),
+                ))
+            .toList(),
+      ),
+    );
+  },
+),
+// ...  
                     ),
 
                     // Schedule list
