@@ -91,20 +91,6 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
-    "preAuthentication": {
-      "build": true,
-      "dependsOn": [
-        {
-          "attributes": [
-            "UserPoolId"
-          ],
-          "category": "auth",
-          "resourceName": "schedulingapp30672a99"
-        }
-      ],
-      "providerPlugin": "awscloudformation",
-      "service": "Lambda"
-    },
     "preSignUp": {
       "build": true,
       "dependsOn": [
@@ -118,6 +104,72 @@
       ],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_auth_schedulingapp30672a99_facebookAppId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "schedulingapp30672a99"
+        }
+      ]
+    },
+    "AMPLIFY_auth_schedulingapp30672a99_googleClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "schedulingapp30672a99"
+        }
+      ]
+    },
+    "AMPLIFY_function_postConfirmation_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "postConfirmation"
+        }
+      ]
+    },
+    "AMPLIFY_function_postConfirmation_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "postConfirmation"
+        }
+      ]
+    },
+    "AMPLIFY_function_preSignUp_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "preSignUp"
+        }
+      ]
+    },
+    "AMPLIFY_function_preSignUp_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "preSignUp"
+        }
+      ]
+    },
+    "AMPLIFY_function_preTokenGen_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "preTokenGen"
+        }
+      ]
+    },
+    "AMPLIFY_function_preTokenGen_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "preTokenGen"
+        }
+      ]
     }
   },
   "storage": {

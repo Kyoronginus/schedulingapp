@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await login(_emailController.text, _passwordController.text);
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      Navigator.pushReplacementNamed(context, AppRoutes.schedule);
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -64,8 +64,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final success = await signInWithGoogle(context);
 
       if (success && mounted) {
-        // Navigate to home screen on successful login
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        // Navigate to schedule screen on successful login
+        Navigator.pushReplacementNamed(context, AppRoutes.schedule);
       }
     } catch (e) {
       if (mounted) {
@@ -87,8 +87,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final success = await signInWithFacebook(context);
 
       if (success && mounted) {
-        // Navigate to home screen on successful login
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        // Navigate to schedule screen on successful login
+        Navigator.pushReplacementNamed(context, AppRoutes.schedule);
       }
     } catch (e) {
       if (mounted) {

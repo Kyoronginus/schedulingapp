@@ -59,7 +59,7 @@ class _SetUserNameScreenState extends State<SetUserNameScreen> {
       }
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        Navigator.pushReplacementNamed(context, AppRoutes.schedule);
       }
     } catch (e) {
       debugPrint("❌ Error saving name: $e");
@@ -79,7 +79,7 @@ class _SetUserNameScreenState extends State<SetUserNameScreen> {
 
   void _skip() {
     // Navigate to the next screen without saving the name
-    Navigator.pushReplacementNamed(context, AppRoutes.home);
+    Navigator.pushReplacementNamed(context, AppRoutes.schedule);
   }
 
   @override

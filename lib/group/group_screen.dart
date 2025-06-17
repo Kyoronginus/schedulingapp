@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
 
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/bottom_nav_bar.dart';
-import '../../widgets/profile_avatar.dart';
-import '../../widgets/group_selector_sidebar.dart';
-import '../../dynamo/group_service.dart';
-import '../../models/Group.dart';
-import '../../models/User.dart';
-import '../invite/invite_member_screen.dart';
+import '../widgets/custom_app_bar.dart';
+import '../widgets/bottom_nav_bar.dart';
+import '../widgets/profile_avatar.dart';
+import '../widgets/group_selector_sidebar.dart';
+import '../dynamo/group_service.dart';
+import '../models/Group.dart';
+import '../models/User.dart';
+import '../schedule/invite/invite_member_screen.dart';
 
-import '../../theme/theme_provider.dart';
-import '../../widgets/smart_back_button.dart';
+import '../theme/theme_provider.dart';
+import '../widgets/smart_back_button.dart';
 
 import 'package:provider/provider.dart';
 

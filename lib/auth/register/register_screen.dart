@@ -166,8 +166,8 @@ class _RegisterPageState extends State<RegisterScreen> {
       final success = await signInWithGoogle(context);
 
       if (success && mounted) {
-        // Navigate to home screen on successful login
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        // Navigate to schedule screen on successful login
+        Navigator.pushReplacementNamed(context, AppRoutes.schedule);
       }
     } catch (e) {
       if (mounted) {
@@ -189,8 +189,8 @@ class _RegisterPageState extends State<RegisterScreen> {
       final success = await signInWithFacebook(context);
 
       if (success && mounted) {
-        // Navigate to home screen on successful login
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        // Navigate to schedule screen on successful login
+        Navigator.pushReplacementNamed(context, AppRoutes.schedule);
       }
     } catch (e) {
       if (mounted) {
