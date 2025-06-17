@@ -105,23 +105,27 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
   }
 
   void _validateTimeSelections() {
-    // Logika ini tidak berubah
-    if (_selectedDate == null || _startTime == null) return;
-    final selectedStartDateTime = DateTime(
-        _selectedDate!.year,
-        _selectedDate!.month,
-        _selectedDate!.day,
-        _startTime!.hour,
-        _startTime!.minute);
-    if (!TimezoneService.isLocalTimeInFuture(selectedStartDateTime)) {
-      if (mounted) {
-        setState(() {
-          _startTime = null;
-          _endTime = null;
-        });
-      }
+  if (_selectedDate == null || _startTime == null) return;
+  final selectedStartDateTime = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      _startTime!.hour,
+      _startTime!.minute);
+
+  // Jika waktu yang dipilih sudah lewat
+  if (!TimezoneService.isLocalTimeInFuture(selectedStartDateTime)) {
+    if (mounted) {
+      setState(() {
+        // DIUBAH: Jangan set ke null, tapi reset ke waktu default (jam berikutnya)
+        final now = DateTime.now();
+        final nextHour = (now.hour + (now.minute > 0 ? 1 : 0)) % 24;
+        _startTime = TimeOfDay(hour: nextHour, minute: 0);
+        _endTime = TimeOfDay(hour: (nextHour + 1) % 24, minute: 0);
+      });
     }
   }
+}
 
   DateTime _timeOfDayToDateTime(DateTime date, TimeOfDay time) {
     // Logika ini tidak berubah
@@ -343,7 +347,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                           ? DateFormat('dd / MM / yyyy').format(_selectedDate!)
                           : 'Select date',
                       style: const TextStyle(
-                        color: Color(0xFF999999),
+                        color: textColor,
                         fontSize: 16,
                       ),
                     ),
@@ -351,67 +355,61 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 ),
                 const SizedBox(height: 16),
                 Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _selectTime(true),
-                        child: InputDecorator(
-                          decoration: inputDecorationTheme.copyWith(
-                            suffixIcon: Padding(
-                              padding: const EdgeInsets.all(
-                                  12.0), // Memberi sedikit padding agar tidak terlalu mepet
-                              child: SvgPicture.asset(
-                                'assets/icons/clock-icon.svg',
-                                width: 20, // Sesuaikan ukuran jika perlu
-                                height: 20, // Sesuaikan ukuran jika perlu
-                              ),
-                            ),
-                          ),
-                          child: Text(
-                            _startTime?.format(context) ?? 'Start time',
-                            style: const TextStyle(
-                                fontSize: 16, color: Color(0xFF999999)),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(
-                            12.0), // Memberi sedikit padding agar tidak terlalu mepet
-                        child: SvgPicture.asset(
-                          'assets/icons/arrow_right-icon.svg',
-                          width: 24, // Sesuaikan ukuran jika perlu
-                          height: 24, // Sesuaikan ukuran jika perlu
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _selectTime(false),
-                        child: InputDecorator(
-                          decoration: inputDecorationTheme.copyWith(
-                            suffixIcon: Padding(
-                              padding: const EdgeInsets.all(
-                                  12.0), // Memberi sedikit padding agar tidak terlalu mepet
-                              child: SvgPicture.asset(
-                                'assets/icons/clock-icon.svg',
-                                width: 20, // Sesuaikan ukuran jika perlu
-                                height: 20, // Sesuaikan ukuran jika perlu
-                              ),
-                            ),
-                          ),
-                          child: Text(
-                            _endTime?.format(context) ?? 'End time',
-                            style: const TextStyle(
-                                fontSize: 16, color: Color(0xFF999999)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+  children: [
+    Expanded(
+      child: InkWell(
+        onTap: () => _selectTime(true),
+        child: InputDecorator(
+          decoration: inputDecorationTheme.copyWith(
+            suffixIcon: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SvgPicture.asset(
+                'assets/icons/clock-icon.svg', // Pastikan path ini benar
+                width: 20,
+                height: 20,
+                colorFilter: const ColorFilter.mode(iconColor, BlendMode.srcIn),
+              ),
+            ),
+          ),
+          child: Text(
+            // DIUBAH: Hapus fallback text dan gunakan '!' karena _startTime dijamin tidak null
+            _startTime!.format(context),
+            // DIUBAH: Gunakan warna teks aktif, bukan warna hint
+            style: const TextStyle(fontSize: 16, color: textColor),
+          ),
+        ),
+      ),
+    ),
+    const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12),
+      child: Icon(Icons.arrow_forward, color: hintColor),
+    ),
+    Expanded(
+      child: InkWell(
+        onTap: () => _selectTime(false),
+        child: InputDecorator(
+          decoration: inputDecorationTheme.copyWith(
+            suffixIcon: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SvgPicture.asset(
+                'assets/icons/clock-icon.svg', // Pastikan path ini benar
+                width: 20,
+                height: 20,
+                colorFilter: const ColorFilter.mode(iconColor, BlendMode.srcIn),
+              ),
+            ),
+          ),
+          child: Text(
+            // DIUBAH: Hapus fallback text dan gunakan '!' karena _endTime dijamin tidak null
+            _endTime!.format(context),
+            // DIUBAH: Gunakan warna teks aktif, bukan warna hint
+            style: const TextStyle(fontSize: 16, color: textColor),
+          ),
+        ),
+      ),
+    ),
+  ],
+),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _locationController,
