@@ -17,6 +17,19 @@ export function override(resources: AmplifyS3ResourceTemplate) {
         ]
     };
 
-    // Add the new rule to the policy
+    // Add permission for public folder access (for profile pictures)
+    const allowReadOnPublicStatement = {
+        "Sid": "AllowReadOnPublic",
+        "Effect": "Allow",
+        "Action": [
+            "s3:GetObject"
+        ],
+        "Resource": [
+            `arn:aws:s3:::${resources.s3Bucket.bucketName}/public/*`
+        ]
+    };
+
+    // Add the new rules to the policy
     (authRolePolicy.policyDocument.Statement as any[]).push(allowReadOnProtectedStatement);
+    (authRolePolicy.policyDocument.Statement as any[]).push(allowReadOnPublicStatement);
 }

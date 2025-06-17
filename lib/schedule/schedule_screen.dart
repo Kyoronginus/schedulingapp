@@ -17,7 +17,7 @@ import '../utils/utils_functions.dart';
 import '../services/timezone_service.dart';
 import '../services/refresh_service.dart';
 import '../widgets/smart_back_button.dart';
-import 'create_schedule/schedule_form_screen.dart';
+import 'create_schedule/schedule_form_dialog.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -46,7 +46,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with TickerProviderStat
   int _currentYear = DateTime.now().year;
   final Map<String, bool> _isAdminCache =
       {}; // Cache to store admin status for groups
-  bool _showCreateForm = false; // Flag to show/hide the create form overlay
+  // bool _showCreateForm = false; // Flag to show/hide the create form overlay
 
   // Sidebar state
   bool _isSidebarOpen = false;
@@ -219,21 +219,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> with TickerProviderStat
     return _groupedSchedules[day] ?? [];
   }
 
-  void _toggleCreateForm() {
-    setState(() {
-      _showCreateForm = !_showCreateForm;
-      // If not already selected, select today's date when opening the form
-      if (_showCreateForm && _selectedDay == null) {
-        _selectedDay = DateTime.now();
-      }
-    });
-  }
-
-  void _closeCreateForm() {
-    setState(() {
-      _showCreateForm = false;
-    });
-    _loadSchedules(); // Reload schedules when closing the form
+   void _showCreateScheduleDialog() {
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+    showDialog(
+      context: context,
+      builder: (context) => ScheduleFormDialog(
+        onFormClosed: _loadSchedules, // Refresh jadwal setelah form ditutup
+        selectedDate: _selectedDay ?? DateTime.now(),
+        initialGroup: groupProvider.isPersonalMode ? null : groupProvider.selectedGroup,
+      ),
+    );
   }
 
   // Removed unused method _navigateToAddGroup
@@ -450,25 +445,14 @@ calendarBuilders: CalendarBuilders(
                 );
               },
             ),
-
-          // Form overlay
-          if (_showCreateForm)
-            Container(
-              color: Colors.black.withAlpha(128), // 0.5 opacity
-              child: ScheduleFormOverlay(
-                onClose: _closeCreateForm,
-                selectedDate: _selectedDay ?? DateTime.now(),
-                initialGroup: groupProvider.isPersonalMode ? null : groupProvider.selectedGroup,
-              ),
-            ),
         ],
       ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _toggleCreateForm,
+        onPressed: _showCreateScheduleDialog,
         backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-        child: Icon(
-          _showCreateForm ? Icons.close : Icons.add,
+        child: const Icon(
+          Icons.add,
           color: Colors.white,
         ),
       ),
@@ -1146,29 +1130,15 @@ calendarBuilders: CalendarBuilders(
   // Show edit schedule overlay
   void _showEditScheduleForm(Schedule schedule) {
     final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
-
-    setState(() {
-      _showCreateForm = true;
-    });
-
-    // Use a post-frame callback to ensure the overlay is built before showing the form
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder:
-            (context) => Dialog(
-              insetPadding: EdgeInsets.zero,
-              backgroundColor: Colors.transparent,
-              child: ScheduleFormOverlay(
-                scheduleToEdit: schedule,
-                onClose: _closeCreateForm,
-                selectedDate: TimezoneService.utcToLocal(schedule.startTime),
-                initialGroup: groupProvider.isPersonalMode ? null : groupProvider.selectedGroup,
-              ),
-            ),
-      );
-    });
+    showDialog(
+      context: context,
+      builder: (context) => ScheduleFormDialog(
+        scheduleToEdit: schedule,
+        onFormClosed: _loadSchedules,
+        selectedDate: TimezoneService.utcToLocal(schedule.startTime),
+        initialGroup: schedule.group ?? (groupProvider.isPersonalMode ? null : groupProvider.selectedGroup),
+      ),
+    );
   }
 
   // Show delete confirmation dialog
