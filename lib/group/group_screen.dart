@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
+import 'dart:async';
 
 import '../widgets/custom_app_bar.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -13,6 +14,7 @@ import '../schedule/invite/invite_member_screen.dart';
 
 import '../theme/theme_provider.dart';
 import '../widgets/smart_back_button.dart';
+import '../services/refresh_service.dart';
 
 import 'package:provider/provider.dart';
 
@@ -37,6 +39,9 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
   late AnimationController _sidebarAnimationController;
   late Animation<double> _sidebarAnimation;
 
+  // Refresh service subscription
+  StreamSubscription<void>? _refreshSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -53,10 +58,18 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
     ));
     _getCurrentUserId();
     _loadGroups();
+
+    // Listen for profile changes to refresh group member data
+    _refreshSubscription = RefreshService().profileChanges.listen((_) {
+      if (mounted) {
+        setState(() {}); // Trigger rebuild to refresh member lists
+      }
+    });
   }
 
   @override
   void dispose() {
+    _refreshSubscription?.cancel();
     _sidebarAnimationController.dispose();
     super.dispose();
   }

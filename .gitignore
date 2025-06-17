@@ -60,7 +60,6 @@ amplify/backend/api/**/stacks/CustomResources.json
 amplify/backend/api/**/transform.conf.json
 amplify/backend/auth/**/cli-inputs.json
 amplify/backend/auth/**/parameters.json
-amplify/backend/function
 amplify/team-provider-info.json
 amplify/backend/types/amplify-dependent-resources-ref.d.ts
 

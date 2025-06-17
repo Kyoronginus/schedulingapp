@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/refresh_controller.dart';
 import '../models/Notification.dart' as models;
@@ -10,6 +11,7 @@ import '../services/notification_service.dart';
 import '../services/timezone_service.dart';
 import '../dynamo/group_service.dart';
 import '../theme/theme_provider.dart';
+import '../services/refresh_service.dart';
 
 
 class NotificationScreen extends StatefulWidget {
@@ -23,11 +25,25 @@ class _NotificationScreenState extends State<NotificationScreen> {
   final int _currentIndex = 2; // Index for notification in bottom nav (0=Schedule, 1=Group, 2=Notification, 3=Profile)
   List<models.Notification> _notifications = [];
   bool _isLoading = true;
+  StreamSubscription<void>? _profileRefreshSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadNotifications();
+
+    // Listen for profile changes to refresh notifications with updated user data
+    _profileRefreshSubscription = RefreshService().profileChanges.listen((_) {
+      if (mounted) {
+        _loadNotifications();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _profileRefreshSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadNotifications() async {

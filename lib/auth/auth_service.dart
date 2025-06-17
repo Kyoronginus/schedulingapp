@@ -132,11 +132,19 @@ Future<bool> signInWithGoogle(BuildContext context) async {
     }
     return false;
   } on AmplifyException catch (e) {
-    debugPrint('❌ Google Sign In returned an exception: ${e.message}');
-    
-    if (e.message.contains('Successfully linked new provider to existing account')) {
-      debugPrint('✅ Caught linking success signal. Re-initiating sign-in to establish session...');
+    final String actualErrorMessage = e.message.toLowerCase();
+    final bool isAccountLinkingSignal =
+        actualErrorMessage.contains('user already exists') || // Common message
+        actualErrorMessage.contains('aliasexistsexception') || // Another common one
+        actualErrorMessage.contains('already found an entry for username') || // Internal Amplify message
+        actualErrorMessage.contains('successfully linked new provider'); // Lambda trigger message
+
+    if (isAccountLinkingSignal) {
+      debugPrint('✅ Account linking signal detected. Retrying login...');
+      await Future.delayed(const Duration(seconds: 2));
+
       try {
+        // Make sure to use the correct provider for the function
         final result = await Amplify.Auth.signInWithWebUI(provider: AuthProvider.google);
         if (result.isSignedIn) {
           debugPrint('✅ Seamless re-login successful after linking.');
@@ -146,7 +154,7 @@ Future<bool> signInWithGoogle(BuildContext context) async {
       } catch (retryError) {
         debugPrint('❌ Seamless re-login FAILED after linking: $retryError');
         if (context.mounted) {
-           _handleOAuthError(context, retryError as AmplifyException, 'Google');
+          _handleOAuthError(context, retryError as AmplifyException, 'Google');
         }
         return false;
       }
@@ -170,11 +178,19 @@ Future<bool> signInWithFacebook(BuildContext context) async {
     }
     return false;
   } on AmplifyException catch (e) {
-    debugPrint('❌ Facebook Sign In returned an exception: ${e.message}');
-    
-    if (e.message.contains('Successfully linked new provider to existing account')) {
-      debugPrint('✅ Caught linking success signal. Re-initiating sign-in to establish session...');
+    final String actualErrorMessage = e.message.toLowerCase();
+    final bool isAccountLinkingSignal =
+        actualErrorMessage.contains('user already exists') || // Common message
+        actualErrorMessage.contains('aliasexistsexception') || // Another common one
+        actualErrorMessage.contains('already found an entry for username') || // Internal Amplify message
+        actualErrorMessage.contains('successfully linked new provider'); // Lambda trigger message
+
+    if (isAccountLinkingSignal) {
+      debugPrint('✅ Account linking signal detected. Retrying login...');
+      await Future.delayed(const Duration(seconds: 2));
+
       try {
+        // Make sure to use the correct provider for the function
         final result = await Amplify.Auth.signInWithWebUI(provider: AuthProvider.facebook);
         if (result.isSignedIn) {
           debugPrint('✅ Seamless re-login successful after linking.');
@@ -184,7 +200,7 @@ Future<bool> signInWithFacebook(BuildContext context) async {
       } catch (retryError) {
         debugPrint('❌ Seamless re-login FAILED after linking: $retryError');
         if (context.mounted) {
-           _handleOAuthError(context, retryError as AmplifyException, 'Facebook');
+          _handleOAuthError(context, retryError as AmplifyException, 'Facebook');
         }
         return false;
       }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:async';
 import '../services/store_profile_service.dart';
+import '../services/refresh_service.dart';
 
 class ProfileAvatar extends StatefulWidget {
   final String userId;
@@ -27,11 +29,25 @@ class ProfileAvatar extends StatefulWidget {
 class _ProfileAvatarState extends State<ProfileAvatar> {
   String? _profilePictureUrl;
   bool _isLoading = true;
+  StreamSubscription<void>? _profileChangeSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadProfilePicture();
+
+    // Listen for profile changes to refresh the avatar
+    _profileChangeSubscription = RefreshService().profileChanges.listen((_) {
+      if (mounted) {
+        _loadProfilePicture();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _profileChangeSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -50,8 +66,14 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
     try {
       final url = await CentralizedProfileImageService.getProfilePictureUrl(widget.userId);
       if (mounted) {
+        // Clear cached image for this user to force refresh
+        if (_profilePictureUrl != null) {
+          await CachedNetworkImage.evictFromCache(_profilePictureUrl!);
+        }
+
         setState(() {
-          _profilePictureUrl = url;
+          // Add timestamp to URL to bust cache when refreshing
+          _profilePictureUrl = url != null ? '$url?t=${DateTime.now().millisecondsSinceEpoch}' : null;
           _isLoading = false;
         });
       }

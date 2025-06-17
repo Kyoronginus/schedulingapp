@@ -6,6 +6,8 @@ import 'package:schedulingapp/models/Notification.dart';
 import 'package:schedulingapp/models/NotificationType.dart';
 import 'package:schedulingapp/models/GroupInvitation.dart';
 import 'package:schedulingapp/services/timezone_service.dart';
+import 'package:schedulingapp/services/oauth_user_service.dart';
+import 'package:schedulingapp/models/User.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -138,6 +140,9 @@ class NotificationService {
                     invitedByUser {
                       id
                       name
+                      email
+                      primaryAuthMethod
+                      linkedAuthMethods
                     }
                   }
                 }
@@ -229,6 +234,9 @@ class NotificationService {
                       user {
                         id
                         name
+                        email
+                        primaryAuthMethod
+                        linkedAuthMethods
                       }
                     }
                   }
@@ -600,11 +608,29 @@ class NotificationService {
     }
   }
 
+  /// Helper method to resolve user display name with OAuth-aware fallback
+  static String _resolveUserDisplayName(User? user) {
+    if (user == null) return 'Someone';
+
+    // If user has a name, use it
+    if (user.name.isNotEmpty) {
+      return user.name;
+    }
+
+    // Fallback to email prefix for OAuth users
+    if (user.email.isNotEmpty) {
+      return user.email.split('@')[0];
+    }
+
+    // Last resort fallback
+    return 'Someone';
+  }
+
   // Get message for a notification
   static String getNotificationMessage(Notification notification) {
     switch (notification.type) {
       case NotificationType.CREATED:
-        final userName = notification.schedule?.user?.name ?? 'Someone';
+        final userName = _resolveUserDisplayName(notification.schedule?.user);
         return '$userName created an event ${_getTimeAgo(TimezoneService.utcToLocal(notification.timestamp))}';
       case NotificationType.UPCOMING:
         final startTimeLocal = TimezoneService.utcToLocal(notification.schedule!.startTime);
@@ -619,7 +645,7 @@ class NotificationService {
           return 'Event will start in ${difference.inDays} days';
         }
       case NotificationType.INVITATION:
-        final inviterName = notification.groupInvitation?.invitedByUser?.name ?? 'Someone';
+        final inviterName = _resolveUserDisplayName(notification.groupInvitation?.invitedByUser);
         final groupName = notification.groupInvitation?.group?.name ?? 'a group';
         final role = notification.groupInvitation?.isAdmin == true ? 'admin' : 'member';
         return '$inviterName invited you to join "$groupName" as $role';

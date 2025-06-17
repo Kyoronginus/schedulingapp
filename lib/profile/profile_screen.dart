@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../utils/utils_functions.dart';
@@ -39,11 +40,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final int _currentIndex = 3;
 
   bool _isUploadingImage = false;
+  StreamSubscription<void>? _profileChangeSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchUserProfile();
+
+    // Listen for profile changes to refresh the screen
+    _profileChangeSubscription = RefreshService().profileChanges.listen((_) {
+      if (mounted) {
+        _fetchUserProfile();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _profileChangeSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchUserProfile() async {
@@ -84,18 +99,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       } catch (e) {
         debugPrint('⚠️ ProfileScreen: Could not get/create user data: $e');
-        // Use email from Cognito if user not found in database
-        // Try to detect auth method as fallback
+        // Use data from Cognito if user not found in database
+        // This is common for OAuth users who haven't been created in DynamoDB yet
         try {
           final currentAuthMethod = await AuthMethodService.detectCurrentAuthMethod();
           final authMethodDisplayName = AuthMethodService.getAuthMethodDisplayName(currentAuthMethod);
+
+          // Try to get name from Cognito attributes for OAuth users
+          String? cognitoName;
+          try {
+            final nameAttr = attributes.firstWhere(
+              (attr) => attr.userAttributeKey == CognitoUserAttributeKey.name,
+              orElse: () => const AuthUserAttribute(
+                userAttributeKey: CognitoUserAttributeKey.name,
+                value: '',
+              ),
+            );
+            cognitoName = nameAttr.value.isNotEmpty ? nameAttr.value : null;
+          } catch (nameError) {
+            debugPrint('⚠️ ProfileScreen: Could not get name from Cognito: $nameError');
+          }
 
           // Check if widget is still mounted before calling setState
           if (!mounted) return;
           setState(() {
             _userEmail = emailAttr.value;
             _authProvider = authMethodDisplayName;
-            _nameController.text = '';
+            _userName = cognitoName ?? emailAttr.value.split('@')[0]; // Use email prefix as fallback
+            _nameController.text = _userName ?? '';
           });
         } catch (authError) {
           debugPrint('⚠️ ProfileScreen: Could not detect auth method: $authError');
@@ -104,7 +135,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             _userEmail = emailAttr.value;
             _authProvider = 'Email'; // Default fallback
-            _nameController.text = '';
+            _userName = emailAttr.value.split('@')[0]; // Use email prefix as fallback
+            _nameController.text = _userName ?? '';
           });
         }
       }
@@ -178,11 +210,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          // Trigger a rebuild to refresh the avatar
-          setState(() {});
 
-          // Notify other screens to refresh
+          // Notify other screens to refresh first
           RefreshService().notifyProfileChange();
+
+          // Add a small delay to ensure the upload is fully processed
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          // Then trigger a rebuild to refresh the current screen
+          setState(() {});
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

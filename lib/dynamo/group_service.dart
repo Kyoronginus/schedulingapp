@@ -6,6 +6,7 @@ import '../models/Group.dart';
 import '../models/GroupInvitation.dart';
 import '../models/InvitationStatus.dart';
 import '../services/notification_service.dart';
+import '../services/oauth_user_service.dart';
 
 class GroupService {
   static Future<Group?> getSelectedGroup() async {
@@ -111,6 +112,8 @@ class GroupService {
                 id
                 name
                 email
+                primaryAuthMethod
+                linkedAuthMethods
               }
             }
           }
@@ -133,10 +136,23 @@ class GroupService {
         throw Exception('listGroupUsers.items is null');
       }
 
-      return items
-          .where((item) => item['user'] != null)
-          .map<User>((item) => User.fromJson(item['user']))
-          .toList();
+      final members = <User>[];
+      for (final item in items) {
+        if (item['user'] != null) {
+          try {
+            final user = User.fromJson(item['user']);
+            // Enhance user data with OAuth-aware fallback logic
+            final enrichedUser = await _enrichUserData(user);
+            members.add(enrichedUser);
+          } catch (e) {
+            debugPrint('⚠️ Error parsing user data for group member: $e');
+            // Skip this member if we can't parse their data
+            continue;
+          }
+        }
+      }
+
+      return members;
     } catch (e) {
       debugPrint('❌ Failed to fetch group members: $e');
       rethrow;
@@ -429,6 +445,45 @@ class GroupService {
     } catch (e) {
       debugPrint('❌ Error deleting group: $e');
       return false;
+    }
+  }
+
+  // Helper method to enrich user data with OAuth-aware fallback logic
+  static Future<User> _enrichUserData(User user) async {
+    try {
+      // If user has complete data, return as-is
+      if (user.name.isNotEmpty) {
+        return user;
+      }
+
+      // For OAuth users who might have incomplete DynamoDB records,
+      // try to get current user data if this is the current user
+      final currentAuthUser = await Amplify.Auth.getCurrentUser();
+      if (user.id == currentAuthUser.userId) {
+        try {
+          final oauthUserData = await OAuthUserService.fetchUserData();
+          return user.copyWith(name: oauthUserData.name);
+        } catch (e) {
+          debugPrint('⚠️ Could not fetch OAuth user data for current user: $e');
+        }
+      }
+
+      // Fallback to email prefix for OAuth users
+      if (user.email.isNotEmpty) {
+        final fallbackName = user.email.split('@')[0];
+        return user.copyWith(name: fallbackName);
+      }
+
+      // Last resort - return user as-is
+      return user;
+    } catch (e) {
+      debugPrint('⚠️ Error enriching user data: $e');
+      // Fallback to email prefix if available
+      if (user.email.isNotEmpty) {
+        final fallbackName = user.email.split('@')[0];
+        return user.copyWith(name: fallbackName);
+      }
+      return user;
     }
   }
 

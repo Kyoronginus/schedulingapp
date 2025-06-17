@@ -9,6 +9,7 @@ import '../../dynamo/group_service.dart';
 import '../../theme/theme_provider.dart';
 import '../../services/timezone_service.dart';
 import '../../services/refresh_service.dart';
+import '../../services/oauth_user_service.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
 import '../../widgets/scrollable_time_picker.dart';
 import 'package:provider/provider.dart';
@@ -218,11 +219,19 @@ class _ScheduleFormOverlayState extends State<ScheduleFormOverlay> {
 
         User currentUser;
         try {
-          currentUser = await ensureUserExists();
-          debugPrint('✅ ScheduleForm: Got current user: ${currentUser.id}');
+          // Use OAuth-aware user service for better OAuth user support
+          currentUser = await OAuthUserService.createUserObject();
+          debugPrint('✅ ScheduleForm: Got current user: ${currentUser.id} (${currentUser.name})');
         } catch (e) {
           debugPrint('❌ ScheduleForm: Failed to get current user: $e');
-          throw Exception('Failed to get user information. Please try logging in again.');
+          // Fallback to original method if OAuth service fails
+          try {
+            currentUser = await ensureUserExists();
+            debugPrint('✅ ScheduleForm: Got current user via fallback: ${currentUser.id}');
+          } catch (fallbackError) {
+            debugPrint('❌ ScheduleForm: Fallback also failed: $fallbackError');
+            throw Exception('Failed to get user information. Please try logging in again.');
+          }
         }
 
         if (_selectedGroup == null) {

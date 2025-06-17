@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
+import 'dart:async';
 
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/refresh_controller.dart';
@@ -50,6 +51,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
       {}; // Cache to store admin status for groups
   bool _showCreateForm = false; // Flag to show/hide the create form overlay
 
+  // Refresh service subscriptions
+  StreamSubscription<void>? _scheduleRefreshSubscription;
+  StreamSubscription<void>? _groupRefreshSubscription;
+  StreamSubscription<void>? _profileRefreshSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -57,17 +63,32 @@ class _ScheduleScreenState extends State<ScheduleScreen> with NavigationMemoryMi
     _loadGroups();
 
     // Listen for refresh notifications
-    RefreshService().scheduleChanges.listen((_) {
+    _scheduleRefreshSubscription = RefreshService().scheduleChanges.listen((_) {
       if (mounted) {
         _loadSchedules();
       }
     });
 
-    RefreshService().groupChanges.listen((_) {
+    _groupRefreshSubscription = RefreshService().groupChanges.listen((_) {
       if (mounted) {
         _loadGroups();
       }
     });
+
+    // Listen for profile changes to refresh user-related data
+    _profileRefreshSubscription = RefreshService().profileChanges.listen((_) {
+      if (mounted) {
+        _loadSchedules(); // Reload schedules to get updated user data
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scheduleRefreshSubscription?.cancel();
+    _groupRefreshSubscription?.cancel();
+    _profileRefreshSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _getCurrentUserId() async {

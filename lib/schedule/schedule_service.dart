@@ -222,6 +222,18 @@ class ScheduleService {
                 location
                 userId
                 groupId
+                user {
+                  id
+                  name
+                  email
+                  primaryAuthMethod
+                  linkedAuthMethods
+                }
+                group {
+                  id
+                  name
+                  description
+                }
               }
             }
           }
@@ -264,6 +276,18 @@ class ScheduleService {
                 location
                 userId
                 groupId
+                user {
+                  id
+                  name
+                  email
+                  primaryAuthMethod
+                  linkedAuthMethods
+                }
+                group {
+                  id
+                  name
+                  description
+                }
               }
             }
           }
