@@ -51,13 +51,13 @@ class ThemeProvider extends ChangeNotifier {
           filled: true,
           fillColor: Colors.white,
         ),
-        cardTheme: CardTheme(
-          color: Colors.white,
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
+        // cardTheme: CardTheme(
+        //   color: Colors.white,
+        //   elevation: 4,
+        //   shape: RoundedRectangleBorder(
+        //     borderRadius: BorderRadius.circular(16),
+        //   ),
+        // ),
         dividerColor: Colors.grey.shade300,
       );
 
@@ -91,13 +91,13 @@ class ThemeProvider extends ChangeNotifier {
           filled: true,
           fillColor: const Color(0xFF2A2A2A),
         ),
-        cardTheme: CardTheme(
-          color: const Color(0xFF2A2A2A),
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
+        // cardTheme: CardTheme(
+        //   color: const Color(0xFF2A2A2A),
+        //   elevation: 4,
+        //   shape: RoundedRectangleBorder(
+        //     borderRadius: BorderRadius.circular(16),
+        //   ),
+        // ),
         dividerColor: Colors.grey.shade800,
         switchTheme: SwitchThemeData(
           thumbColor: WidgetStateProperty.resolveWith<Color>((states) {

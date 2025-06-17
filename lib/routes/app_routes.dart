@@ -11,14 +11,12 @@ import '../profile/profile_screen.dart';
 import '../notification/notification_screen.dart';
 
 class AppRoutes {
-  static const String home = '/home';
+  static const String schedule = '/schedule';
   static const String login = '/login';
   static const String emailLogin = '/emailLogin';
   static const String register = '/register';
   static const String forgotPassword = '/forgotPassword';
   static const String changePassword = '/changePassword';
-  static const String splash = '/';
-  static const String schedule = '/schedule';
   static const String inviteMember = '/inviteMember';
   static const String setUserName = '/setUserName';
   static const String addGroup = '/group';
@@ -26,11 +24,11 @@ class AppRoutes {
   static const String notification = '/notification';
 
   static Map<String, WidgetBuilder> get routes => {
+        AppRoutes.schedule: (context) => const ScheduleScreen(),
         AppRoutes.login: (context) => const LoginScreen(),
         AppRoutes.register: (context) => const RegisterScreen(),
         AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
         AppRoutes.changePassword: (context) => const ChangePasswordScreen(),
-        AppRoutes.schedule: (context) => const ScheduleScreen(),
         AppRoutes.setUserName: (context) => const SetUserNameScreen(),
         AppRoutes.addGroup: (context) => const GroupScreen(),
         AppRoutes.inviteMember: (context) =>

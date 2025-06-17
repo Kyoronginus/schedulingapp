@@ -15,13 +15,11 @@ class NavigationService {
     AppRoutes.login,
     AppRoutes.register,
     AppRoutes.forgotPassword,
-    AppRoutes.splash,
   };
 
   // Main app routes that should be accessible
   static const Set<String> _mainAppRoutes = {
     AppRoutes.schedule,
-    AppRoutes.home,
     AppRoutes.addGroup,
     AppRoutes.profile,
     AppRoutes.notification,

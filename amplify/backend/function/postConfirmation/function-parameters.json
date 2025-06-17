@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "auth": {
+      "schedulingapp30672a99": [
+        "create",
+        "read",
+        "update"
+      ]
+    },
+    "storage": {
+      "User:@model(appsync)": [
+        "create",
+        "read",
+        "update"
+      ]
+    }
+  },
+  "lambdaLayers": []
+}

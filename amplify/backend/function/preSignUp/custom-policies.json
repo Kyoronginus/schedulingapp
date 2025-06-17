@@ -1,0 +1,17 @@
+[
+  {
+    "Action": [
+      "dynamodb:ListTables",
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:Query",
+      "dynamodb:Scan",
+      "cognito-idp:AdminLinkProviderForUser",
+      "cognito-idp:ListUsers"
+    ],
+    "Resource": [
+      "*"
+    ]
+  }
+]

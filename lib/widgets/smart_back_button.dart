@@ -43,7 +43,6 @@ class SmartBackButton extends StatelessWidget {
     // For main app screens, use navigation memory
     if (currentRoute != null && {
       AppRoutes.schedule,
-      AppRoutes.home,
       AppRoutes.addGroup,
       AppRoutes.profile,
       AppRoutes.notification,

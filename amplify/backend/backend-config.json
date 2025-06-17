@@ -63,20 +63,6 @@
     }
   },
   "function": {
-    "postAuthentication": {
-      "build": true,
-      "dependsOn": [
-        {
-          "attributes": [
-            "UserPoolId"
-          ],
-          "category": "auth",
-          "resourceName": "schedulingapp30672a99"
-        }
-      ],
-      "providerPlugin": "awscloudformation",
-      "service": "Lambda"
-    },
     "postConfirmation": {
       "build": true,
       "dependsOn": [
@@ -86,6 +72,13 @@
           ],
           "category": "auth",
           "resourceName": "schedulingapp30672a99"
+        },
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "schedulingapp"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -100,6 +93,13 @@
           ],
           "category": "auth",
           "resourceName": "schedulingapp30672a99"
+        },
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "schedulingapp"
         }
       ],
       "providerPlugin": "awscloudformation",

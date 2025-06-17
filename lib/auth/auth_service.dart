@@ -4,7 +4,6 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/material.dart';
 import '../amplifyconfiguration.dart';
 import '../models/User.dart';
-import '../routes/app_routes.dart';
 import '../services/oauth_conflict_service.dart';
 import '../services/refresh_service.dart';
 import '../services/secure_storage_service.dart';
@@ -57,24 +56,23 @@ Future<void> login(String email, String password) async {
   }
 }
 
+/// This function is the primary way to get the current user's data after login.
 Future<User> ensureUserExists() async {
   try {
-    debugPrint('🔄 AuthService: Fetching user data with getCurrentUser...');
+    debugPrint('🔄 Ensuring user exists by calling getCurrentUser...');
     return await getCurrentUser();
-  } catch (fallbackError) {
-    debugPrint('❌ AuthService: Data fetch failed: $fallbackError');
-
-
+  } catch (e) {
+    debugPrint('❌ ensureUserExists failed: $e');
     throw Exception(
-      'User record not found. This may indicate an issue with account setup. '
+      'Could not retrieve user data. Your session may be invalid. Please try logging in again.'
     );
   }
 }
 
+/// Fetches the current user's profile from DynamoDB.
+/// It correctly uses the user's ID from the session to query the database.
 Future<User> getCurrentUser() async {
   try {
-    // This call is now simpler because we don't need to check custom attributes.
-    // The session will always be correct for the primary user after a successful login.
     final authUser = await Amplify.Auth.getCurrentUser();
     final idToQuery = authUser.userId;
 
@@ -97,8 +95,7 @@ Future<User> getCurrentUser() async {
     final response = await Amplify.API.query(request: request).response;
 
     if (response.hasErrors) {
-      throw Exception(
-          'GraphQL errors: ${response.errors.map((e) => e.message).join(', ')}');
+      throw Exception('GraphQL errors: ${response.errors.map((e) => e.message).join(', ')}');
     }
     if (response.data == null) {
       throw Exception('No data returned from user query');
@@ -124,35 +121,29 @@ Future<User> getCurrentUser() async {
   }
 }
 
-/// Signs in with Google and correctly handles the account linking flow.
+/// Signs in with Google and handles the seamless account linking flow.
 Future<bool> signInWithGoogle(BuildContext context) async {
   try {
     final result = await Amplify.Auth.signInWithWebUI(provider: AuthProvider.google);
     if (result.isSignedIn) {
       debugPrint('✅ Google Sign In Success (direct login)');
-      RefreshService().notifyProfileChange();
+      await _refreshSessionAfterOAuth();
       return true;
     }
     return false;
   } on AmplifyException catch (e) {
     debugPrint('❌ Google Sign In returned an exception: ${e.message}');
     
-    // --- DEFINITIVE SOLUTION FOR SEAMLESS LINKING ---
-    // If we catch our custom "success error" from the PreSignUp Lambda...
     if (e.message.contains('Successfully linked new provider to existing account')) {
       debugPrint('✅ Caught linking success signal. Re-initiating sign-in to establish session...');
       try {
-        // ...the accounts are now linked. We immediately try to sign in again.
-        // This second attempt will succeed seamlessly without a user pop-up,
-        // as the browser session is already established.
         final result = await Amplify.Auth.signInWithWebUI(provider: AuthProvider.google);
         if (result.isSignedIn) {
           debugPrint('✅ Seamless re-login successful after linking.');
-          RefreshService().notifyProfileChange();
+          await _refreshSessionAfterOAuth();
           return true;
         }
       } catch (retryError) {
-        // If this second sign-in fails, it's a real, unexpected error.
         debugPrint('❌ Seamless re-login FAILED after linking: $retryError');
         if (context.mounted) {
            _handleOAuthError(context, retryError as AmplifyException, 'Google');
@@ -160,8 +151,7 @@ Future<bool> signInWithGoogle(BuildContext context) async {
         return false;
       }
     }
-
-    // --- Standard Error Handling for all other cases ---
+    
     if (context.mounted) {
       _handleOAuthError(context, e, 'Google');
     }
@@ -169,13 +159,13 @@ Future<bool> signInWithGoogle(BuildContext context) async {
   }
 }
 
-/// Signs in with Facebook and correctly handles the account linking flow.
+/// Signs in with Facebook and handles the seamless account linking flow.
 Future<bool> signInWithFacebook(BuildContext context) async {
   try {
     final result = await Amplify.Auth.signInWithWebUI(provider: AuthProvider.facebook);
     if (result.isSignedIn) {
       debugPrint('✅ Facebook Sign In Success (direct login)');
-      RefreshService().notifyProfileChange();
+      await _refreshSessionAfterOAuth();
       return true;
     }
     return false;
@@ -183,29 +173,21 @@ Future<bool> signInWithFacebook(BuildContext context) async {
     debugPrint('❌ Facebook Sign In returned an exception: ${e.message}');
     
     if (e.message.contains('Successfully linked new provider to existing account')) {
-      debugPrint('✅ Caught linking success signal. Showing user-friendly notification...');
-
-      // Show user-friendly notification instead of error
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account linking successful. Please log in again to access your account.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
-
-        // Wait 2 seconds before redirecting
-        await Future.delayed(const Duration(seconds: 2));
-
-        // Automatically redirect to login page (check mounted again after async gap)
-        if (context.mounted) {
-          Navigator.pushReplacementNamed(context, AppRoutes.login);
+      debugPrint('✅ Caught linking success signal. Re-initiating sign-in to establish session...');
+      try {
+        final result = await Amplify.Auth.signInWithWebUI(provider: AuthProvider.facebook);
+        if (result.isSignedIn) {
+          debugPrint('✅ Seamless re-login successful after linking.');
+          await _refreshSessionAfterOAuth();
+          return true;
         }
+      } catch (retryError) {
+        debugPrint('❌ Seamless re-login FAILED after linking: $retryError');
+        if (context.mounted) {
+           _handleOAuthError(context, retryError as AmplifyException, 'Facebook');
+        }
+        return false;
       }
-
-      // Return false to prevent further navigation in the calling code
-      return false;
     }
     
     if (context.mounted) {
@@ -232,4 +214,52 @@ void _handleOAuthError(BuildContext context, AmplifyException e, String provider
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text('$provider Sign In Error: ${e.message}')),
   );
+}
+
+/// Refreshes the user session to get updated attributes from Lambda after linking.
+/// This function is called by external functions.
+Future<void> _refreshSessionAfterOAuth() async {
+  try {
+    debugPrint('🔄 Starting session refresh after OAuth login/linking...');
+
+    // Wait a brief moment to allow Lambda triggers to complete
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Force refresh the auth session to get new tokens with updated claims
+    final session = await Amplify.Auth.fetchAuthSession(
+      options: const FetchAuthSessionOptions(forceRefresh: true),
+    );
+
+    if (session.isSignedIn) {
+      debugPrint('✅ Auth session refreshed successfully');
+
+      // Get the current user with fresh data
+      final user = await Amplify.Auth.getCurrentUser();
+      debugPrint('✅ Current user refreshed: ${user.userId}');
+
+      // Fetch user attributes with fresh data
+      final attributes = await Amplify.Auth.fetchUserAttributes();
+      debugPrint('✅ User attributes refreshed, count: ${attributes.length}');
+
+      // Log the updated attributes for debugging
+      for (final attr in attributes) {
+        if (attr.userAttributeKey.key == 'name' ||
+            attr.userAttributeKey.key == 'custom:primary_user_id' ||
+            attr.userAttributeKey.key == 'email') {
+          debugPrint('📋 Updated attribute: ${attr.userAttributeKey.key} = ${attr.value}');
+        }
+      }
+
+      // Notify other parts of the app that profile data may have changed
+      RefreshService().notifyProfileChange();
+
+    } else {
+      debugPrint('⚠️ Session refresh indicated user is not signed in');
+    }
+
+  } catch (e) {
+    debugPrint('❌ Error refreshing session after OAuth: $e');
+    // Don't throw the error as this is a best-effort operation
+    // The user can still proceed, they might just see stale data initially
+  }
 }

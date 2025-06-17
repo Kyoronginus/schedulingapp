@@ -64,9 +64,74 @@ class SchedulingApp extends StatelessWidget {
     return MaterialApp(
       title: 'Scheduling App',
       theme: themeProvider.getTheme(),
-      initialRoute: '/',
-      routes: AppRoutes.routes,
+      initialRoute: '/auth',
+      routes: {
+        '/auth': (context) => const AuthWrapper(),
+        ...AppRoutes.routes,
+      },
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  void _checkAuthStatus() async {
+    await Future.delayed(const Duration(seconds: 1)); // Brief loading
+
+    try {
+      // Check if user is signed in
+      final result = await Amplify.Auth.fetchAuthSession();
+      final isSignedIn = result.isSignedIn;
+
+      if (mounted) {
+        if (isSignedIn) {
+          // User is signed in, navigate to schedule screen
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.schedule,
+            (route) => false,
+          );
+        } else {
+          // No user is signed in, navigate to register screen
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.register,
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      // Error checking auth status, default to register screen
+      debugPrint('Error checking auth status: $e');
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.register,
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
     );
   }
 }
