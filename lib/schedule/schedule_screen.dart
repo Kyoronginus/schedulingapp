@@ -734,10 +734,21 @@ class _ScheduleScreenState extends State<ScheduleScreen>
         floatingActionButton: FloatingActionButton(
           onPressed: _showCreateScheduleDialog,
           backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-          child: const Icon(
-            Icons.add,
-            color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+                32), // Sesuaikan nilai ini untuk mengatur tingkat kebundaran
           ),
+          child: SvgPicture.asset(
+            'assets/icons/plus-icon.svg', // Path ke file SVG Anda
+            // PENTING: Untuk memberi warna pada SVG, gunakan colorFilter
+            colorFilter: const ColorFilter.mode(
+              Colors.white, // Warna yang Anda inginkan
+              BlendMode.srcIn,
+            ),
+            width: 22, // Sesuaikan ukuran lebar ikon
+            height: 22, // Sesuaikan ukuran tinggi ikon
+          ),
+  
         ),
         bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
       ),
