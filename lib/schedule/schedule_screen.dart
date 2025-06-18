@@ -311,7 +311,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                   vertical: 10.0,
                                 ),
                                 child: Row(
-
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
@@ -427,7 +426,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                       fontSize: 18,
                                       color: activeColor,
                                     ),
-
                                   ),
                                   headerVisible:
                                       false, // Hide the default header
@@ -481,6 +479,18 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                               ),
 
                               // Schedule list
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 24.0),
+                                child: Container(
+                                  width: 40,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
                               Expanded(child: _buildScheduleList()),
                             ],
                           ),
@@ -556,7 +566,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       child: Container(
         width: 172,
         height: 50,
-        padding: const EdgeInsets.only(left: 17.0, right: 17.0),
+        padding: const EdgeInsets.only(left: 16.0, right: 16.0),
         decoration: BoxDecoration(
           color: isDarkMode ? Colors.grey[800] : Colors.white,
           borderRadius: BorderRadius.circular(30),
