@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
-
+import 'package:intl/intl.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/refresh_controller.dart';
 import '../widgets/group_selector_sidebar.dart';
@@ -759,301 +759,212 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
     final textColor = isDarkMode ? Colors.white : Colors.black;
+    const primaryColor = Color(0xFF735BF2);
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
 
     return Center(
-      child: Container(
-        width: 172,
-        height: 50,
-        padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-        decoration: BoxDecoration(
-          color: isDarkMode ? Colors.grey[800] : Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha((0.1 * 255).round()),
-              offset: const Offset(0, 4),
-              blurRadius: 6,
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SvgPicture.asset(
-              'assets/icons/month_year_selector-icon.svg',
-              width: 24,
-              height: 24,
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  _currentMonth,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF222B45),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '$_currentYear',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF8F9BB3),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-            const Spacer(),
-            Icon(Icons.arrow_drop_down, color: textColor),
-          ],
-        ),
-      ),
-    )
+      child: GestureDetector(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              int displayYear = _currentYear;
+              final months = [
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec'
+              ];
+              final now = DateTime.now();
 
-        // Foreground decoration moved up
-        .onTap(() {
-      // Show month picker when tapped
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          // Track the currently displayed year and month in the picker
-          int displayYear = _currentYear;
-          int displayMonth = DateFormat('MMMM').parse(_currentMonth).month;
-
-          return StatefulBuilder(
-            builder: (context, setState) {
-              return AlertDialog(
-                contentPadding: const EdgeInsets.all(16),
-                content: SizedBox(
-                  width: double.maxFinite,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Header with month/year and navigation arrows
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  return AlertDialog(
+                    backgroundColor:
+                        isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    contentPadding: const EdgeInsets.all(16),
+                    content: SizedBox(
+                      width: double.maxFinite,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Previous month button
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left),
-                            onPressed: () {
-                              setState(() {
-                                if (displayMonth > 1) {
-                                  displayMonth--;
-                                } else {
-                                  displayMonth = 12;
-                                  displayYear--;
-                                }
-                              });
-                            },
-                          ),
+                          // BAGIAN HEADER (NAVIGASI TAHUN)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // DIUBAH: Tombol navigasi diberi latar belakang
 
-                          // Month and Year display (clickable)
-                          GestureDetector(
-                            onTap: () {
-                              // Show year picker when month/year text is tapped
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Select Year'),
-                                  content: SizedBox(
-                                    width: 300,
-                                    height: 300,
-                                    child: ListView.builder(
-                                      itemCount: 101, // 100 years (2000-2100)
-                                      itemBuilder: (context, index) {
-                                        final year = 2000 + index;
-                                        return ListTile(
-                                          title: Text('$year'),
-                                          selected: year == displayYear,
-                                          onTap: () {
-                                            setState(() {
-                                              displayYear = year;
-                                            });
-                                            Navigator.pop(context);
-                                          },
-                                        );
-                                      },
+                              IconButton(
+                                icon:
+                                    Icon(Icons.chevron_left, color: textColor),
+                                onPressed: () {
+                                  setState(() => displayYear--);
+                                },
+                              ),
+
+                              Text(
+                                '$displayYear',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                              // DIUBAH: Tombol navigasi diberi latar belakang
+
+                              IconButton(
+                                icon:
+                                    Icon(Icons.chevron_right, color: textColor),
+                                onPressed: () {
+                                  setState(() => displayYear++);
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // BAGIAN KONTEN (GRID PILIHAN BULAN)
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              childAspectRatio: 1.8,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                            ),
+                            itemCount: 12,
+                            itemBuilder: (context, index) {
+                              final monthIndex = index + 1;
+                              final monthName = months[index];
+
+                              final bool isSelected =
+                                  displayYear == _currentYear &&
+                                      monthIndex ==
+                                          DateFormat('MMMM')
+                                              .parse(_currentMonth)
+                                              .month;
+
+                              // BARU: Cek apakah ini bulan dan tahun saat ini
+                              final bool isCurrentMonth =
+                                  displayYear == now.year &&
+                                      monthIndex == now.month;
+
+                              return InkWell(
+                                onTap: () {
+                                  _updateMonthYear(monthIndex, displayYear);
+                                  Navigator.pop(context);
+                                },
+                                // DIUBAH: Menyesuaikan radius splash effect
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? activeColor : null,
+                                    borderRadius: BorderRadius.circular(8),
+                                    // DIUBAH: Logika border diperbarui
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Colors
+                                              .transparent // Jika terpilih, tidak perlu border
+                                          : isCurrentMonth
+                                              ? activeColor // Jika bulan ini, beri border warna aktif
+                                              : (isDarkMode
+                                                  ? Colors.grey[700]!
+                                                  : Colors.grey[
+                                                      300]!), // Border default
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    monthName,
+                                    style: TextStyle(
+                                      fontWeight: isSelected || isCurrentMonth
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      color:
+                                          isSelected ? Colors.white : textColor,
                                     ),
                                   ),
                                 ),
                               );
                             },
-                            child: Text(
-                              '${DateFormat('MMMM').format(DateTime(displayYear, displayMonth))} $displayYear',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-
-                          // Next month button
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right),
-                            onPressed: () {
-                              setState(() {
-                                if (displayMonth < 12) {
-                                  displayMonth++;
-                                } else {
-                                  displayMonth = 1;
-                                  displayYear++;
-                                }
-                              });
-                            },
                           ),
                         ],
                       ),
-
-                      const SizedBox(height: 16),
-
-                      // Calendar grid
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          childAspectRatio: 1,
-                        ),
-                        itemCount: 7 * 7, // Header row + up to 6 rows of days
-                        itemBuilder: (context, index) {
-                          // First row is day headers (Mon, Tue, Wed, etc.)
-                          if (index < 7) {
-                            final dayNames = [
-                              'Mon',
-                              'Tue',
-                              'Wed',
-                              'Thu',
-                              'Fri',
-                              'Sat',
-                              'Sun',
-                            ];
-                            return Center(
-                              child: Text(
-                                dayNames[index],
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: index == 6
-                                      ? Colors.red
-                                      : null, // Sunday in red
-                                ),
-                              ),
-                            );
-                          }
-
-                          // Calculate the day for this grid position
-                          final firstDayOfMonth = DateTime(
-                            displayYear,
-                            displayMonth,
-                            1,
-                          );
-                          final dayOffset =
-                              (firstDayOfMonth.weekday - 1) % 7; // 0 = Monday
-                          final day = index - 7 - dayOffset + 1;
-
-                          // Check if this position has a valid day for the current month
-                          if (day < 1 ||
-                              day >
-                                  DateTime(
-                                    displayYear,
-                                    displayMonth + 1,
-                                    0,
-                                  ).day) {
-                            return const SizedBox(); // Empty cell
-                          }
-
-                          final date = DateTime(displayYear, displayMonth, day);
-                          final isSelected = date.year == _currentYear &&
-                              date.month ==
-                                  DateFormat(
-                                    'MMMM',
-                                  ).parse(_currentMonth).month &&
-                              date.day == (_selectedDay ?? _focusedDay).day;
-                          final isToday = date.year == DateTime.now().year &&
-                              date.month == DateTime.now().month &&
-                              date.day == DateTime.now().day;
-
-                          // Check if this day is a Sunday
-                          final isSunday = date.weekday == DateTime.sunday;
-
-                          return GestureDetector(
-                            onTap: () {
-                              _updateMonthYear(displayMonth, displayYear);
-                              setState(() {
-                                _selectedDay = date;
-                              });
-                              Navigator.pop(context);
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? activeColor
-                                    : (isToday
-                                        ? activeColor.withAlpha(76)
-                                        : null), // 0.3 opacity
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  day.toString(),
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : (isSunday ? Colors.red : null),
-                                    fontWeight: isToday || isSelected
-                                        ? FontWeight.bold
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            child: const Text('Cancel'),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _updateMonthYear(displayMonth, displayYear);
-                              Navigator.pop(context);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: activeColor,
-                            ),
-                            child: const Text('Select'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
           );
         },
-      );
-    });
+        child: Container(
+          width: 172,
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.grey[800] : Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha((0.1 * 255).round()),
+                offset: const Offset(0, 4),
+                blurRadius: 6,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              SvgPicture.asset(
+                'assets/icons/month_year_selector-icon.svg',
+                width: 24,
+                height: 24,
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _currentMonth,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color:
+                          isDarkMode ? Colors.white : const Color(0xFF222B45),
+                    ),
+                  ),
+                  Text(
+                    '$_currentYear',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode
+                          ? Colors.grey[400]
+                          : const Color(0xFF8F9BB3),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Icon(Icons.arrow_drop_down, color: textColor),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildScheduleList() {
