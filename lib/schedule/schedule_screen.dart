@@ -250,7 +250,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       builder: (context) {
         final themeProvider = Provider.of<ThemeProvider>(context);
         final isDarkMode = themeProvider.isDarkMode;
-        final primaryColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF4A80F0);
+        final primaryColor =
+            isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF4A80F0);
 
         return StatefulBuilder(
           builder: (context, setState) {
@@ -258,7 +259,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+              backgroundColor:
+                  isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
               titlePadding: const EdgeInsets.all(0),
               contentPadding: const EdgeInsets.all(0),
               title: Container(
@@ -284,7 +286,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
               content: ConstrainedBox(
                 constraints: const BoxConstraints(
                   maxHeight: 400, // Limit maximum height to prevent overflow
-                  maxWidth: 400,  // Limit maximum width for better layout
+                  maxWidth: 400, // Limit maximum width for better layout
                 ),
                 child: SingleChildScrollView(
                   child: Padding(
@@ -294,16 +296,23 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                       children: [
                         TextField(
                           controller: nameController,
-                          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+                          style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black),
                           decoration: InputDecoration(
                             labelText: 'Group Name',
-                            labelStyle: TextStyle(color: isDarkMode ? Colors.grey[300] : Colors.grey[600]),
+                            labelStyle: TextStyle(
+                                color: isDarkMode
+                                    ? Colors.grey[300]
+                                    : Colors.grey[600]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                  color: isDarkMode
+                                      ? Colors.grey[600]!
+                                      : Colors.grey[300]!),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -314,16 +323,23 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                         const SizedBox(height: 16),
                         TextField(
                           controller: descriptionController,
-                          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
+                          style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black),
                           decoration: InputDecoration(
                             labelText: 'Description (Optional)',
-                            labelStyle: TextStyle(color: isDarkMode ? Colors.grey[300] : Colors.grey[600]),
+                            labelStyle: TextStyle(
+                                color: isDarkMode
+                                    ? Colors.grey[300]
+                                    : Colors.grey[600]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                  color: isDarkMode
+                                      ? Colors.grey[600]!
+                                      : Colors.grey[300]!),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -341,7 +357,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                 SizedBox(
                   width: 100,
                   child: TextButton(
-                    onPressed: isSaving ? null : () => Navigator.of(context).pop(),
+                    onPressed:
+                        isSaving ? null : () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.red,
                     ),
@@ -357,7 +374,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                             final name = nameController.text.trim();
                             if (name.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Group name is required')),
+                                const SnackBar(
+                                    content: Text('Group name is required')),
                               );
                               return;
                             }
@@ -365,8 +383,11 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                             setState(() => isSaving = true);
 
                             final navigator = Navigator.of(context);
-                            final scaffoldMessenger = ScaffoldMessenger.of(context);
-                            final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+                            final scaffoldMessenger =
+                                ScaffoldMessenger.of(context);
+                            final groupProvider =
+                                Provider.of<GroupSelectionProvider>(context,
+                                    listen: false);
 
                             try {
                               await GroupService.createGroup(
@@ -374,14 +395,15 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                 description: descriptionController.text.trim(),
                               );
 
-                              if(mounted) {
+                              if (mounted) {
                                 // Refresh the groups from provider first
                                 await groupProvider.refreshGroups();
 
                                 navigator.pop();
                                 scaffoldMessenger.showSnackBar(
                                   const SnackBar(
-                                    content: Text('Group created successfully!'),
+                                    content:
+                                        Text('Group created successfully!'),
                                     backgroundColor: Colors.green,
                                   ),
                                 );
@@ -389,7 +411,9 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                             } catch (e) {
                               if (mounted) {
                                 scaffoldMessenger.showSnackBar(
-                                  SnackBar(content: Text('Failed to create group: ${e.toString()}')),
+                                  SnackBar(
+                                      content: Text(
+                                          'Failed to create group: ${e.toString()}')),
                                 );
                               }
                             } finally {
@@ -411,7 +435,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Text('Create'),
@@ -452,6 +477,177 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       });
       _sidebarAnimationController.reverse();
     }
+  }
+
+  void _showScheduleDetailDialog(BuildContext context, Schedule schedule) {
+    // Ambil variabel tema lagi untuk dialog
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDarkMode = themeProvider.isDarkMode;
+    final textColor = isDarkMode ? Colors.white : const Color(0xFF0F1A2A);
+    final subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final cardBackgroundColor =
+        isDarkMode ? const Color(0xFF2C2C2C) : Colors.white;
+    final activeColor =
+        isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
+    final dotColor = _getDotColor(schedule, activeColor, 0);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: cardBackgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          // Judul dialog diambil dari judul jadwal
+          title: Text(
+            schedule.title,
+            style: TextStyle(
+                color: textColor, fontWeight: FontWeight.bold, fontSize: 22),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Helper widget untuk menampilkan baris detail
+                _buildDetailRow(
+                    Icons.calendar_today,
+                    'Date',
+                    DateFormat('EEEE, dd MMMM yyyy')
+                        .format(TimezoneService.utcToLocal(schedule.startTime)),
+                    subTextColor),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                    Icons.access_time_filled,
+                    'Time',
+                    '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
+                    subTextColor),
+
+                // Tampilkan lokasi jika ada
+                if (schedule.location != null &&
+                    schedule.location!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildDetailRow(Icons.location_on, 'Location',
+                      schedule.location, subTextColor,
+                      isLink: true),
+                ],
+
+                // Tampilkan warna event
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.color_lens, color: subTextColor, size: 20),
+                    const SizedBox(width: 16),
+                    Text('Color',
+                        style: TextStyle(color: subTextColor, fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: schedule.color != null
+                            ? Color(int.parse(schedule.color!))
+                            : Colors.transparent, // Warna default jika null
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Tampilkan deskripsi jika ada
+                if (schedule.description != null &&
+                    schedule.description!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Description',
+                    style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  // Gunakan Linkify agar URL di deskripsi bisa diklik
+                  Linkify(
+                    onOpen: (link) async {
+                      final uri = Uri.parse(link.url);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      }
+                    },
+                    text: schedule.description!,
+                    style: TextStyle(
+                        color: subTextColor, fontSize: 15, height: 1.5),
+                    linkStyle: TextStyle(
+                        color: activeColor,
+                        decoration: TextDecoration.underline),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Tombol untuk menutup dialog
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(
+      IconData icon, String title, String? content, Color subTextColor,
+      {bool isLink = false}) {
+    // Jika konten null atau kosong, jangan tampilkan apa-apa
+    if (content == null || content.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: subTextColor, size: 20),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TextStyle(color: subTextColor, fontSize: 16)),
+              const SizedBox(height: 2),
+              // Jika ini adalah link, buat bisa diklik
+              isLink
+                  ? InkWell(
+                      onTap: () async {
+                        final uri = Uri.parse(content);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri);
+                        }
+                      },
+                      child: Text(
+                        content,
+                        style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontSize: 16,
+                            decoration: TextDecoration.underline),
+                      ),
+                    )
+                  : Text(
+                      content,
+                      style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500),
+                    ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -563,9 +759,9 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                     ),
                                   ),
                                   weekendDays: const [DateTime.sunday],
-                                  rowHeight: 44.0,
+                                  rowHeight: 45.0,
                                   calendarStyle: CalendarStyle(
-                                    cellMargin: const EdgeInsets.all(5.0),
+                                    cellMargin: const EdgeInsets.all(4.0),
 
                                     todayDecoration: const BoxDecoration(
                                       shape: BoxShape
@@ -637,7 +833,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                       // Tampilkan titik-titik di bawah tanggal
                                       return Positioned(
                                         bottom:
-                                            -3, // Atur posisi vertikal titik dari bawah
+                                            -4, // Atur posisi vertikal titik dari bawah
                                         child: Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
@@ -667,7 +863,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                               // Schedule list
                               Padding(
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 24.0),
+                                    const EdgeInsets.symmetric(vertical: 20.0),
                                 child: Container(
                                   width: 40,
                                   height: 4,
@@ -747,7 +943,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
             width: 22, // Sesuaikan ukuran lebar ikon
             height: 22, // Sesuaikan ukuran tinggi ikon
           ),
-  
         ),
         bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
       ),
@@ -969,7 +1164,11 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   Widget _buildScheduleList() {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final textColor = isDarkMode ? Colors.white : const Color(0xFF0F1A2A);
+    final subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final cardBackgroundColor =
+        isDarkMode ? const Color(0xFF2C2C2C) : Colors.white;
+    const primaryColor = Color(0xFF735BF2); // Asumsi primaryColor sudah ada
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
 
     final day = _selectedDay ?? _focusedDay;
@@ -978,7 +1177,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
         .where((s) => isSameDay(TimezoneService.utcToLocal(s.startTime), day))
         .toList();
 
-    // Sort schedules by start time (using local timezone)
     schedules.sort(
       (a, b) => TimezoneService.utcToLocal(a.startTime).compareTo(
         TimezoneService.utcToLocal(b.startTime),
@@ -987,309 +1185,146 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 
     if (schedules.isEmpty) {
       return Center(
-        child: Text(
-          'No schedules for this day',
-          style: TextStyle(color: textColor),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Text(
+            'No Schedule For Today.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 16),
+          ),
         ),
       );
     }
 
     return ListView.builder(
       itemCount: schedules.length,
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       itemBuilder: (context, index) {
         final schedule = schedules[index];
-
-        // Determine dot color based on group or some other criteria
         final dotColor = _getDotColor(schedule, activeColor, 0);
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16.0),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
+        // DIUBAH: Menggunakan Container sebagai dasar, bukan Card
+        return InkWell(
+          onTap: () {
+            // Panggil fungsi untuk menampilkan dialog detail
+            _showScheduleDetailDialog(context, schedule);
+          },
+          // Samakan radiusnya agar efek "splash" terlihat rapi
+          borderRadius: BorderRadius.circular(10.0),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12.0),
+            padding: const EdgeInsets.fromLTRB(16.0, 8.0, 18.0, 10.0),
+            decoration: BoxDecoration(
+              color: cardBackgroundColor,
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Colored dot indicator
-                Container(
-                  width: 12,
-                  height: 12,
-                  margin: const EdgeInsets.only(top: 4, right: 12),
-                  decoration: BoxDecoration(
-                    color: dotColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-
-                // Schedule content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Time range (in local timezone)
-                      Text(
-                        '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))}-${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
-                        style: TextStyle(
-                          color: dotColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                // BARIS ATAS: Waktu dan Tombol Opsi
+                Row(
+                  children: [
+                    // Ikon dan Waktu
+                    Icon(Icons.circle, size: 10, color: dotColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
+                      style: const TextStyle(
+                        fontStyle: FontStyle.normal, // Sesuai permintaan
+                        fontWeight: FontWeight.bold, // Sudah sesuai (600)
+                        fontSize: 13.0, // Diubah dari 14 menjadi 12
+                        color: Color(
+                            0xFF8F9BB3), // Diubah dari dotColor ke warna spesifik
                       ),
-
-                      const SizedBox(height: 8),
-
-                      // Title
-                      Text(
-                        schedule.title,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: textColor,
-                        ),
-                      ),
-
-                      // Description
-                      if (schedule.description != null &&
-                          schedule.description!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Linkify(
-                                  text: schedule.description!,
-                                  style: TextStyle(
-                                    color: isDarkMode
-                                        ? Colors.grey[300]
-                                        : Colors.grey[700],
-                                    fontSize: 14,
+                    ),
+                    const Spacer(), // Mendorong tombol ke kanan
+                    // Tombol Opsi (More)
+                    FutureBuilder<bool>(
+                      future: schedule.group != null
+                          ? _isUserAdmin(schedule.group!.id)
+                          : Future.value(true),
+                      builder: (context, snapshot) {
+                        final isAdmin = snapshot.data ?? false;
+                        return isAdmin
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(
+                                    Icons
+                                        .more_horiz, // DIUBAH: ikon titik tiga horizontal
+                                    color: subTextColor,
+                                    size: 24,
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  linkStyle: TextStyle(
-                                    color: activeColor,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                  onOpen: (link) async {
-                                    if (await canLaunchUrl(
-                                      Uri.parse(link.url),
-                                    )) {
-                                      await launchUrl(Uri.parse(link.url));
-                                    }
-                                  },
-                                ),
-                              ),
-                              if (schedule.description!.length > 100)
-                                TextButton(
                                   onPressed: () {
-                                    // Show full description
-                                    showDialog(
+                                    // Logika showModalBottomSheet tetap sama
+                                    showModalBottomSheet(
                                       context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: Text(schedule.title),
-                                        content: SingleChildScrollView(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Linkify(
-                                                text: schedule.description!,
-                                                style: TextStyle(
-                                                  color: isDarkMode
-                                                      ? Colors.grey[300]
-                                                      : Colors.grey[700],
-                                                ),
-                                                linkStyle: TextStyle(
-                                                  color: activeColor,
-                                                  decoration:
-                                                      TextDecoration.underline,
-                                                ),
-                                                onOpen: (link) async {
-                                                  if (await canLaunchUrl(
-                                                    Uri.parse(link.url),
-                                                  )) {
-                                                    await launchUrl(
-                                                      Uri.parse(link.url),
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                              if (schedule.location != null &&
-                                                  schedule.location!
-                                                      .isNotEmpty) ...[
-                                                const SizedBox(height: 16),
-                                                Row(
-                                                  children: [
-                                                    const Icon(
-                                                      Icons.location_on,
-                                                      size: 16,
-                                                    ),
-                                                    const SizedBox(
-                                                      width: 4,
-                                                    ),
-                                                    Expanded(
-                                                      child: GestureDetector(
-                                                        onTap: () async {
-                                                          // Try to launch as map URL
-                                                          final mapUrl =
-                                                              'https://maps.google.com/?q=${Uri.encodeComponent(schedule.location!)}';
-                                                          if (await canLaunchUrl(
-                                                            Uri.parse(
-                                                              mapUrl,
-                                                            ),
-                                                          )) {
-                                                            await launchUrl(
-                                                              Uri.parse(
-                                                                mapUrl,
-                                                              ),
-                                                            );
-                                                          }
-                                                        },
-                                                        child: Text(
-                                                          schedule.location!,
-                                                          style: TextStyle(
-                                                            color: activeColor,
-                                                            decoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ],
+                                      builder: (context) => Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ListTile(
+                                            leading: const Icon(Icons.edit),
+                                            title: const Text('Edit Schedule'),
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              _showEditScheduleForm(schedule);
+                                            },
                                           ),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                            child: const Text('Close'),
+                                          ListTile(
+                                            leading: const Icon(Icons.delete,
+                                                color: Colors.red),
+                                            title: const Text('Delete Schedule',
+                                                style: TextStyle(
+                                                    color: Colors.red)),
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              _showDeleteConfirmation(schedule);
+                                            },
                                           ),
                                         ],
                                       ),
                                     );
                                   },
-                                  child: Text(
-                                    'View more',
-                                    style: TextStyle(
-                                      color: dotColor,
-                                      fontSize: 12,
-                                    ),
-                                  ),
                                 ),
-                            ],
-                          ),
-                        ),
+                              )
+                            : const SizedBox.shrink();
+                      },
+                    ),
+                  ],
+                ),
 
-                      // Location
-                      if (schedule.location != null &&
-                          schedule.location!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                size: 16,
-                                color: isDarkMode
-                                    ? Colors.grey[300]
-                                    : Colors.grey[700],
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    // Try to launch as map URL
-                                    final mapUrl =
-                                        'https://maps.google.com/?q=${Uri.encodeComponent(schedule.location!)}';
-                                    if (await canLaunchUrl(Uri.parse(mapUrl))) {
-                                      await launchUrl(Uri.parse(mapUrl));
-                                    }
-                                  },
-                                  child: Text(
-                                    schedule.location!,
-                                    style: TextStyle(
-                                      color: isDarkMode
-                                          ? Colors.grey[300]
-                                          : Colors.grey[700],
-                                      fontSize: 14,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+                // JUDUL JADWAL
+                Text(
+                  schedule.title,
+                  style: TextStyle(
+                    fontStyle: FontStyle.normal,
+                    fontWeight:
+                        FontWeight.w600, // Diubah dari bold (w700) ke w600
+                    fontSize: 17.0, // Diubah dari 20 ke 16
+                    // Warna diatur dengan mempertimbangkan Dark Mode
+                    color: isDarkMode ? Colors.white : const Color(0xFF222B45),
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 2),
 
-                // Options button - only shown for admins
-                FutureBuilder<bool>(
-                  future: schedule.group != null
-                      ? _isUserAdmin(schedule.group!.id)
-                      : Future.value(
-                          true,
-                        ), // Personal schedules are always editable
-                  builder: (context, snapshot) {
-                    final isAdmin = snapshot.data ?? false;
-
-                    return isAdmin
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.more_vert,
-                              color: isDarkMode
-                                  ? Colors.grey[400]
-                                  : Colors.grey[700],
-                            ),
-                            onPressed: () {
-                              // Show options menu for admin
-                              showModalBottomSheet(
-                                context: context,
-                                builder: (context) => Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ListTile(
-                                      leading: const Icon(Icons.edit),
-                                      title: const Text('Edit Schedule'),
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        _showEditScheduleForm(schedule);
-                                      },
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(
-                                        Icons.delete,
-                                        color: Colors.red,
-                                      ),
-                                      title: const Text(
-                                        'Delete Schedule',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        _showDeleteConfirmation(schedule);
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          )
-                        : const SizedBox.shrink(); // Hide button for non-admins
-                  },
-                ),
+                // DESKRIPSI (jika ada)
+                if (schedule.description != null &&
+                    schedule.description!.isNotEmpty)
+                  Text(
+                    schedule.description!,
+                    style: const TextStyle(
+                      fontStyle: FontStyle.normal,
+                      fontWeight: FontWeight.w400, // w400 sama dengan normal
+                      fontSize: 14.0, // Diubah dari 14 ke 10
+                      color: Color(0xFF8F9BB3), // Warna baru yang spesifik
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
               ],
             ),
           ),
@@ -1397,7 +1432,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
         return Color(colorValue);
       } catch (e) {
         // If color parsing fails, fall back to default logic
-        debugPrint('Failed to parse schedule color: ${schedule.color}, error: $e');
+        debugPrint(
+            'Failed to parse schedule color: ${schedule.color}, error: $e');
       }
     }
 
