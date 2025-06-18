@@ -180,29 +180,33 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
     return NavigationMemoryWrapper(
       currentRoute: '/addGroup',
       child: Scaffold(
-      appBar: CustomAppBar(
-        title: Text(
-          "Groups",
-          style: TextStyle(
-            color: isDarkMode ? const Color(0xFF4CAF50) : Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : null,
-        showBackButton: false,
-      ),
+      backgroundColor: Color(0xFFF1F1F1),
       body: Stack(
         children: [
           // Main content
-          GestureDetector(
-            onTap: _closeSidebar,
-            child: groupProvider.isLoading
-                ? Center(child: CircularProgressIndicator(
-                    color: activeColor,
-                  ))
-                : groupProvider.groups.isEmpty
-                    ? _buildEmptyState()
-                    : _buildGroupContent(),
+          Padding(
+            // Padding yang Anda tambahkan untuk memberi jarak dari atas
+            padding: const EdgeInsets.fromLTRB(8, 50.0, 8, 0), 
+            child: GestureDetector(
+              onTap: _closeSidebar,
+              child: groupProvider.isLoading
+                  // DIUBAH: Menggunakan Align agar konsisten, bukan Center
+                  ? Align(
+                      alignment: Alignment.topLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(
+                          color: activeColor,
+                        ),
+                      ),
+                    )
+                  : groupProvider.groups.isEmpty
+                      ? _buildEmptyState(
+        textColor: const Color(0xFF000000),
+        subTextColor: const Color(0xFF000000),
+      )
+                      : _buildGroupContent(),
+            ),
           ),
 
           // Sidebar overlay
@@ -267,242 +271,321 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
   }
 
   Widget _buildGroupContent() {
-    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+  final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
 
-    return Column(
+  return Column(
+    // DIUBAH: Tambahkan baris ini untuk meratakan semua ke kiri
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // Top section with group selector
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: _buildGroupSelector(),
+      ),
+
+      // Members list
+      Expanded(
+        child: groupProvider.selectedGroup != null
+            ? _buildMembersList(groupProvider.selectedGroup!.id)
+            : const Center(child: Text('Open the sidebar to select a group')),
+      ),
+    ],
+  );
+}
+
+  Widget _buildEmptyState({required Color textColor, required Color subTextColor}) {
+  // Widget terluar adalah Padding, bukan Center, untuk memberi jarak dari tepi.
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+    child: Column(
+      // crossAxisAlignment.start akan meratakan semua elemen ke kiri.
+      crossAxisAlignment: CrossAxisAlignment.start,
+      // mainAxisSize.min agar Column tidak mengambil semua ruang vertikal.
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Top section with group selector
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: _buildGroupSelector(),
+        // 1. Ikon sebagai ilustrasi
+        Icon(
+          Icons.groups_3_outlined, // Ikon yang relevan dengan grup
+          size: 72,
+          color: Colors.grey[400],
         ),
+        const SizedBox(height: 24),
 
-        // Members list
-        Expanded(
-          child: groupProvider.selectedGroup != null
-              ? _buildMembersList(groupProvider.selectedGroup!.id)
-              : const Center(child: Text('Open the sidebar to select a group')),
+        // 2. Teks Judul (Headline)
+        Text(
+          'Anda belum memiliki grup',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // 3. Teks Deskripsi/Instruksi
+        Text(
+          'Buat grup baru atau terima undangan untuk memulai kolaborasi dengan jadwal bersama.',
+          style: TextStyle(
+            color: subTextColor,
+            fontSize: 16,
+            height: 1.5, // Jarak antar baris agar lebih mudah dibaca
+          ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.group_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No Groups Yet',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Create a group to start collaborating',
-            style: TextStyle(
-              color: Colors.grey[500],
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _navigateToCreateGroup,
-            icon: const Icon(Icons.add),
-            label: const Text('Create Group'),
+  Widget _buildGroupSelector() {
+  // Definisi provider dan variabel tema (tidak berubah)
+  final themeProvider = Provider.of<ThemeProvider>(context);
+  final groupProvider =
+      Provider.of<GroupSelectionProvider>(context, listen: false);
+  final isDarkMode = themeProvider.isDarkMode;
+  
+  // DIUBAH: Menggunakan definisi textColor dari _buildCalendarSelector
+  final textColor = isDarkMode ? Colors.white : const Color(0xFF222B45);
+
+  // DIUBAH: Seluruh struktur widget disamakan dengan _buildCalendarSelector
+  return SizedBox(
+    width: 148.0, // Ukuran fix
+    height: 50.0,
+    child: Container(
+      // Dekorasi disamakan sepenuhnya
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey[800] : Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((0.1 * 255).round()),
+            offset: const Offset(0, 4),
+            blurRadius: 6,
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildGroupSelector() {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
-    final isDarkMode = themeProvider.isDarkMode;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
-
-    return GestureDetector(
-      onTap: _toggleSidebar,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        decoration: BoxDecoration(
-          color: isDarkMode ? Colors.grey[800] : Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha((0.1 * 255).round()),
-              offset: const Offset(0, 4),
-              blurRadius: 15,
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.group,
-              size: 24,
-              color: textColor,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              groupProvider.selectedGroup?.name ?? 'Select Group',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: textColor,
+      // Menggunakan InkWell untuk efek ripple
+      child: InkWell(
+        onTap: _toggleSidebar,
+        borderRadius: BorderRadius.circular(30),
+        child: Padding(
+          // Padding disamakan
+          padding: const EdgeInsets.only(left: 17.0, right: 17.0),
+          child: Row(
+            children: [
+              // DIUBAH: Ikon disamakan menggunakan SvgPicture
+              SvgPicture.asset(
+                'assets/icons/calendar_selector-icon.svg',
+                width: 24,
+                height: 24,
+                // Tambahkan colorFilter jika ikon SVG perlu diwarnai sesuai tema
+                // colorFilter: ColorFilter.mode(textColor, BlendMode.srcIn),
               ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              _isSidebarOpen ? Icons.close : Icons.menu,
-              color: textColor,
-            ),
-          ],
+              // Spasi disamakan
+              const SizedBox(width: 9),
+              // Teks dibungkus Flexible untuk menangani teks panjang
+              Flexible(
+                child: Text(
+                  // Logika teks tetap menggunakan data grup
+                  groupProvider.selectedGroup?.name ?? 'Select Group',
+                  // DIUBAH: TextStyle disamakan sepenuhnya
+                  style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: FontStyle.normal,
+                      fontSize: 14,
+                      fontFamily: 'Arial'),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
 
 
   Widget _buildMembersList(String groupId) {
-    return FutureBuilder<List<User>>(
-      future: _loadGroupMembers(groupId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+  // Ambil warna dari tema agar konsisten
+  final themeProvider = Provider.of<ThemeProvider>(context);
+  final isDarkMode = themeProvider.isDarkMode;
+  final cardBackgroundColor =
+      isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Error loading members: ${snapshot.error}'),
-          );
-        }
+  // DIUBAH: Seluruh FutureBuilder dibungkus dengan Container
+  return Container(
+    // Beri margin agar ada jarak dari tombol pemilih grup di atas
+    margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+      color: cardBackgroundColor, // Warna putih (atau gelap di dark mode)
+      borderRadius: BorderRadius.circular(12.0), // Beri sudut tumpul
+      boxShadow: [
+        // Tambahkan sedikit bayangan agar terlihat terangkat
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        )
+      ],
+    ),
+    // ClipRRect untuk memastikan konten di dalamnya (ListView) juga mengikuti sudut tumpul
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(12.0),
+      child: FutureBuilder<List<User>>(
+        future: _loadGroupMembers(groupId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Loading state sekarang juga ada di dalam container
+            return const Center(child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: CircularProgressIndicator(),
+            ));
+          }
 
-        final members = snapshot.data ?? [];
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text('Error loading members: ${snapshot.error}'),
+              ),
+            );
+          }
 
-        if (members.isEmpty) {
-          return const Center(
-            child: Text('No members in this group'),
-          );
-        }
+          final members = snapshot.data ?? [];
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            setState(() {}); // Trigger rebuild to reload members
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: members.length,
-            itemBuilder: (context, index) {
-              final member = members[index];
-              return _buildMemberCard(member);
+          if (members.isEmpty) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('No members in this group'),
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {}); // Trigger rebuild to reload members
             },
-          ),
-        );
-      },
-    );
-  }
+            // ListView sekarang berada di dalam container putih
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8.0), // Padding di dalam list
+              itemCount: members.length,
+              itemBuilder: (context, index) {
+                final member = members[index];
+                // Kartu anggota tidak perlu diubah
+                return _buildMemberCard(member);
+              },
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
 
   Widget _buildMemberCard(User member) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
-    final isDarkMode = themeProvider.isDarkMode;
+  // Mengambil data dari provider dan tema
+  final themeProvider = Provider.of<ThemeProvider>(context);
+  final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+  final isDarkMode = themeProvider.isDarkMode;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12.0),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+  // Asumsi 'secondaryColor' sudah diimpor atau didefinisikan di scope ini
+  // final Color secondaryColor = const Color(0x...);
+
+  // Mengganti Card dengan Container untuk kustomisasi penuh
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12.0),
+    // Dekorasi utama untuk menciptakan gaya outline
+    decoration: BoxDecoration(
+      // 1. Latar belakang dibuat transparan
+      color: Colors.transparent,
+      // 2. Diberi garis tepi (outline) dengan warna sekunder
+      border: Border.all(
+        color: secondaryColor, // Menggunakan warna yang Anda impor
+        width: 2.5,          // Ketebalan garis bisa disesuaikan
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            // Profile picture with actual image or initials
-            ProfileAvatar(
-              userId: member.id,
-              userName: member.name,
-              size: 48.0,
-              showBorder: false,
-            ),
+      // 3. Sudut tetap dibuat tumpul
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          // Profile picture (tidak ada perubahan)
+          ProfileAvatar(
+            userId: member.id,
+            userName: member.name,
+            size: 48.0,
+            showBorder: false,
+          ),
+          const SizedBox(width: 16),
 
-            const SizedBox(width: 16),
-
-            // Member info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    member.name,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
+          // Info Anggota (tidak ada perubahan)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member.name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    member.email,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  member.email,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
 
-            // Three-dot menu for admin actions (only visible to admins, but not for themselves)
-            groupProvider.selectedGroup != null
-                ? FutureBuilder<bool>(
-                    future: _isUserAdmin(groupProvider.selectedGroup!.id),
-                    builder: (context, snapshot) {
-                      final isAdmin = snapshot.data ?? false;
+          // Tombol menu tiga titik (tidak ada perubahan)
+          groupProvider.selectedGroup != null
+              ? FutureBuilder<bool>(
+                  future: _isUserAdmin(groupProvider.selectedGroup!.id),
+                  builder: (context, snapshot) {
+                    final isAdmin = snapshot.data ?? false;
 
-                      // Hide menu for non-admins or if the member is the current user (admin themselves)
-                      if (!isAdmin || member.id == groupProvider.currentUserId) {
-                        return const SizedBox.shrink();
-                      }
+                    if (!isAdmin || member.id == groupProvider.currentUserId) {
+                      return const SizedBox.shrink();
+                    }
 
-                      return CustomMenuButton(
-                        onSelected: (value) {
-                          if (!mounted) return;
-                          if (value == 'remove') {
-                            _showRemoveMemberDialog(member);
-                          }
-                        },
-                        items: const [
-                          CustomMenuItem(
-                            value: 'remove',
-                            text: 'Remove',
-                            icon: Icons.person_remove,
-                            iconColor: Colors.red,
-                            textColor: Colors.red,
-                          ),
-                        ],
-                        backgroundColor: isDarkMode ? Colors.grey[800] : Colors.white,
-                        child: const Icon(Icons.more_vert),
-                      );
-                    },
-                  )
-                : const SizedBox.shrink(),
-          ],
-        ),
+                    return CustomMenuButton(
+                      onSelected: (value) {
+                        if (!mounted) return;
+                        if (value == 'remove') {
+                          _showRemoveMemberDialog(member);
+                        }
+                      },
+                      items: const [
+                        CustomMenuItem(
+                          value: 'remove',
+                          text: 'Remove',
+                          icon: Icons.person_remove,
+                          iconColor: Colors.red,
+                          textColor: Colors.red,
+                        ),
+                      ],
+                      backgroundColor: isDarkMode ? Colors.grey[800] : Colors.white,
+                      child: const Icon(Icons.more_vert),
+                    );
+                  },
+                )
+              : const SizedBox.shrink(),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _showRemoveMemberDialog(User member) {
     showDialog(
