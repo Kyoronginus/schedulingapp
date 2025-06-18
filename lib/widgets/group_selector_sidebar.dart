@@ -39,9 +39,28 @@ class GroupSelectorSidebar extends StatefulWidget {
 class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
   final Map<String, List<User>> _membersCache = {};
   final Map<String, bool> _isAdminCache = {};
+  String? _lastUserId;
+
+  /// Clear all caches when user changes
+  void _clearCaches() {
+    _membersCache.clear();
+    _isAdminCache.clear();
+    debugPrint('✅ GroupSelectorSidebar caches cleared');
+  }
+
+  /// Check if user has changed and clear caches if needed
+  void _checkUserChange() {
+    if (_lastUserId != widget.currentUserId) {
+      _clearCaches();
+      _lastUserId = widget.currentUserId;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Check if user has changed and clear caches if needed
+    _checkUserChange();
+
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
     final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;

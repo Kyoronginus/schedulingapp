@@ -7,6 +7,7 @@ import '../../routes/app_routes.dart';
 import '../auth_service.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
 import '../../widgets/enhanced_password_field.dart';
+import '../../widgets/password_validation_widget.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -25,6 +26,7 @@ class _RegisterPageState extends State<RegisterScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   bool _passwordsMatch = false;
+  bool _passwordIsValid = false;
   String? _confirmPasswordInlineError;
 
   @override
@@ -47,9 +49,11 @@ class _RegisterPageState extends State<RegisterScreen> {
     final confirmPassword = confirmPasswordController.text;
 
     setState(() {
+      _passwordIsValid = PasswordValidator.isPasswordValid(password);
       _passwordsMatch = password.isNotEmpty &&
                       confirmPassword.isNotEmpty &&
-                      password == confirmPassword;
+                      password == confirmPassword &&
+                      _passwordIsValid;
 
       if (confirmPassword.isNotEmpty && password != confirmPassword) {
         _confirmPasswordInlineError = "Passwords do not match";
@@ -80,6 +84,8 @@ class _RegisterPageState extends State<RegisterScreen> {
         error = 'Please enter your email';
       } else if (password.isEmpty) {
         error = 'Please enter a password';
+      } else if (!PasswordValidator.isPasswordValid(password)) {
+        error = PasswordValidator.validatePassword(password);
       } else if (password != confirmPassword) {
         error = 'Passwords do not match';
       }
@@ -287,9 +293,9 @@ class _RegisterPageState extends State<RegisterScreen> {
                         focusNode: _passwordFocus,
                         hintText: "Enter your password",
                         labelText: "Password",
-                        showValidationIcon: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty,
-                        isValid: _passwordsMatch,
-                        hasMismatch: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty && !_passwordsMatch,
+                        showValidationIcon: passwordController.text.isNotEmpty,
+                        isValid: _passwordIsValid,
+                        hasMismatch: passwordController.text.isNotEmpty && !_passwordIsValid,
                         onChanged: _validateMatchingPasswords,
                       ),
                       const SizedBox(height: 16),
@@ -299,11 +305,16 @@ class _RegisterPageState extends State<RegisterScreen> {
                         focusNode: _confirmPasswordFocus,
                         hintText: "Confirm your password",
                         labelText: "Confirm password",
-                        showValidationIcon: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty,
+                        showValidationIcon: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty && _passwordIsValid,
                         isValid: _passwordsMatch,
-                        hasMismatch: confirmPasswordController.text.isNotEmpty && !_passwordsMatch,
+                        hasMismatch: confirmPasswordController.text.isNotEmpty && (!_passwordsMatch || !_passwordIsValid),
                         inlineError: _confirmPasswordInlineError,
                         onChanged: _validateMatchingPasswords,
+                      ),
+                      // Password validation criteria (moved below confirm password)
+                      PasswordValidationWidget(
+                        password: passwordController.text,
+                        showValidation: passwordController.text.isNotEmpty,
                       ),
                       const SizedBox(height: 16),
                       // Register button

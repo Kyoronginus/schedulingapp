@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import '../../utils/utils_functions.dart';
 import '../../services/secure_storage_service.dart';
+import '../../services/auth_method_service.dart';
 import '../../routes/app_routes.dart';
+import '../../widgets/password_validation_widget.dart';
 import 'password_verification_screen.dart';
 
 class ChangePasswordDialog extends StatefulWidget {
@@ -38,10 +40,14 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   String? _currentPasswordInlineError;
   String? _confirmPasswordInlineError;
 
+  // OAuth detection
+  bool _isOAuthUser = false;
+
   @override
   void initState() {
     super.initState();
     _loadStoredPassword();
+    _detectOAuthUser();
     _currentPasswordController.addListener(_validateCurrentPassword);
     _newPasswordController.addListener(_validateMatchingPasswords);
     _confirmPasswordController.addListener(_validateMatchingPasswords);
@@ -59,6 +65,108 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
     } catch (e) {
       debugPrint('Error loading stored password: $e');
     }
+  }
+
+  Future<void> _detectOAuthUser() async {
+    try {
+      final isOAuth = await AuthMethodService.isOAuthOnlyUser();
+      if (mounted) {
+        setState(() {
+          _isOAuthUser = isOAuth;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error detecting OAuth user: $e');
+    }
+  }
+
+  void _showOAuthPasswordChangeDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: primaryColor,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Password Change Not Available',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Your account is linked to an external provider (Google or Facebook). To change your password, please:',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '1. Go to your provider\'s website:',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('• Google: myaccount.google.com'),
+                    const Text('• Facebook: facebook.com/settings'),
+                    const SizedBox(height: 12),
+                    const Text(
+                      '2. Navigate to Security settings',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('3. Change your password there'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'The new password will automatically apply to this app.',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Got it',
+                style: TextStyle(
+                  color: primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _validateCurrentPassword() {
@@ -156,6 +264,12 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   }
 
   Future<void> _validateAndSendVerificationCode() async {
+    // Check if user is OAuth user first
+    if (_isOAuthUser) {
+      _showOAuthPasswordChangeDialog();
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -416,14 +530,22 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                       ],
                     ),
 
+                    // Password validation criteria (below confirm password)
+                    PasswordValidationWidget(
+                      password: _newPasswordController.text,
+                      showValidation: _newPasswordController.text.isNotEmpty,
+                    ),
+
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () => Navigator.pushNamed(context, AppRoutes.forgotPassword),
+                        onPressed: _isOAuthUser ? null : () => Navigator.pushNamed(context, AppRoutes.forgotPassword),
                         child:  Text(
                           "Forgot Password?",
-                          style: TextStyle(color: primaryColor,
-                        fontWeight: FontWeight.bold,),
+                          style: TextStyle(
+                            color: _isOAuthUser ? Colors.grey.withValues(alpha: 0.5) : primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),

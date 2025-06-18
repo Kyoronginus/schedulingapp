@@ -226,4 +226,23 @@ class GroupSelectionProvider extends ChangeNotifier {
     _currentUserId = null;
     notifyListeners();
   }
+
+  /// Reinitialize the provider for a new user (useful after login)
+  Future<void> reinitialize() async {
+    try {
+      debugPrint('🔄 Reinitializing GroupSelectionProvider for new user...');
+
+      // Reset current state first
+      reset();
+
+      // Initialize with new user data
+      await _initialize();
+
+      debugPrint('✅ GroupSelectionProvider reinitialized successfully');
+    } catch (e) {
+      debugPrint('❌ Failed to reinitialize GroupSelectionProvider: $e');
+      // Ensure we're in a clean state even if initialization fails
+      reset();
+    }
+  }
 }

@@ -27,7 +27,13 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   final int _currentIndex = 2; // Index for notification in bottom nav (0=Schedule, 1=Group, 2=Notification, 3=Profile)
   List<models.Notification> _notifications = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   StreamSubscription<void>? _profileRefreshSubscription;
+
+  // Pagination and streaming
+  final int _pageSize = 2; // Load 20 notifications at a time
+  String? _nextToken; // For pagination
+  final ScrollController _scrollController = ScrollController();
 
   // Sidebar state
   bool _isSidebarOpen = false;
@@ -53,6 +59,9 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
 
     _loadNotifications();
 
+    // Set up scroll listener for pagination
+    _scrollController.addListener(_onScroll);
+
     // Listen for profile changes to refresh notifications with updated user data
     _profileRefreshSubscription = RefreshService().profileChanges.listen((_) {
       if (mounted) {
@@ -64,6 +73,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   @override
   void dispose() {
     _profileRefreshSubscription?.cancel();
+    _scrollController.dispose();
     _sidebarAnimationController.dispose();
     super.dispose();
   }
@@ -118,23 +128,13 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         return notification.groupInvitation?.status == InvitationStatus.PENDING;
       }).toList();
 
-      // Sort notifications: invitations first, then by timestamp
-      notifications.sort((a, b) {
-        // Invitations always come first
-        if (a.type == NotificationType.INVITATION && b.type != NotificationType.INVITATION) {
-          return -1;
-        }
-        if (b.type == NotificationType.INVITATION && a.type != NotificationType.INVITATION) {
-          return 1;
-        }
-        // If both are invitations or both are not invitations, sort by timestamp
-        return b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc());
-      });
-
       setState(() {
         _notifications = notifications;
         _isLoading = false;
       });
+
+      // Sort notifications using the centralized sorting method
+      _sortNotifications();
     } catch (e) {
       debugPrint('Error loading notifications: $e');
       setState(() => _isLoading = false);
@@ -170,8 +170,113 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
           _notifications[index] = _notifications[index].copyWith(
             isRead: true,
           );
+          // Re-sort notifications after marking as read to maintain proper order
+          _sortNotifications();
         }
       });
+    }
+  }
+
+  /// Extract event date from notification for sorting purposes
+  DateTime? _getEventDate(models.Notification notification) {
+    // For schedule-related notifications, use the schedule's start time
+    if (notification.schedule != null) {
+      return notification.schedule!.startTime.getDateTimeInUtc();
+    }
+
+    // For invitation notifications, use the notification timestamp as fallback
+    // since invitations don't have associated schedule dates
+    if (notification.type == NotificationType.INVITATION) {
+      return notification.timestamp.getDateTimeInUtc();
+    }
+
+    // Fallback to notification timestamp
+    return notification.timestamp.getDateTimeInUtc();
+  }
+
+  /// Sort notifications with read/unread hierarchy and chronological order
+  void _sortNotifications() {
+    _notifications.sort((a, b) {
+      // First priority: unread notifications come before read notifications
+      if (!a.isRead && b.isRead) return -1;
+      if (a.isRead && !b.isRead) return 1;
+
+      // Second priority: invitations come first within each read/unread group
+      if (a.type == NotificationType.INVITATION && b.type != NotificationType.INVITATION) {
+        return -1;
+      }
+      if (b.type == NotificationType.INVITATION && a.type != NotificationType.INVITATION) {
+        return 1;
+      }
+
+      // Third priority: sort by event/schedule date (most recent first)
+      DateTime? aEventDate = _getEventDate(a);
+      DateTime? bEventDate = _getEventDate(b);
+
+      // If both have event dates, compare them
+      if (aEventDate != null && bEventDate != null) {
+        return bEventDate.compareTo(aEventDate); // Most recent first
+      }
+
+      // If only one has an event date, prioritize it
+      if (aEventDate != null && bEventDate == null) return -1;
+      if (bEventDate != null && aEventDate == null) return 1;
+
+      // Fallback: sort by notification timestamp
+      return b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc());
+    });
+  }
+
+  /// Handle scroll events for pagination
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      // Load more notifications when user is near the bottom
+      _loadMoreNotifications();
+    }
+  }
+
+  /// Load more notifications for pagination
+  Future<void> _loadMoreNotifications() async {
+    if (_isLoadingMore || _nextToken == null) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+
+      // Get more notifications based on group selection
+      List<models.Notification> moreNotifications;
+      if (groupProvider.isPersonalMode) {
+        // Load more notifications for personal mode
+        moreNotifications = await NotificationService.getNotifications();
+      } else if (groupProvider.selectedGroup != null) {
+        // Load more notifications for specific group
+        moreNotifications = await NotificationService.getNotificationsForGroup(groupProvider.selectedGroup!.id);
+      } else {
+        // No group selected, load more notifications
+        moreNotifications = await NotificationService.getNotifications();
+      }
+
+      // Filter out declined invitations
+      final filteredNotifications = moreNotifications.where((notification) {
+        // Keep all non-invitation notifications
+        if (notification.type != NotificationType.INVITATION) {
+          return true;
+        }
+        // For invitation notifications, only keep pending ones
+        return notification.groupInvitation?.status == InvitationStatus.PENDING;
+      }).toList();
+
+      setState(() {
+        _notifications.addAll(filteredNotifications);
+        _isLoadingMore = false;
+      });
+
+      // Sort notifications after adding new ones
+      _sortNotifications();
+    } catch (e) {
+      debugPrint('Error loading more notifications: $e');
+      setState(() => _isLoadingMore = false);
     }
   }
 
@@ -267,9 +372,17 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                   ),
                 )
               : ListView.builder(
-                  itemCount: _notifications.length,
+                  controller: _scrollController,
+                  itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   itemBuilder: (context, index) {
+                    // Show loading indicator at the bottom when loading more
+                    if (index == _notifications.length) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
                     final notification = _notifications[index];
 
                     // Handle invitation notifications differently

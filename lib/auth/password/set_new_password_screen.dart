@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../utils/utils_functions.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
 import '../../widgets/enhanced_password_field.dart';
+import '../../widgets/password_validation_widget.dart';
 import 'password_verification_screen.dart';
 
 /// Second phase of the forgot password flow - password collection
@@ -26,6 +27,7 @@ class _ForgotPasswordPasswordScreenState extends State<ForgotPasswordPasswordScr
   bool _isLoading = false;
   String? _errorMessage;
   bool _passwordsMatch = false;
+  bool _passwordIsValid = false;
   String? _confirmPasswordInlineError;
 
   @override
@@ -50,9 +52,11 @@ class _ForgotPasswordPasswordScreenState extends State<ForgotPasswordPasswordScr
     final confirmPassword = _confirmPasswordController.text;
 
     setState(() {
+      _passwordIsValid = PasswordValidator.isPasswordValid(password);
       _passwordsMatch = password.isNotEmpty &&
                       confirmPassword.isNotEmpty &&
-                      password == confirmPassword;
+                      password == confirmPassword &&
+                      _passwordIsValid;
 
       if (confirmPassword.isNotEmpty && password != confirmPassword) {
         _confirmPasswordInlineError = "Passwords do not match";
@@ -62,32 +66,7 @@ class _ForgotPasswordPasswordScreenState extends State<ForgotPasswordPasswordScr
     });
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter a password';
-    }
 
-    List<String> requirements = [];
-
-    if (value.length < 8) {
-      requirements.add('at least 8 characters');
-    }
-    if (!RegExp(r'[A-Z]').hasMatch(value)) {
-      requirements.add('uppercase letter');
-    }
-    if (!RegExp(r'[a-z]').hasMatch(value)) {
-      requirements.add('lowercase letter');
-    }
-    if (!RegExp(r'\d').hasMatch(value)) {
-      requirements.add('number');
-    }
-
-    if (requirements.isNotEmpty) {
-      return 'Password needs: ${requirements.join(', ')}';
-    }
-
-    return null;
-  }
 
   Future<void> _proceedToVerification() async {
     // Validate passwords
@@ -113,8 +92,8 @@ class _ForgotPasswordPasswordScreenState extends State<ForgotPasswordPasswordScr
     }
 
     // Validate password strength
-    final passwordError = _validatePassword(_newPasswordController.text);
-    if (passwordError != null) {
+    if (!PasswordValidator.isPasswordValid(_newPasswordController.text)) {
+      final passwordError = PasswordValidator.validatePassword(_newPasswordController.text);
       setState(() {
         _errorMessage = passwordError;
       });
@@ -235,9 +214,9 @@ class _ForgotPasswordPasswordScreenState extends State<ForgotPasswordPasswordScr
                         focusNode: _newPasswordFocus,
                         hintText: "Enter your new password",
                         labelText: "New password",
-                        showValidationIcon: _newPasswordController.text.isNotEmpty && _confirmPasswordController.text.isNotEmpty,
-                        isValid: _passwordsMatch,
-                        hasMismatch: _newPasswordController.text.isNotEmpty && _confirmPasswordController.text.isNotEmpty && !_passwordsMatch,
+                        showValidationIcon: _newPasswordController.text.isNotEmpty,
+                        isValid: _passwordIsValid,
+                        hasMismatch: _newPasswordController.text.isNotEmpty && !_passwordIsValid,
                         onChanged: _validateMatchingPasswords,
                       ),
 
@@ -249,11 +228,16 @@ class _ForgotPasswordPasswordScreenState extends State<ForgotPasswordPasswordScr
                         focusNode: _confirmPasswordFocus,
                         hintText: "Confirm your new password",
                         labelText: "Confirm new password",
-                        showValidationIcon: _newPasswordController.text.isNotEmpty && _confirmPasswordController.text.isNotEmpty,
+                        showValidationIcon: _newPasswordController.text.isNotEmpty && _confirmPasswordController.text.isNotEmpty && _passwordIsValid,
                         isValid: _passwordsMatch,
-                        hasMismatch: _confirmPasswordController.text.isNotEmpty && !_passwordsMatch,
+                        hasMismatch: _confirmPasswordController.text.isNotEmpty && (!_passwordsMatch || !_passwordIsValid),
                         inlineError: _confirmPasswordInlineError,
                         onChanged: _validateMatchingPasswords,
+                      ),
+                      // Password validation criteria (below confirm password)
+                      PasswordValidationWidget(
+                        password: _newPasswordController.text,
+                        showValidation: _newPasswordController.text.isNotEmpty,
                       ),
 
                       const SizedBox(height: 24),

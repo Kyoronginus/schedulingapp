@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../auth_service.dart';
 import '../../utils/utils_functions.dart';
 import '../password/forgot_password_screen.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/exception_message.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
+import '../../providers/group_selection_provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -31,6 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await login(_emailController.text, _passwordController.text);
+      if (!mounted) return;
+
+      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+      await groupProvider.reinitialize();
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, AppRoutes.schedule);

@@ -29,6 +29,7 @@ class ProfileAvatar extends StatefulWidget {
 class _ProfileAvatarState extends State<ProfileAvatar> {
   String? _profilePictureUrl;
   bool _isLoading = true;
+  String? _lastUserId; // Tracks the last user ID for which we loaded the profile picture
   StreamSubscription<void>? _profileChangeSubscription;
 
   @override
@@ -36,7 +37,6 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
     super.initState();
     _loadProfilePicture();
 
-    // Listen for profile changes to refresh the avatar
     _profileChangeSubscription = RefreshService().profileChanges.listen((_) {
       if (mounted) {
         _loadProfilePicture();
@@ -50,15 +50,12 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
     super.dispose();
   }
 
-  @override
-  void didUpdateWidget(ProfileAvatar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.userId != widget.userId) {
-      _loadProfilePicture();
-    }
-  }
-
   Future<void> _loadProfilePicture() async {
+    // Only load if the user ID changed or we don't have a picture
+    if (_profilePictureUrl != null && _lastUserId == widget.userId) {
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -68,16 +65,18 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
       final url = await CentralizedProfileImageService.getProfilePictureUrl(widget.userId);
 
       if (mounted) {
-        // Clear cached image for this user to force refresh
-        if (_profilePictureUrl != null) {
-          await CachedNetworkImage.evictFromCache(_profilePictureUrl!);
-        }
-
+        final shouldClearCache = _profilePictureUrl != null && _profilePictureUrl != url;
+        
         setState(() {
-          // Add timestamp to URL to bust cache when refreshing
-          _profilePictureUrl = url != null ? '$url?t=${DateTime.now().millisecondsSinceEpoch}' : null;
+          _profilePictureUrl = url;
           _isLoading = false;
+          _lastUserId = widget.userId;
         });
+
+        if (shouldClearCache && url != null) {
+          debugPrint('🔄 Clearing cached image for updated profile');
+          await CachedNetworkImage.evictFromCache(url);
+        }
 
         if (_profilePictureUrl != null) {
           debugPrint('✅ ProfileAvatar: Successfully loaded profile picture URL');

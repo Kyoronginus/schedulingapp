@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../amplifyconfiguration.dart';
 import '../models/User.dart';
 import '../services/oauth_conflict_service.dart';
 import '../services/refresh_service.dart';
 import '../services/secure_storage_service.dart';
+import '../providers/group_selection_provider.dart';
 
 // initAmplify, signUp, confirmCode, login functions remain the same
 Future<void> initAmplify() async {
@@ -136,6 +138,9 @@ Future<bool> signInWithGoogle(BuildContext context) async {
     if (result.isSignedIn) {
       debugPrint('✅ Google Sign In Success (direct login)');
       await _refreshSessionAfterOAuth();
+      if (context.mounted) {
+        await reinitializeGroupProvider(context);
+      }
       return true;
     }
     return false;
@@ -165,6 +170,9 @@ Future<bool> signInWithGoogle(BuildContext context) async {
         if (result.isSignedIn) {
           debugPrint('✅ Seamless re-login successful after linking.');
           await _refreshSessionAfterOAuth();
+          if (context.mounted) {
+            await reinitializeGroupProvider(context);
+          }
           return true;
         }
       } catch (retryError) {
@@ -192,6 +200,9 @@ Future<bool> signInWithFacebook(BuildContext context) async {
     if (result.isSignedIn) {
       debugPrint('✅ Facebook Sign In Success (direct login)');
       await _refreshSessionAfterOAuth();
+      if (context.mounted) {
+        await reinitializeGroupProvider(context);
+      }
       return true;
     }
     return false;
@@ -221,6 +232,9 @@ Future<bool> signInWithFacebook(BuildContext context) async {
         if (result.isSignedIn) {
           debugPrint('✅ Seamless re-login successful after linking.');
           await _refreshSessionAfterOAuth();
+          if (context.mounted) {
+            await reinitializeGroupProvider(context);
+          }
           return true;
         }
       } catch (retryError) {
@@ -266,16 +280,23 @@ void _handleOAuthError(
   );
 }
 
-/// Refreshes the user session to get updated attributes from Lambda after linking.
-/// This function is called by external functions.
+Future<void> reinitializeGroupProvider(BuildContext context) async {
+  try {
+    if (context.mounted) {
+      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+      await groupProvider.reinitialize();
+      debugPrint('✅ GroupSelectionProvider reinitialized after login');
+    }
+  } catch (e) {
+    debugPrint('❌ Failed to reinitialize GroupSelectionProvider after login: $e');
+  }
+}
+
 Future<void> _refreshSessionAfterOAuth() async {
   try {
     debugPrint('🔄 Starting session refresh after OAuth login/linking...');
 
-    // Wait a brief moment to allow Lambda triggers to complete
     await Future.delayed(const Duration(milliseconds: 500));
-
-    // Force refresh the auth session to get new tokens with updated claims
     final session = await Amplify.Auth.fetchAuthSession(
       options: const FetchAuthSessionOptions(forceRefresh: true),
     );
