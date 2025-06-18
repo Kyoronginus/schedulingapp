@@ -39,6 +39,18 @@ class NotificationService {
     _isInitialized = true;
   }
 
+  static Future<bool> markAsUnread(String notificationId) async {
+  try {
+    // Tulis logika untuk update ke backend/database Anda di sini, 
+    // set 'isRead' menjadi false.
+    // Contoh: await apiClient.post('/notifications/$notificationId/unread');
+    print('Notification $notificationId marked as UNREAD in the backend.');
+    return true; // Kembalikan true jika berhasil
+  } catch (e) {
+    print('Failed to mark notification as unread: $e');
+    return false; // Kembalikan false jika gagal
+  }
+}
   // Load notifications from Amplify backend using GraphQL API
   static Future<void> _loadNotifications() async {
     try {

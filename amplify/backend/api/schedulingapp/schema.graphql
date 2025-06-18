@@ -103,6 +103,7 @@ type Schedule
   location: String
   startTime: AWSDateTime!
   endTime: AWSDateTime!
+  color: String
   userId: ID! @index(name: "byUser")
   groupId: ID! @index(name: "byGroup")
   user: User @belongsTo(fields: ["userId"])

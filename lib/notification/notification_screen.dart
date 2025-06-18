@@ -15,7 +15,6 @@ import '../theme/theme_provider.dart';
 import '../providers/group_selection_provider.dart';
 import '../services/refresh_service.dart';
 
-
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
 
@@ -23,8 +22,10 @@ class NotificationScreen extends StatefulWidget {
   State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> with TickerProviderStateMixin {
-  final int _currentIndex = 2; // Index for notification in bottom nav (0=Schedule, 1=Group, 2=Notification, 3=Profile)
+class _NotificationScreenState extends State<NotificationScreen>
+    with TickerProviderStateMixin {
+  final int _currentIndex =
+      2; // Index for notification in bottom nav (0=Schedule, 1=Group, 2=Notification, 3=Profile)
   List<models.Notification> _notifications = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -99,11 +100,40 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     }
   }
 
+  Future<void> _markAsUnread(String notificationId) async {
+    // Anggap saja NotificationService punya fungsi ini, yang perlu Anda buat di service-nya
+    final success = await NotificationService.markAsUnread(notificationId);
+    if (success) {
+      setState(() {
+        final index = _notifications.indexWhere((n) => n.id == notificationId);
+        if (index != -1) {
+          _notifications[index] = _notifications[index].copyWith(
+            isRead: false, // <-- Diubah menjadi false (belum dibaca)
+          );
+          // Panggil _sortNotifications() agar posisinya pindah ke atas lagi
+          _sortNotifications();
+        }
+      });
+    }
+  }
+
+// Tambahkan juga fungsi ini di dalam _NotificationScreenState
+  Future<void> _toggleReadStatus(models.Notification notification) async {
+    if (notification.isRead) {
+      // Jika SUDAH dibaca, panggil fungsi untuk menjadikannya BELUM dibaca
+      await _markAsUnread(notification.id);
+    } else {
+      // Jika BELUM dibaca, panggil fungsi untuk menjadikannya SUDAH dibaca
+      await _markAsRead(notification.id);
+    }
+  }
+
   Future<void> _loadNotifications() async {
     setState(() => _isLoading = true);
 
     try {
-      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+      final groupProvider =
+          Provider.of<GroupSelectionProvider>(context, listen: false);
 
       // Get notifications based on group selection
       List<models.Notification> allNotifications;
@@ -112,7 +142,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         allNotifications = await NotificationService.getNotifications();
       } else if (groupProvider.selectedGroup != null) {
         // Load notifications for specific group
-        allNotifications = await NotificationService.getNotificationsForGroup(groupProvider.selectedGroup!.id);
+        allNotifications = await NotificationService.getNotificationsForGroup(
+            groupProvider.selectedGroup!.id);
       } else {
         // No group selected, load all notifications
         allNotifications = await NotificationService.getNotifications();
@@ -142,7 +173,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   }
 
   Future<void> _deleteNotification(String notificationId) async {
-    final success = await NotificationService.deleteNotification(notificationId);
+    final success =
+        await NotificationService.deleteNotification(notificationId);
     if (success) {
       setState(() {
         _notifications.removeWhere((n) => n.id == notificationId);
@@ -202,10 +234,12 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
       if (a.isRead && !b.isRead) return 1;
 
       // Second priority: invitations come first within each read/unread group
-      if (a.type == NotificationType.INVITATION && b.type != NotificationType.INVITATION) {
+      if (a.type == NotificationType.INVITATION &&
+          b.type != NotificationType.INVITATION) {
         return -1;
       }
-      if (b.type == NotificationType.INVITATION && a.type != NotificationType.INVITATION) {
+      if (b.type == NotificationType.INVITATION &&
+          a.type != NotificationType.INVITATION) {
         return 1;
       }
 
@@ -235,7 +269,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
 
   /// Handle scroll events for pagination
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       // Load more notifications when user is near the bottom
       _loadMoreNotifications();
     }
@@ -248,7 +283,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     setState(() => _isLoadingMore = true);
 
     try {
-      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+      final groupProvider =
+          Provider.of<GroupSelectionProvider>(context, listen: false);
 
       // Get more notifications based on group selection
       List<models.Notification> moreNotifications;
@@ -257,7 +293,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         moreNotifications = await NotificationService.getNotifications();
       } else if (groupProvider.selectedGroup != null) {
         // Load more notifications for specific group
-        moreNotifications = await NotificationService.getNotificationsForGroup(groupProvider.selectedGroup!.id);
+        moreNotifications = await NotificationService.getNotificationsForGroup(
+            groupProvider.selectedGroup!.id);
       } else {
         // No group selected, load more notifications
         moreNotifications = await NotificationService.getNotifications();
@@ -286,15 +323,14 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final groupProvider = Provider.of<GroupSelectionProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
-    final backgroundColor = isDarkMode ? const Color(0xFF121212) : Colors.grey[100];
+    final backgroundColor =
+        isDarkMode ? const Color(0xFF121212) : Colors.grey[100];
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -308,20 +344,23 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                 // Custom app bar
                 Container(
                   color: backgroundColor,
-                  padding: const EdgeInsets.only(top: 40, left: 16, right: 16, bottom: 8),
+                  padding: const EdgeInsets.only(
+                      top: 40, left: 16, right: 16, bottom: 8),
                   child: Row(
                     children: [
                       // Group selector button
                       GestureDetector(
                         onTap: _toggleSidebar,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             color: isDarkMode ? Colors.grey[800] : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withAlpha((0.1 * 255).round()),
+                                color:
+                                    Colors.black.withAlpha((0.1 * 255).round()),
                                 offset: const Offset(0, 4),
                                 blurRadius: 15,
                               ),
@@ -330,16 +369,16 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.calendar_today,
-                                size: 16,
-                                color: isDarkMode ? Colors.white : Colors.black
-                              ),
+                              Icon(Icons.calendar_today,
+                                  size: 16,
+                                  color:
+                                      isDarkMode ? Colors.white : Colors.black),
                               const SizedBox(width: 8),
                               Text(
                                 groupProvider.currentSelectionName,
                                 style: TextStyle(
-                                  color: isDarkMode ? Colors.white : Colors.black,
+                                  color:
+                                      isDarkMode ? Colors.white : Colors.black,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -357,8 +396,10 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                         icon: const Icon(Icons.mark_email_read, size: 18),
                         label: const Text('Mark All Read'),
                         style: TextButton.styleFrom(
-                          foregroundColor: isDarkMode ? Colors.white : Colors.black87,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          foregroundColor:
+                              isDarkMode ? Colors.white : Colors.black87,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                         ),
                       ),
                     ],
@@ -367,235 +408,290 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                 // Main content
                 Expanded(
                   child: RefreshController(
-        onRefresh: _loadNotifications,
-        child: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _notifications.isEmpty
-              ? Center(
-                  child: Text(
-                    'No notifications',
-                    style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
-                  ),
-                )
-              : ListView.builder(
-                  controller: _scrollController,
-                  itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemBuilder: (context, index) {
-                    // Show loading indicator at the bottom when loading more
-                    if (index == _notifications.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    final notification = _notifications[index];
-
-                    // Handle invitation notifications differently
-                    if (notification.type == NotificationType.INVITATION) {
-                      return _buildInvitationNotification(notification);
-                    }
-
-                    final schedule = notification.schedule;
-
-                    // Skip if schedule is null for non-invitation notifications
-                    if (schedule == null) return const SizedBox.shrink();
-
-                    // Format the date for display (in local timezone)
-                    final startDateLocal = TimezoneService.utcToLocal(schedule.startTime);
-                    final day = startDateLocal.day.toString().padLeft(2, '0');
-                    final month = DateFormat('MMMM').format(startDateLocal);
-                    final year = startDateLocal.year.toString();
-
-                    // Format the time for display (in local timezone)
-                    final startTime = DateFormat('HH:mm').format(startDateLocal);
-                    final endDateLocal = TimezoneService.utcToLocal(schedule.endTime);
-                    final endTime = DateFormat('HH:mm').format(endDateLocal);
-
-                    return Dismissible(
-                      key: Key(notification.id),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(
-                          Icons.delete,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                      onDismissed: (direction) {
-                        _deleteNotification(notification.id);
-                      },
-                      child: GestureDetector(
-                        onTap: () => _markAsRead(notification.id),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: notification.isRead ? Colors.green[50] : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withValues(alpha: 25),
-                                blurRadius: 3,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                        child: Opacity(
-                          opacity: notification.isRead ? 0.7 : 1.0,
-                          child: IntrinsicHeight(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // Date column
-                                Container(
-                                  width: 60,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        day,
-                                        style: const TextStyle(
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      Text(
-                                        month,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      Text(
-                                        year,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                    onRefresh: _loadNotifications,
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _notifications.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No notifications',
+                                  style: TextStyle(
+                                      color: isDarkMode
+                                          ? Colors.white
+                                          : Colors.black),
                                 ),
-                                // Vertical divider
-                                Container(
-                                  width: 1,
-                                  color: Colors.grey[300],
-                                ),
-                                // Content column
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // Time indicator with dot
-                                        Row(
-                                          children: [
-                                            Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                color: _getNotificationColor(notification, Colors.green),
-                                                shape: BoxShape.circle,
+                              )
+                            : ListView.builder(
+                                controller: _scrollController,
+                                itemCount: _notifications.length +
+                                    (_isLoadingMore ? 1 : 0),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                itemBuilder: (context, index) {
+                                  // Show loading indicator at the bottom when loading more
+                                  if (index == _notifications.length) {
+                                    return const Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: Center(
+                                          child: CircularProgressIndicator()),
+                                    );
+                                  }
+                                  final notification = _notifications[index];
+
+                                  // Handle invitation notifications differently
+                                  if (notification.type ==
+                                      NotificationType.INVITATION) {
+                                    return _buildInvitationNotification(
+                                        notification);
+                                  }
+
+                                  final schedule = notification.schedule;
+
+                                  // Skip if schedule is null for non-invitation notifications
+                                  if (schedule == null)
+                                    return const SizedBox.shrink();
+
+                                  // Format the date for display (in local timezone)
+                                  final startDateLocal =
+                                      TimezoneService.utcToLocal(
+                                          schedule.startTime);
+                                  final day = DateFormat('dd').format(
+                                      startDateLocal); // Format to always have two digits
+                                  final month =
+                                      DateFormat('MMMM').format(startDateLocal);
+                                  final year = startDateLocal.year.toString();
+
+                                  // Format the time for display (in local timezone)
+                                  final startTime = DateFormat('HH:mm')
+                                      .format(startDateLocal);
+                                  final endDateLocal =
+                                      TimezoneService.utcToLocal(
+                                          schedule.endTime);
+                                  final endTime =
+                                      DateFormat('HH:mm').format(endDateLocal);
+
+                                  // Determine notification color based on isRead status or other logic
+                                  final bool isRead = notification
+                                      .isRead; // You might have this logic already
+                                  final cardColor = isDarkMode
+                                      ? (isRead
+                                          ? Colors.grey[850]
+                                          : const Color(0xFF1E1E1E))
+                                      : (isRead
+                                          ? Colors.grey[200]
+                                          : Colors.white);
+                                  final dotColor = _getNotificationColor(
+                                      notification,
+                                      Colors
+                                          .green); // Using your existing function for the dot color
+
+                                  return Dismissible(
+                                    key: Key(notification.id),
+                                    direction: DismissDirection.endToStart,
+                                    background: Container(
+                                      margin: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      alignment: Alignment.centerRight,
+                                      padding: const EdgeInsets.only(right: 20),
+                                      child: const Icon(
+                                        Icons.delete,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    onDismissed: (direction) {
+                                      _deleteNotification(notification.id);
+                                    },
+                                    child: GestureDetector(
+                                      onTap: () =>
+                                          _toggleReadStatus(notification),
+                                      child: Opacity(
+                                        opacity: isRead ? 0.6 : 1.0,
+                                        child: Container(
+                                          margin: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: cardColor,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withOpacity(0.05),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
                                               ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              '$startTime-$endTime',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        // Title
-                                        Text(
-                                          schedule.title,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black,
+                                            ],
                                           ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        // Notification message
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                NotificationService.getNotificationMessage(notification),
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey[600],
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                                maxLines: 2,
-                                              ),
-                                            ),
-                                            // Read/Unread indicator
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: notification.isRead
-                                                    ? Colors.green[100]
-                                                    : Colors.blue[100],
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    notification.isRead
-                                                        ? Icons.check_circle
-                                                        : Icons.circle,
-                                                    size: 12,
-                                                    color: notification.isRead
-                                                        ? Colors.green[700]
-                                                        : Colors.blue,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    notification.isRead ? 'Read' : 'New',
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.w500,
-                                                      color: notification.isRead
-                                                          ? Colors.green[700]
-                                                          : Colors.blue,
+                                          child: IntrinsicHeight(
+                                            child: Row(
+                                              children: [
+                                                // Kolom Tanggal (Kiri)
+                                                SizedBox(
+                                                  width:
+                                                      70, // Beri lebar tetap agar rapi
+                                                  child: Padding(
+                                                    padding: const EdgeInsets
+                                                        .fromLTRB(
+                                                        14.0, 11, 0, 11),
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Text(
+                                                          day,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 34,
+                                                            color: Color(
+                                                                0xFF222B45),
+                                                            fontStyle: FontStyle
+                                                                .normal, // Default, jadi ini opsional
+                                                            height: 1,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          month,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 15,
+                                                            color: Color(
+                                                                0xFF222B45),
+                                                            fontStyle: FontStyle
+                                                                .normal,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          year,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 10,
+                                                            color: Color(
+                                                                0xFF8F9BB3),
+                                                            fontStyle: FontStyle
+                                                                .normal,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
-                                                ],
-                                              ),
+                                                ),
+
+                                                const SizedBox(width: 14.0),
+                                                Container(
+                                                  width: 1, // Lebar garis
+                                                  color: isDarkMode
+                                                      ? Colors.grey[700]
+                                                      : Colors.grey[
+                                                          300], // Warna garis
+                                                ),
+
+                                                // Kolom Detail (Kanan)
+                                                Expanded(
+                                                  child: Padding(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        vertical: 12.0,
+                                                        horizontal: 12.0),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        // Baris Waktu dengan titik
+                                                        Row(
+                                                          children: [
+                                                            Container(
+                                                              width: 8,
+                                                              height: 8,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: dotColor,
+                                                                shape: BoxShape
+                                                                    .circle,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                width: 5),
+                                                            Text(
+                                                              '$startTime-$endTime',
+                                                              style:
+                                                                  const TextStyle(
+                                                                fontStyle:
+                                                                    FontStyle
+                                                                        .normal,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                fontSize: 13,
+                                                                color: Color(
+                                                                    0xFF8F9BB3),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        const SizedBox(height: 1,),
+                                                        // Judul Acara
+                                                        Text(
+                                                          schedule.title,
+                                                          style:
+                                                              const TextStyle(
+                                                            // Properti ini adalah default
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 18,
+                                                            color: Color(
+                                                                0xFF222B45),
+                                                          ),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                        const SizedBox(height: 1,),
+                                                        
+                                                        // Pesan Notifikasi
+                                                        Text(
+                                                          NotificationService
+                                                              .getNotificationMessage(
+                                                                  notification),
+                                                          style:
+                                                              const TextStyle(
+                                                            fontStyle: FontStyle
+                                                                .normal,
+                                                            fontWeight: FontWeight
+                                                                .w400, // FontWeight.normal juga setara dengan w400
+                                                            fontSize: 13,
+                                                            color: Color(
+                                                                0xFF8F9BB3),
+                                                          ),
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ));
-                  },
-                    ),
+                                  );
+                                },
+                              ),
                   ),
                 ),
               ],
@@ -747,7 +843,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                             children: [
                               Expanded(
                                 child: Text(
-                                  NotificationService.getNotificationMessage(notification),
+                                  NotificationService.getNotificationMessage(
+                                      notification),
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey[600],
@@ -758,7 +855,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                               ),
                               // Read/Unread indicator
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: notification.isRead
                                       ? Colors.green[100]
@@ -805,7 +903,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: IconButton(
-                                  onPressed: () => _acceptInvitation(invitation.id),
+                                  onPressed: () =>
+                                      _acceptInvitation(invitation.id),
                                   icon: const Icon(
                                     Icons.check,
                                     color: Colors.white,
@@ -826,7 +925,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: IconButton(
-                                  onPressed: () => _declineInvitation(invitation.id),
+                                  onPressed: () =>
+                                      _declineInvitation(invitation.id),
                                   icon: const Icon(
                                     Icons.close,
                                     color: Colors.white,
@@ -863,7 +963,9 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invitation accepted! You are now a member of the group.')),
+          const SnackBar(
+              content: Text(
+                  'Invitation accepted! You are now a member of the group.')),
         );
       }
     } catch (e) {
@@ -896,7 +998,8 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     }
   }
 
-  Color _getNotificationColor(models.Notification notification, Color defaultColor) {
+  Color _getNotificationColor(
+      models.Notification notification, Color defaultColor) {
     // Colors based on notification type
     switch (notification.type) {
       case NotificationType.CREATED:
