@@ -486,7 +486,7 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                         items: const [
                           CustomMenuItem(
                             value: 'remove',
-                            text: 'Remove Member',
+                            text: 'Remove',
                             icon: Icons.person_remove,
                             iconColor: Colors.red,
                             textColor: Colors.red,

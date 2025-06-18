@@ -31,67 +31,90 @@ class _CustomMenuButtonState extends State<CustomMenuButton> {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
     final offset = renderBox.localToGlobal(Offset.zero);
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    const double screenPadding = 16.0;
+
+    double estimatedMenuWidth = 0;
+    for (final item in widget.items) {
+      final textPainter = TextPainter(
+        text: TextSpan(text: item.text, style: const TextStyle(fontSize: 14)),
+        maxLines: 1,
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final double iconWidth = item.icon != null ? 30.0 : 0.0;
+      final double itemWidth = textPainter.width + iconWidth + 32.0;
+
+      if (itemWidth > estimatedMenuWidth) {
+        estimatedMenuWidth = itemWidth;
+      }
+    }
+    estimatedMenuWidth =
+        estimatedMenuWidth.clamp(120.0, screenWidth - (2 * screenPadding));
+
+    double horizontalOffset = 0;
+    if (offset.dx + estimatedMenuWidth > screenWidth - screenPadding) {
+      horizontalOffset = size.width - estimatedMenuWidth;
+    }
 
     _overlayEntry = OverlayEntry(
       builder: (context) => GestureDetector(
-        onTap: _hideMenu, // Close menu when tapping outside
+        onTap: _hideMenu,
         behavior: HitTestBehavior.translucent,
         child: Stack(
           children: [
-            // Full screen transparent area to catch taps
-            Positioned.fill(
-              child: Container(color: Colors.transparent),
-            ),
-            // The actual menu
-            Positioned(
-              left: offset.dx,
-              top: offset.dy + size.height,
-              child: CompositedTransformFollower(
-                link: _layerLink,
-                showWhenUnlinked: false,
-                child: Material(
-                  elevation: 8,
-                  borderRadius: BorderRadius.circular(8),
-                  color: widget.backgroundColor ?? Theme.of(context).cardColor,
-                  child: IntrinsicWidth(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: widget.items.map((item) {
-                        return InkWell(
-                          onTap: () {
-                            _hideMenu();
-                            widget.onSelected(item.value);
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (item.icon != null) ...[
-                                  Icon(
-                                    item.icon,
-                                    size: 18,
-                                    color: item.iconColor,
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                Text(
+            CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: Offset(horizontalOffset, size.height + 12),
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(8),
+                color: widget.backgroundColor ?? Theme.of(context).cardColor,
+
+                child: SizedBox(
+                  width: estimatedMenuWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: widget.items.map((item) {
+                      return InkWell(
+                        onTap: () {
+                          _hideMenu();
+                          widget.onSelected(item.value);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              if (item.icon != null) ...[
+                                Icon(
+                                  item.icon,
+                                  size: 18,
+                                  color: item.iconColor,
+                                ),
+                                const SizedBox(width: 12),
+                              ],
+                              Expanded(
+                                child: Text(
                                   item.text,
                                   style: TextStyle(
                                     color: item.textColor,
                                     fontSize: 14,
                                   ),
+                                  // Ellipsis will now work correctly
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        );
-                      }).toList(),
-                    ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
               ),

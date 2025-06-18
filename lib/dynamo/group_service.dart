@@ -487,6 +487,48 @@ class GroupService {
     }
   }
 
+  // Check if a user has a pending invitation to a group
+  static Future<bool> hasPendingInvitation({
+    required String groupId,
+    required String userId,
+  }) async {
+    try {
+      final request = GraphQLRequest<String>(
+        document: '''
+        query GetPendingInvitation(\$groupId: ID!, \$userId: ID!) {
+          listGroupInvitations(filter: {
+            and: [
+              {groupId: {eq: \$groupId}},
+              {invitedUserId: {eq: \$userId}},
+              {status: {eq: PENDING}}
+            ]
+          }) {
+            items {
+              id
+            }
+          }
+        }
+      ''',
+        variables: {'groupId': groupId, 'userId': userId},
+      );
+
+      final response = await Amplify.API.query(request: request).response;
+
+      if (response.hasErrors) {
+        debugPrint('❌ Error checking pending invitation: ${response.errors}');
+        return false;
+      }
+
+      final data = jsonDecode(response.data ?? '{}');
+      final items = data['listGroupInvitations']?['items'] ?? [];
+
+      return items.isNotEmpty;
+    } catch (e) {
+      debugPrint('❌ Failed to check pending invitation: $e');
+      return false;
+    }
+  }
+
   // Helper method to update invitation status
   static Future<void> _updateInvitationStatus(String invitationId, InvitationStatus status) async {
     final request = GraphQLRequest<String>(

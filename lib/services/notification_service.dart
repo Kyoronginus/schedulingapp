@@ -268,13 +268,9 @@ class NotificationService {
             for (final item in notificationItems) {
               try {
                 final notification = Notification.fromJson(item);
-                // Debug: Log schedule color information
-                if (notification.schedule?.color != null) {
-                  debugPrint('🎨 Notification ${notification.id} has schedule color: ${notification.schedule!.color}');
-                } else {
+                if (notification.schedule?.color == null) {
                   debugPrint('⚠️ Notification ${notification.id} missing schedule color');
                 }
-                // Avoid duplicates
                 if (!allNotifications.any((n) => n.id == notification.id)) {
                   allNotifications.add(notification);
                 }
