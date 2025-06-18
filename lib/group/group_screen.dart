@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
-
+import '../utils/utils_functions.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/profile_avatar.dart';
@@ -18,6 +18,7 @@ import '../widgets/smart_back_button.dart';
 import '../services/refresh_service.dart';
 
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 
 class GroupScreen extends StatefulWidget {
@@ -242,10 +243,24 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
         ],
       ),
       floatingActionButton: groupProvider.selectedGroup != null ? FloatingActionButton(
-        onPressed: () => _navigateToInviteMember(groupProvider.selectedGroup!.id),
-        backgroundColor: activeColor,
-        child: const Icon(Icons.person_add, color: Colors.white),
-      ) : null,
+  onPressed: () => _navigateToInviteMember(groupProvider.selectedGroup!.id),
+  backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+                32), // Sesuaikan nilai ini untuk mengatur tingkat kebundaran
+          ),
+  // DIUBAH: Mengganti Icon dengan SvgPicture.asset
+  child: SvgPicture.asset(
+    'assets/icons/add_person-icon.svg', // Pastikan path ini benar
+    width: 28, // Sesuaikan ukuran ikon jika perlu
+    height: 28, // Sesuaikan ukuran ikon jika perlu
+    // Gunakan colorFilter untuk memberi warna putih pada SVG
+    colorFilter: const ColorFilter.mode(
+      Colors.white, 
+      BlendMode.srcIn
+    ),
+  ),
+) : null,
       bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
       ),
     );
@@ -468,7 +483,7 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                             _showRemoveMemberDialog(member);
                           }
                         },
-                        items: [
+                        items: const [
                           CustomMenuItem(
                             value: 'remove',
                             text: 'Remove Member',
