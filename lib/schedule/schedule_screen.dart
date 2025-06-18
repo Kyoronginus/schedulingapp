@@ -480,175 +480,173 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   }
 
   void _showScheduleDetailDialog(BuildContext context, Schedule schedule) {
-    // Ambil variabel tema lagi untuk dialog
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    final isDarkMode = themeProvider.isDarkMode;
-    final textColor = isDarkMode ? Colors.white : const Color(0xFF0F1A2A);
-    final subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
-    final cardBackgroundColor =
-        isDarkMode ? const Color(0xFF2C2C2C) : Colors.white;
-    final activeColor =
-        isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
-    final dotColor = _getDotColor(schedule, activeColor, 0);
+  final theme = Theme.of(context);
+  final isDarkMode = theme.brightness == Brightness.dark;
+  final activeColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
+  final dotColor = _getDotColor(schedule, activeColor, 0);
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: cardBackgroundColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0),
-          ),
-          // Judul dialog diambil dari judul jadwal
-          title: Text(
-            schedule.title,
-            style: TextStyle(
-                color: textColor, fontWeight: FontWeight.bold, fontSize: 22),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Helper widget untuk menampilkan baris detail
-                _buildDetailRow(
-                    Icons.calendar_today,
-                    'Date',
-                    DateFormat('EEEE, dd MMMM yyyy')
-                        .format(TimezoneService.utcToLocal(schedule.startTime)),
-                    subTextColor),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                    Icons.access_time_filled,
-                    'Time',
-                    '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
-                    subTextColor),
-
-                // Tampilkan lokasi jika ada
-                if (schedule.location != null &&
-                    schedule.location!.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _buildDetailRow(Icons.location_on, 'Location',
-                      schedule.location, subTextColor,
-                      isLink: true),
-                ],
-
-                // Tampilkan warna event
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.color_lens, color: subTextColor, size: 20),
-                    const SizedBox(width: 16),
-                    Text('Color',
-                        style: TextStyle(color: subTextColor, fontSize: 16)),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: schedule.color != null
-                            ? Color(int.parse(schedule.color!))
-                            : Colors.transparent, // Warna default jika null
-                        shape: BoxShape.circle,
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        contentPadding: EdgeInsets.zero,
+        title: null,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        
+        // DIUBAH: content sekarang adalah Stack untuk menumpuk tombol Close
+        content: Stack(
+          children: [
+            // Layer 1: Konten Utama Dialog (yang sudah kita buat)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ===== HEADER BERWARNA =====
+                  Container(
+                    color: dotColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    width: double.infinity,
+                    child: Text(
+                      schedule.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
                       ),
                     ),
-                  ],
-                ),
-
-                // Tampilkan deskripsi jika ada
-                if (schedule.description != null &&
-                    schedule.description!.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Description',
-                    style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18),
                   ),
-                  const SizedBox(height: 8),
-                  // Gunakan Linkify agar URL di deskripsi bisa diklik
-                  Linkify(
-                    onOpen: (link) async {
-                      final uri = Uri.parse(link.url);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri);
-                      }
-                    },
-                    text: schedule.description!,
-                    style: TextStyle(
-                        color: subTextColor, fontSize: 15, height: 1.5),
-                    linkStyle: TextStyle(
-                        color: activeColor,
-                        decoration: TextDecoration.underline),
+
+                  // ===== KONTEN DETAIL DI BAWAH HEADER =====
+                  Container(
+                    color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                    padding: const EdgeInsets.all(24.0),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                           _buildDetailRow(
+                            dialogContext,
+                            iconAsset: 'assets/icons/calendar_navbar-icon.svg',
+                            title: 'Date',
+                            content: DateFormat('EEEE, dd MMMM yy').format(TimezoneService.utcToLocal(schedule.startTime)),
+                          ),
+                          _buildDetailRow(
+                            dialogContext,
+                            iconAsset: 'assets/icons/clock-icon.svg',
+                            title: 'Time',
+                            content: '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
+                          ),
+                          if (schedule.location != null && schedule.location!.isNotEmpty)
+                            _buildDetailRow(
+                              dialogContext,
+                              iconAsset: 'assets/icons/pin_location-icon.svg',
+                              title: 'Location',
+                              content: schedule.location,
+                              isLink: true,
+                            ),
+                          // ... dan seterusnya untuk detail lain ...
+                        ],
+                      ),
+                    ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-          // Tombol untuk menutup dialog
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
+
+            // Layer 2: Tombol Close 'X' di pojok kanan atas
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(dialogContext),
+                tooltip: 'Close',
+              ),
             ),
           ],
-        );
-      },
-    );
+        ),
+        
+        // DIUBAH: Hapus seluruh bagian 'actions' dari sini
+        // actions: [ ... ], 
+      );
+    },
+  );
+}
+
+  // DIUBAH: Fungsi helper diperbarui untuk gaya teks yang lebih baik
+// DIUBAH: Fungsi helper sekarang menggunakan String path ikon SVG
+Widget _buildDetailRow(
+  BuildContext context, {
+  required String iconAsset, // <-- Menerima String path aset
+  required String title,
+  required String? content,
+  bool isLink = false,
+}) {
+  final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+  final subTextColor = Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey;
+  final primaryColor = Theme.of(context).primaryColor;
+
+  if (content == null || content.isEmpty) {
+    return const SizedBox.shrink();
   }
 
-  Widget _buildDetailRow(
-      IconData icon, String title, String? content, Color subTextColor,
-      {bool isLink = false}) {
-    // Jika konten null atau kosong, jangan tampilkan apa-apa
-    if (content == null || content.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Row(
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6.0),
+    child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: subTextColor, size: 20),
+        // DIUBAH: Menggunakan SvgPicture.asset
+        SvgPicture.asset(
+          iconAsset,
+          width: 20,
+          height: 20,
+          // Beri warna ikon sesuai subTextColor agar konsisten
+          // colorFilter: ColorFilter.mode(subTextColor, BlendMode.srcIn),
+        ),
         const SizedBox(width: 16),
         Expanded(
+          // ... sisa kode di dalam Expanded tetap sama
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(color: subTextColor, fontSize: 16)),
-              const SizedBox(height: 2),
-              // Jika ini adalah link, buat bisa diklik
+              Text(title, style: TextStyle(color: subTextColor, fontSize: 14)),
+              const SizedBox(height: 4),
               isLink
                   ? InkWell(
                       onTap: () async {
-                        final uri = Uri.parse(content);
+                        final query = Uri.encodeComponent(content);
+                        final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
                         if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri);
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
                         }
                       },
                       child: Text(
                         content,
                         style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontSize: 16,
-                            decoration: TextDecoration.underline),
+                          color: primaryColor,
+                          fontSize: 16,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     )
                   : Text(
                       content,
                       style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500),
+                        color: textColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
             ],
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -1204,13 +1202,12 @@ class _ScheduleScreenState extends State<ScheduleScreen>
         final dotColor = _getDotColor(schedule, activeColor, 0);
 
         // DIUBAH: Menggunakan Container sebagai dasar, bukan Card
-        return InkWell(
+        return GestureDetector(
           onTap: () {
             // Panggil fungsi untuk menampilkan dialog detail
             _showScheduleDetailDialog(context, schedule);
           },
           // Samakan radiusnya agar efek "splash" terlihat rapi
-          borderRadius: BorderRadius.circular(10.0),
           child: Container(
             margin: const EdgeInsets.only(bottom: 12.0),
             padding: const EdgeInsets.fromLTRB(16.0, 8.0, 18.0, 10.0),
