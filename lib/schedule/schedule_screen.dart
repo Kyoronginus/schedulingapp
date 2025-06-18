@@ -17,9 +17,25 @@ import '../services/timezone_service.dart';
 import '../services/refresh_service.dart';
 import '../widgets/smart_back_button.dart';
 import 'create_schedule/schedule_form_dialog.dart';
+import 'schedule_conflict_detector.dart';
 import '../dynamo/group_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
+/// Data class to represent a conflict availability notice
+class ConflictAvailabilityNotice {
+  final Schedule conflictingSchedule;
+  final TemporalDateTime startTime;
+  final TemporalDateTime endTime;
+  final String? username;
+
+  ConflictAvailabilityNotice({
+    required this.conflictingSchedule,
+    required this.startTime,
+    required this.endTime,
+    this.username,
+  });
+}
 
 // Extension to make any widget tappable
 extension TapExtension on Widget {
@@ -40,6 +56,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   final int _currentIndex = 0; // Schedule is the 1st tab (index 0)
   bool _isLoading = true;
   Map<DateTime, List<Schedule>> _groupedSchedules = {};
+  Map<DateTime, Set<String>> _conflictsByDate = {};
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   String _currentMonth = DateFormat('MMMM').format(DateTime.now());
@@ -168,21 +185,32 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     try {
       final groupProvider =
           Provider.of<GroupSelectionProvider>(context, listen: false);
-      List<Schedule> schedules = [];
 
+      // Always load all schedules for conflict detection
+      final allSchedules = await ScheduleService.loadAllSchedules();
+
+      List<Schedule> displaySchedules = [];
       if (groupProvider.isPersonalMode) {
-        // Load schedules from all groups for personal calendar
-        schedules = await ScheduleService.loadAllSchedules();
+        // In personal mode, display all schedules
+        displaySchedules = allSchedules;
       } else if (groupProvider.selectedGroup != null) {
-        // Load schedules for the selected group
-        schedules = await ScheduleService.getGroupSchedules(
-            groupProvider.selectedGroup!.id);
+        // In group mode, display schedules for the selected group
+        displaySchedules = allSchedules
+            .where((schedule) => schedule.group?.id == groupProvider.selectedGroup!.id)
+            .toList();
       }
+
+      // Detect conflicts using ALL schedules for accurate conflict detection
+      final allGroupedSchedules = _groupSchedulesByDate(allSchedules);
+      final conflicts = ScheduleConflictDetector.detectAllConflicts(allGroupedSchedules);
 
       // Check if widget is still mounted before calling setState
       if (!mounted) return;
       setState(() {
-        _groupedSchedules = _groupSchedulesByDate(schedules);
+        _allSchedules = allSchedules; // Store all schedules for conflict detection
+        _groupedSchedules = _groupSchedulesByDate(displaySchedules);
+        _conflictsByDate = conflicts;
+
         _isLoading = false;
       });
     } catch (e) {
@@ -219,8 +247,12 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   }
 
   List<Schedule> _getSchedulesForDay(DateTime day) {
-    return _groupedSchedules[day] ?? [];
+    // Normalize the date to match our grouping keys
+    final normalizedDay = DateTime.utc(day.year, day.month, day.day);
+    return _groupedSchedules[normalizedDay] ?? [];
   }
+
+
 
   void _showCreateScheduleDialog() {
     final groupProvider =
@@ -797,6 +829,25 @@ Widget _buildDetailRow(
                                         return null;
                                       }
 
+                                      // Check if there are conflicts on this date
+                                      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+                                      bool hasConflict = false;
+
+                                      // Normalize the date to match our conflict detection keys
+                                      final normalizedDate = DateTime.utc(date.year, date.month, date.day);
+
+                                      // Only show conflicts in group mode, not in personal mode
+                                      if (!groupProvider.isPersonalMode) {
+                                        // In group mode, show conflicts only for the selected group
+                                        final currentGroupId = groupProvider.selectedGroup?.id;
+                                        hasConflict = currentGroupId != null &&
+                                            ScheduleConflictDetector.groupHasConflictOnDate(
+                                              currentGroupId,
+                                              normalizedDate,
+                                              _conflictsByDate
+                                            );
+                                      }
+
                                       final uniqueColors = <Color>{};
                                       for (var schedule in scheduleEvents) {
                                         final color = _getDotColor(schedule,
@@ -804,31 +855,53 @@ Widget _buildDetailRow(
                                         uniqueColors.add(color);
                                       }
 
-                                      return Positioned(
-                                        bottom:
-                                            -4,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: uniqueColors
-                                              .take(
-                                                  4)
-                                              .map((color) => Container(
-                                                    width: 6,
-                                                    height: 6,
-                                                    margin: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 1.5),
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: Colors.transparent, 
-                                                      border: Border.all(
-                                                        color: color, 
-                                                        width: 1.5,
-                                                      ),
+                                      // Limit to 3 normal dots if there's a conflict, otherwise 4
+                                      final maxDots = hasConflict ? 3 : 4;
+                                      final dots = <Widget>[];
+
+                                      // Add normal schedule dots
+                                      dots.addAll(
+                                        uniqueColors
+                                            .take(maxDots)
+                                            .map((color) => Container(
+                                                  width: 6,
+                                                  height: 6,
+                                                  margin: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 1.5),
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: Colors.transparent,
+                                                    border: Border.all(
+                                                      color: color,
+                                                      width: 1.5,
                                                     ),
-                                                  ))
-                                              .toList(),
+                                                  ),
+                                                ))
+                                            .toList(),
+                                      );
+
+                                      // Add conflict icon if there's a conflict
+                                      if (hasConflict) {
+                                        dots.add(
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                            child: SvgPicture.asset(
+                                              'assets/icons/x-icon.svg',
+                                              width: 6,
+                                              height: 6,
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      return Positioned(
+                                        bottom: -4,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: dots,
                                         ),
                                       );
                                     },
@@ -902,7 +975,7 @@ Widget _buildDetailRow(
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton(
+        floatingActionButton: !groupProvider.isPersonalMode ? FloatingActionButton(
           onPressed: _showCreateScheduleDialog,
           backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
           shape: RoundedRectangleBorder(
@@ -918,7 +991,7 @@ Widget _buildDetailRow(
             width: 22,
             height: 22,
           ),
-        ),
+        ) : null,
         bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
       ),
     );
@@ -1141,10 +1214,8 @@ Widget _buildDetailRow(
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
 
     final day = _selectedDay ?? _focusedDay;
-    final schedules = _groupedSchedules.values
-        .expand((list) => list)
-        .where((s) => isSameDay(TimezoneService.utcToLocal(s.startTime), day))
-        .toList();
+    final schedules = _getSchedulesForDay(day);
+    final conflictNotices = _getConflictNoticesForDay(day);
 
     schedules.sort(
       (a, b) => TimezoneService.utcToLocal(a.startTime).compareTo(
@@ -1152,7 +1223,10 @@ Widget _buildDetailRow(
       ),
     );
 
-    if (schedules.isEmpty) {
+    // Create a combined list of schedules and conflict notices
+    final totalItems = schedules.length + conflictNotices.length;
+
+    if (totalItems == 0) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -1166,13 +1240,15 @@ Widget _buildDetailRow(
     }
 
     return ListView.builder(
-      itemCount: schedules.length,
+      itemCount: totalItems,
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       itemBuilder: (context, index) {
-        final schedule = schedules[index];
-        final dotColor = _getDotColor(schedule, activeColor, 0);
+        // First show all regular schedules, then conflict notices
+        if (index < schedules.length) {
+          final schedule = schedules[index];
+          final dotColor = _getDotColor(schedule, activeColor, 0);
 
-        return GestureDetector(
+          return GestureDetector(
           onTap: () {
             _showScheduleDetailDialog(context, schedule);
           },
@@ -1297,8 +1373,95 @@ Widget _buildDetailRow(
             ),
           ),
         );
+        } else {
+          // Show conflict availability notice
+          final noticeIndex = index - schedules.length;
+          final notice = conflictNotices[noticeIndex];
+
+          return _buildConflictNoticeWidget(notice, cardBackgroundColor, textColor, subTextColor);
+        }
       },
     );
+  }
+
+  // Helper method to build conflict availability notice widget
+  Widget _buildConflictNoticeWidget(
+    ConflictAvailabilityNotice notice,
+    Color cardBackgroundColor,
+    Color textColor,
+    Color subTextColor,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 18.0, 10.0),
+      decoration: BoxDecoration(
+        color: cardBackgroundColor,
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Use x-icon instead of circular dot
+              SvgPicture.asset(
+                'assets/icons/x-icon.svg',
+                width: 12,
+                height: 12,
+                colorFilter: const ColorFilter.mode(
+                  Colors.red,
+                  BlendMode.srcIn,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_formatTime(TimezoneService.utcToLocal(notice.startTime))} - ${_formatTime(TimezoneService.utcToLocal(notice.endTime))}',
+                style: const TextStyle(
+                  fontStyle: FontStyle.normal,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13.0,
+                  color: Color(0xFF8F9BB3),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          FutureBuilder<String>(
+            future: _getUsernameFromSchedule(notice.conflictingSchedule),
+            builder: (context, snapshot) {
+              final username = snapshot.data ?? 'Someone';
+              return Text(
+                '$username is not available at these times.',
+                style: TextStyle(
+                  fontStyle: FontStyle.normal,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 17.0,
+                  color: textColor,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to get username from schedule
+  Future<String> _getUsernameFromSchedule(Schedule schedule) async {
+    try {
+      if (schedule.user != null && schedule.user!.name.isNotEmpty) {
+        return schedule.user!.name;
+      }
+      if (schedule.user != null && schedule.user!.email.isNotEmpty) {
+        return schedule.user!.email.split('@')[0]; // Use email prefix as username
+      }
+      return 'Someone';
+    } catch (e) {
+      debugPrint('Error getting username: $e');
+      return 'Someone';
+    }
   }
 
   // Helper method to format time as HH:MM
@@ -1374,6 +1537,59 @@ Widget _buildDetailRow(
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  // Store all schedules for conflict detection
+  List<Schedule> _allSchedules = [];
+
+  // Helper method to get conflict availability notices for a specific day
+  List<ConflictAvailabilityNotice> _getConflictNoticesForDay(DateTime day) {
+    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+
+    // Only show conflict notices in group mode
+    if (groupProvider.isPersonalMode || groupProvider.selectedGroup == null) {
+      return [];
+    }
+
+    final selectedGroupId = groupProvider.selectedGroup!.id;
+    final normalizedDay = DateTime.utc(day.year, day.month, day.day);
+
+    // Check if the selected group has conflicts on this date
+    if (!ScheduleConflictDetector.groupHasConflictOnDate(
+        selectedGroupId, normalizedDay, _conflictsByDate)) {
+      return [];
+    }
+
+    final notices = <ConflictAvailabilityNotice>[];
+
+    // Get all schedules for this date from all groups
+    final allGroupedSchedules = _groupSchedulesByDate(_allSchedules);
+    final allSchedulesForDate = allGroupedSchedules[normalizedDay] ?? [];
+
+    // Find schedules from the selected group
+    final selectedGroupSchedules = allSchedulesForDate
+        .where((s) => s.group?.id == selectedGroupId)
+        .toList();
+
+    // Find conflicting schedules from other groups
+    for (final selectedSchedule in selectedGroupSchedules) {
+      for (final otherSchedule in allSchedulesForDate) {
+        if (otherSchedule.group?.id != selectedGroupId &&
+            ScheduleConflictDetector.schedulesOverlap(selectedSchedule, otherSchedule)) {
+
+          // Create a conflict notice (avoid duplicates)
+          if (!notices.any((notice) => notice.conflictingSchedule.id == otherSchedule.id)) {
+            notices.add(ConflictAvailabilityNotice(
+              conflictingSchedule: otherSchedule,
+              startTime: otherSchedule.startTime,
+              endTime: otherSchedule.endTime,
+            ));
+          }
+        }
+      }
+    }
+
+    return notices;
   }
 
   // Helper method to get dot color based on schedule

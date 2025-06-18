@@ -226,6 +226,7 @@ class ScheduleService {
                 color
                 userId
                 groupId
+                createdAt
                 user {
                   id
                   name
@@ -281,6 +282,7 @@ class ScheduleService {
                 color
                 userId
                 groupId
+                createdAt
                 user {
                   id
                   name
