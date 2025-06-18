@@ -301,16 +301,17 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                             isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                         child: Padding(
                           padding: const EdgeInsets.only(
-                              top: 42.0, left: 17.0, right: 17.0),
+                              top: 42.0, left: 16.0, right: 16.0),
                           child: Column(
                             children: [
                               // Top row with calendar selector and month/year selector
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                  vertical: 12.0,
+                                  horizontal: 4.0,
+                                  vertical: 10.0,
                                 ),
                                 child: Row(
+
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
@@ -325,7 +326,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                               Container(
                                 margin: const EdgeInsets.only(
                                     top:
-                                        24.0), // Beri jarak ke daftar jadwal di bawahnya
+                                        16.0), // Beri jarak ke daftar jadwal di bawahnya
                                 padding: const EdgeInsets.fromLTRB(8.0, 12.0,
                                     8.0, 8.0), // Beri ruang di dalam container
                                 decoration: BoxDecoration(
@@ -377,9 +378,9 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                     ),
                                   ),
                                   weekendDays: const [DateTime.sunday],
-                                  rowHeight: 43.0,
+                                  rowHeight: 44.0,
                                   calendarStyle: CalendarStyle(
-                                    cellMargin: const EdgeInsets.all(4.0),
+                                    cellMargin: const EdgeInsets.all(5.0),
 
                                     todayDecoration: const BoxDecoration(
                                       shape: BoxShape
@@ -394,30 +395,22 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                     // Only make Sunday red (last day of week when starting with Monday)
                                     weekendTextStyle: const TextStyle(
                                       color: Colors.red,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w500,
                                       fontSize: 18,
                                     ),
 
                                     outsideTextStyle: const TextStyle(
                                         color: Color(0xFF8F9BB3),
                                         fontSize: 18,
-                                        fontWeight: FontWeight.bold),
+                                        fontWeight: FontWeight.w500),
 
                                     defaultTextStyle: const TextStyle(
                                       fontWeight:
-                                          FontWeight.bold, // font-weight: 500
+                                          FontWeight.w500, // font-weight: 500
                                       fontSize: 18, // font-size: 18px
                                       color:
                                           Color(0xFF252525), // color: #252525
                                     ),
-
-                                    // Gaya untuk hari akhir pekan (Sabtu & Minggu)
-                                    // Ini akan mengubah angka weekend yang tadinya merah menjadi hitam.
-                                    // weekendTextStyle: const TextStyle(
-                                    //   fontWeight: FontWeight.w500,
-                                    //   fontSize: 18,
-                                    //   color: Color(0xFF252525),
-                                    // ),
 
                                     // Kita biarkan warnanya putih agar kontras dengan background ungu.
                                     selectedTextStyle: const TextStyle(
@@ -427,36 +420,17 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                     ),
 
                                     // Gaya untuk tanggal hari ini
-                                    // Kita gunakan style yang sama, tapi mungkin Anda ingin membuatnya bold.
-                                    todayTextStyle:  TextStyle(
+                                    // Kita gunakan style yang sama, tapi mungkin Anda ingin membuatnya w500.
+                                    todayTextStyle: TextStyle(
                                       fontWeight: FontWeight
                                           .bold, // Atau FontWeight.bold agar lebih menonjol
                                       fontSize: 18,
                                       color: activeColor,
                                     ),
 
-                                    // Dekorasi dan style lainnya tetap sama
-                                    // todayDecoration: BoxDecoration(
-                                    //   color: activeColor.withAlpha(76),
-                                    //   shape: BoxShape.circle,
-                                    // ),
-
-                                    // selectedDecoration: BoxDecoration(
-                                    //   color: activeColor,
-                                    //   shape: BoxShape.circle,
-                                    // ),
-
-                                    // outsideTextStyle: TextStyle(
-                                    //     fontSize:
-                                    //         16, // Samakan ukuran font jika mau
-                                    //     color: Colors.grey[
-                                    //         400] // Biarkan abu-abu agar tidak membingungkan
-                                    //     ),
                                   ),
                                   headerVisible:
                                       false, // Hide the default header
-                                  // ... properti TableCalendar lainnya seperti onDaySelected, onPageChanged, dll.
-
                                   // TAMBAHKAN BLOK INI:
                                   calendarBuilders: CalendarBuilders(
                                     markerBuilder: (context, date, events) {
@@ -479,7 +453,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                       // Tampilkan titik-titik di bawah tanggal
                                       return Positioned(
                                         bottom:
-                                            -4, // Atur posisi vertikal titik dari bawah
+                                            -3, // Atur posisi vertikal titik dari bawah
                                         child: Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
@@ -590,7 +564,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
             BoxShadow(
               color: Colors.black.withAlpha((0.1 * 255).round()),
               offset: const Offset(0, 4),
-              blurRadius: 15,
+              blurRadius: 6,
             ),
           ],
         ),
@@ -1339,7 +1313,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                 BoxShadow(
                   color: Colors.black.withAlpha((0.1 * 255).round()),
                   offset: const Offset(0, 4),
-                  blurRadius: 15,
+                  blurRadius: 6,
                 ),
               ],
             ),
