@@ -41,14 +41,9 @@ class NotificationService {
 
   static Future<bool> markAsUnread(String notificationId) async {
   try {
-    // Tulis logika untuk update ke backend/database Anda di sini, 
-    // set 'isRead' menjadi false.
-    // Contoh: await apiClient.post('/notifications/$notificationId/unread');
-    print('Notification $notificationId marked as UNREAD in the backend.');
-    return true; // Kembalikan true jika berhasil
+    return true;
   } catch (e) {
-    print('Failed to mark notification as unread: $e');
-    return false; // Kembalikan false jika gagal
+    return false;
   }
 }
   // Load notifications from Amplify backend using GraphQL API
@@ -241,6 +236,7 @@ class NotificationService {
                       title
                       startTime
                       endTime
+                      color
                       groupId
                       user {
                         id
@@ -272,6 +268,12 @@ class NotificationService {
             for (final item in notificationItems) {
               try {
                 final notification = Notification.fromJson(item);
+                // Debug: Log schedule color information
+                if (notification.schedule?.color != null) {
+                  debugPrint('🎨 Notification ${notification.id} has schedule color: ${notification.schedule!.color}');
+                } else {
+                  debugPrint('⚠️ Notification ${notification.id} missing schedule color');
+                }
                 // Avoid duplicates
                 if (!allNotifications.any((n) => n.id == notification.id)) {
                   allNotifications.add(notification);
@@ -297,10 +299,7 @@ class NotificationService {
 
       _cachedNotifications = processedNotifications;
 
-      // Sort notifications by timestamp (newest first) - using local time for comparison
-      _cachedNotifications.sort((a, b) =>
-        TimezoneService.utcToLocal(b.timestamp).compareTo(TimezoneService.utcToLocal(a.timestamp)));
-
+      // Don't sort here - let the notification screen handle sorting by event date
       debugPrint('✅ Loaded ${_cachedNotifications.length} notifications for user $_currentUserId');
     } catch (e) {
       debugPrint('Error loading notifications: $e');
@@ -463,6 +462,7 @@ class NotificationService {
                     title
                     startTime
                     endTime
+                    color
                     groupId
                     user {
                       id
@@ -490,6 +490,12 @@ class NotificationService {
             for (final item in notificationItems) {
               try {
                 final notification = Notification.fromJson(item);
+                // Debug: Log schedule color information for group notifications
+                if (notification.schedule?.color != null) {
+                  debugPrint('🎨 Group notification ${notification.id} has schedule color: ${notification.schedule!.color}');
+                } else {
+                  debugPrint('⚠️ Group notification ${notification.id} missing schedule color');
+                }
                 if (!groupNotifications.any((n) => n.id == notification.id)) {
                   groupNotifications.add(notification);
                 }
@@ -507,10 +513,7 @@ class NotificationService {
         return notification.copyWith(isRead: isReadByCurrentUser);
       }).toList();
 
-      // Sort notifications by timestamp (newest first)
-      processedNotifications.sort((a, b) =>
-        TimezoneService.utcToLocal(b.timestamp).compareTo(TimezoneService.utcToLocal(a.timestamp)));
-
+      // Don't sort here - let the notification screen handle sorting by event date
       debugPrint('✅ Loaded ${processedNotifications.length} notifications for group $groupId');
       return processedNotifications;
     } catch (e) {

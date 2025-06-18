@@ -6,6 +6,7 @@ import '../models/Group.dart';
 import '../models/User.dart';
 import '../theme/theme_provider.dart';
 import '../widgets/profile_avatar.dart';
+import '../widgets/custom_menu_button.dart';
 import '../dynamo/group_service.dart';
 
 class GroupSelectorSidebar extends StatefulWidget {
@@ -501,36 +502,32 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
         final themeProvider = Provider.of<ThemeProvider>(context);
         final isDarkMode = themeProvider.isDarkMode;
 
-        return PopupMenuButton<String>(
+        return CustomMenuButton(
           onSelected: (value) {
+            if (!mounted) return;
             if (value == 'edit') {
               _showEditGroupDialog(group);
             } else if (value == 'delete') {
               _showDeleteGroupDialog(group);
             }
           },
-          itemBuilder: (BuildContext context) => [
-            const PopupMenuItem<String>(
+          items: [
+            CustomMenuItem(
               value: 'edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit, size: 18),
-                  SizedBox(width: 8),
-                  Text('Edit Group'),
-                ],
-              ),
+              text: 'Edit Group',
+              icon: Icons.edit,
+              iconColor: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              textColor: isDarkMode ? Colors.white : Colors.black,
             ),
-            const PopupMenuItem<String>(
+            const CustomMenuItem(
               value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete, color: Colors.red, size: 18),
-                  SizedBox(width: 8),
-                  Text('Delete Group', style: TextStyle(color: Colors.red)),
-                ],
-              ),
+              text: 'Delete Group',
+              icon: Icons.delete,
+              iconColor: Colors.red,
+              textColor: Colors.red,
             ),
           ],
+          backgroundColor: isDarkMode ? Colors.grey[800] : Colors.white,
           child: Icon(
             Icons.more_vert,
             size: 20,

@@ -7,6 +7,7 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/group_selector_sidebar.dart';
+import '../widgets/custom_menu_button.dart';
 import '../dynamo/group_service.dart';
 import '../models/User.dart';
 import '../schedule/invite/invite_member_screen.dart';
@@ -460,25 +461,23 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                         return const SizedBox.shrink();
                       }
 
-                      return PopupMenuButton<String>(
-                        key: ValueKey('popup_${member.id}'),
+                      return CustomMenuButton(
                         onSelected: (value) {
+                          if (!mounted) return;
                           if (value == 'remove') {
                             _showRemoveMemberDialog(member);
                           }
                         },
-                        itemBuilder: (BuildContext context) => [
-                          const PopupMenuItem<String>(
+                        items: [
+                          CustomMenuItem(
                             value: 'remove',
-                            child: Row(
-                              children: [
-                                Icon(Icons.person_remove, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Remove Member'),
-                              ],
-                            ),
+                            text: 'Remove Member',
+                            icon: Icons.person_remove,
+                            iconColor: Colors.red,
+                            textColor: Colors.red,
                           ),
                         ],
+                        backgroundColor: isDarkMode ? Colors.grey[800] : Colors.white,
                         child: const Icon(Icons.more_vert),
                       );
                     },

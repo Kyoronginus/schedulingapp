@@ -42,9 +42,6 @@ class InviteMemberService {
       }
 
       final userData = items.first as Map<String, dynamic>;
-
-      // --- Data Parsing Logic ---
-
       // Helper function to robustly convert a String to an AuthMethod enum
       AuthMethod? _parseAuthMethod(String? methodName) {
         if (methodName == null) return null;

@@ -121,23 +121,23 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey[300]!),
                 ),
-                child: Column(
+                child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '1. Go to your provider\'s website:',
                       style: TextStyle(fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 8),
-                    const Text('• Google: myaccount.google.com'),
-                    const Text('• Facebook: facebook.com/settings'),
-                    const SizedBox(height: 12),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text('• Google: myaccount.google.com'),
+                    Text('• Facebook: facebook.com/settings'),
+                    SizedBox(height: 12),
+                    Text(
                       '2. Navigate to Security settings',
                       style: TextStyle(fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 8),
-                    const Text('3. Change your password there'),
+                    SizedBox(height: 8),
+                    Text('3. Change your password there'),
                   ],
                 ),
               ),

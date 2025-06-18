@@ -260,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(16), // Membuat sudut melengkung
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1), // Bayangan yang sangat lembut
+                            color: Colors.black.withValues(alpha:0.1), // Bayangan yang sangat lembut
                             spreadRadius: 1,
                             blurRadius: 10,
                             offset: const Offset(0, 4), // Posisi bayangan (sedikit ke bawah)

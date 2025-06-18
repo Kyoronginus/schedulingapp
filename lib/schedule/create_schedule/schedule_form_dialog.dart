@@ -1,19 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/Schedule.dart';
-import '../../models/User.dart';
 import '../schedule_service.dart';
 import '../../models/Group.dart';
-import '../../auth/auth_service.dart';
 import '../../dynamo/group_service.dart';
-import '../../theme/theme_provider.dart';
 import '../../services/timezone_service.dart';
 import '../../services/refresh_service.dart';
 import '../../services/oauth_user_service.dart';
 import '../../widgets/scrollable_time_picker.dart';
-import 'package:provider/provider.dart';
-import 'dart:async';
-import '../../utils/utils_functions.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 // DIUBAH: Nama kelas diubah agar lebih deskriptif
@@ -37,7 +32,7 @@ class ScheduleFormDialog extends StatefulWidget {
 
 class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
   final _formKey =
-      GlobalKey<FormState>(); // BARU: Menambahkan GlobalKey untuk validasi
+      GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
@@ -50,7 +45,6 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
   Timer? _timeValidityTimer;
   Color _selectedColor = const Color(0xFF735BF2); // Default purple color
 
-  // Predefined color options for the color picker - matches calendar color palette
   final List<Color> _colorOptions = [
     const Color(0xFF735BF2), // Purple (default)
     const Color(0xFF4CAF50), // Green
@@ -73,7 +67,6 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
     _selectedDate = widget.selectedDate;
 
     if (_isEditing) {
-      // Logika untuk mengisi form saat mode edit (tidak berubah)
       _titleController.text = widget.scheduleToEdit!.title;
       _descriptionController.text = widget.scheduleToEdit!.description ?? '';
       _locationController.text = widget.scheduleToEdit!.location ?? '';
@@ -119,7 +112,6 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
   }
 
   Future<void> _loadInitialData() async {
-    // Logika ini tidak berubah
     try {
       final groups = await GroupService.getUserGroups();
       if (groups.isNotEmpty && mounted) {
@@ -141,11 +133,10 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
       _startTime!.hour,
       _startTime!.minute);
 
-  // Jika waktu yang dipilih sudah lewat
   if (!TimezoneService.isLocalTimeInFuture(selectedStartDateTime)) {
     if (mounted) {
       setState(() {
-        // DIUBAH: Jangan set ke null, tapi reset ke waktu default (jam berikutnya)
+
         final now = DateTime.now();
         final nextHour = (now.hour + (now.minute > 0 ? 1 : 0)) % 24;
         _startTime = TimeOfDay(hour: nextHour, minute: 0);
@@ -156,12 +147,10 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
 }
 
   DateTime _timeOfDayToDateTime(DateTime date, TimeOfDay time) {
-    // Logika ini tidak berubah
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
   Future<void> _saveSchedule() async {
-    // Menggunakan form key untuk validasi
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -199,7 +188,6 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
 
     try {
       if (_isEditing) {
-        // Logika update (tidak berubah)
         final updatedSchedule = widget.scheduleToEdit!.copyWith(
           title: _titleController.text,
           description: _descriptionController.text,
@@ -211,7 +199,6 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
         );
         await ScheduleService.updateSchedule(updatedSchedule);
       } else {
-        // Logika create (tidak berubah)
         final currentUser = await OAuthUserService.createUserObject();
         final newSchedule = Schedule(
           id: '',
@@ -234,11 +221,10 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
 
       if (mounted) {
         final navigator = Navigator.of(context);
-        navigator.pop(); // Tutup dialog
-        widget.onFormClosed(); // Panggil callback untuk refresh
+        navigator.pop();
+        widget.onFormClosed();
       }
     } catch (e) {
-      // Error handling tidak berubah
       debugPrint('❌ ScheduleForm: Error creating/updating schedule: $e');
       if (mounted) {
         final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -256,7 +242,6 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
   }
 
   Future<void> _selectGroup() async {
-    // Logika ini tidak berubah
     if (!mounted) return;
     final groups = await GroupService.getUserGroups();
     if (!mounted) return;
@@ -283,17 +268,14 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
     }
   }
 
-  // DIUBAH: Seluruh widget build diubah menjadi AlertDialog
   @override
   Widget build(BuildContext context) {
-    // Definisikan warna di awal agar bisa digunakan di mana saja
     const primaryColor = Color(0xFF735BF2);
     const cancelColor = Color(0xFFF77272);
     const textColor = Colors.black87;
     const hintColor = Color(0xFF999999);
     const iconColor = Color(0xFF999999);
 
-    // Tema dekorasi input yang akan digunakan untuk semua field
     final inputDecorationTheme = InputDecoration(
       hintStyle:
           const TextStyle(color: hintColor, fontWeight: FontWeight.normal),
@@ -366,11 +348,11 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     decoration: inputDecorationTheme.copyWith(
                       suffixIcon: Padding(
                         padding: const EdgeInsets.all(
-                            12.0), // Memberi sedikit padding agar tidak terlalu mepet
+                            12.0),
                         child: SvgPicture.asset(
                           'assets/icons/calendar_navbar-icon.svg',
-                          width: 20, // Sesuaikan ukuran jika perlu
-                          height: 20, // Sesuaikan ukuran jika perlu
+                          width: 20,
+                          height: 20,
                         ),
                       ),
                     ),
@@ -396,7 +378,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
             suffixIcon: Padding(
               padding: const EdgeInsets.all(12.0),
               child: SvgPicture.asset(
-                'assets/icons/clock-icon.svg', // Pastikan path ini benar
+                'assets/icons/clock-icon.svg',
                 width: 20,
                 height: 20,
                 colorFilter: const ColorFilter.mode(iconColor, BlendMode.srcIn),
@@ -404,9 +386,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
             ),
           ),
           child: Text(
-            // DIUBAH: Hapus fallback text dan gunakan '!' karena _startTime dijamin tidak null
             _startTime!.format(context),
-            // DIUBAH: Gunakan warna teks aktif, bukan warna hint
             style: const TextStyle(fontSize: 16, color: textColor),
           ),
         ),
@@ -432,9 +412,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
             ),
           ),
           child: Text(
-            // DIUBAH: Hapus fallback text dan gunakan '!' karena _endTime dijamin tidak null
             _endTime!.format(context),
-            // DIUBAH: Gunakan warna teks aktif, bukan warna hint
             style: const TextStyle(fontSize: 16, color: textColor),
           ),
         ),
@@ -450,11 +428,11 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     hintText: 'Location (Link Gmaps/Zoom)',
                     suffixIcon: Padding(
                       padding: const EdgeInsets.all(
-                          12.0), // Memberi sedikit padding agar tidak terlalu mepet
+                          12.0),
                       child: SvgPicture.asset(
                         'assets/icons/pin_location-icon.svg',
-                        width: 24, // Sesuaikan ukuran jika perlu
-                        height: 24, // Sesuaikan ukuran jika perlu
+                        width: 24,
+                        height: 24,
                       ),
                     ),
                   ),
@@ -469,62 +447,58 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                   maxLines: 2,
                 ),
                 const SizedBox(height: 16),
-                // Color picker section
                 Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    const Text(
-      'Event Color',
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        color: textColor,
-      ),
-    ),
-    const SizedBox(height: 8),
-    // DIUBAH: Menggunakan InputDecorator agar gaya konsisten
-    InputDecorator(
-      // Terapkan tema yang sudah Anda buat
-      decoration: inputDecorationTheme.copyWith(
-        // Sedikit penyesuaian padding agar pas untuk konten di dalamnya
-        contentPadding: const EdgeInsets.all(12.0),
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        spacing: 12,
-        runSpacing: 12,
-        children: _colorOptions.map((color) {
-          final isSelected = color == _selectedColor;
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedColor = color;
-              });
-            },
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: isSelected
-                    ? Border.all(color: Colors.black, width: 3)
-                    : Border.all(color: Colors.grey.shade300, width: 1),
-              ),
-              child: isSelected
-                  ? const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 20,
-                    )
-                  : null,
-            ),
-          );
-        }).toList(),
-      ),
-    ),
-  ],
-),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Event Color',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InputDecorator(
+                      decoration: inputDecorationTheme.copyWith(
+                        contentPadding: const EdgeInsets.all(12.0),
+                      ),
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: _colorOptions.map((color) {
+                          final isSelected = color == _selectedColor;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedColor = color;
+                              });
+                            },
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: isSelected
+                                    ? Border.all(color: Colors.black, width: 3)
+                                    : Border.all(color: Colors.grey.shade300, width: 1),
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 20,
+                                    )
+                                  : null,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -536,11 +510,11 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                         onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
-                              const Color(0xFFEA3C54), // Warna baru
+                              const Color(0xFFEA3C54),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius:
-                                BorderRadius.circular(8.0), // Radius baru
+                                BorderRadius.circular(8.0),
                           ),
                           elevation: 0,
                         ),
@@ -557,11 +531,11 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                         onPressed: _isSaving ? null : _saveSchedule,
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
-                              const Color(0xFF735BF2), // Warna baru
+                              const Color(0xFF735BF2),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius:
-                                BorderRadius.circular(8.0), // Radius baru
+                                BorderRadius.circular(8.0),
                           ),
                           elevation: 0,
                         ),
@@ -589,7 +563,6 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
     );
   }
 
-  // Metode _selectDate dan _selectTime tidak berubah secara signifikan
   Future<void> _selectDate() async {
     final now = DateTime.now();
     final initialDate = _selectedDate ?? now;

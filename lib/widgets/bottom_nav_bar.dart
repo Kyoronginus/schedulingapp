@@ -54,7 +54,7 @@ class BottomNavBar extends StatelessWidget {
        ),
        boxShadow: [ // Anda bisa menambahkan bayangan di sini jika mau
          BoxShadow(
-           color: Colors.black.withOpacity(0.1),
+           color: Colors.black.withValues(alpha:0.1),
            blurRadius: 10,
          ),
        ],

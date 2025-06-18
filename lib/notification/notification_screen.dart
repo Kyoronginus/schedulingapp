@@ -448,9 +448,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                                   final schedule = notification.schedule;
 
                                   // Skip if schedule is null for non-invitation notifications
-                                  if (schedule == null)
+                                  if (schedule == null) {
                                     return const SizedBox.shrink();
-
+                                  }
                                   // Format the date for display (in local timezone)
                                   final startDateLocal =
                                       TimezoneService.utcToLocal(
@@ -521,7 +521,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                             boxShadow: [
                                               BoxShadow(
                                                 color: Colors.black
-                                                    .withOpacity(0.05),
+                                                    .withValues(alpha:0.05),
                                                 blurRadius: 10,
                                                 offset: const Offset(0, 4),
                                               ),
@@ -1000,14 +1000,42 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   Color _getNotificationColor(
       models.Notification notification, Color defaultColor) {
-    // Colors based on notification type
+    if (notification.schedule?.color != null && notification.schedule!.color!.isNotEmpty) {
+      try {
+        String colorString = notification.schedule!.color!;
+        int colorValue;
+
+        if (colorString.startsWith('#')) {
+          colorValue = int.parse(colorString.substring(1), radix: 16);
+          if (colorString.length == 7) {
+            colorValue = 0xFF000000 | colorValue;
+          }
+        } else {
+          colorValue = int.parse(colorString);
+        }
+
+        final scheduleColor = Color(colorValue);
+        return scheduleColor;
+      } catch (e) {
+        debugPrint('❌ Failed to parse notification schedule color: ${notification.schedule!.color}, error: $e');
+      }
+    } else {
+      debugPrint('⚠️ No schedule color available for notification ${notification.id}, using fallback');
+    }
+
+    // Fallback: colors based on notification type
+    Color fallbackColor;
     switch (notification.type) {
       case NotificationType.CREATED:
-        return Colors.purple;
+        fallbackColor = Colors.purple;
+        break;
       case NotificationType.UPCOMING:
-        return Colors.blue;
+        fallbackColor = Colors.blue;
+        break;
       case NotificationType.INVITATION:
-        return Colors.orange;
+        fallbackColor = Colors.orange;
+        break;
     }
+    return fallbackColor;
   }
 }

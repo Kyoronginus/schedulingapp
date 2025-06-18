@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
-import 'package:intl/intl.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/refresh_controller.dart';
 import '../widgets/group_selector_sidebar.dart';
