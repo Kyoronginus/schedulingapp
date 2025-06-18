@@ -14,6 +14,7 @@ import '../dynamo/group_service.dart';
 import '../theme/theme_provider.dart';
 import '../providers/group_selection_provider.dart';
 import '../services/refresh_service.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -245,7 +246,9 @@ class _NotificationScreenState extends State<NotificationScreen>
       // Third priority: different sorting logic for read vs unread notifications
       if (a.isRead && b.isRead) {
         // For read notifications: sort by notification timestamp (most recent notifications first)
-        return b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc());
+        return b.timestamp
+            .getDateTimeInUtc()
+            .compareTo(a.timestamp.getDateTimeInUtc());
       } else {
         // For unread notifications: sort by event/schedule date (upcoming events first)
         DateTime? aEventDate = _getEventDate(a);
@@ -261,7 +264,9 @@ class _NotificationScreenState extends State<NotificationScreen>
         if (bEventDate != null && aEventDate == null) return 1;
 
         // Fallback: sort by notification timestamp (most recent first)
-        return b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc());
+        return b.timestamp
+            .getDateTimeInUtc()
+            .compareTo(a.timestamp.getDateTimeInUtc());
       }
     });
   }
@@ -344,61 +349,116 @@ class _NotificationScreenState extends State<NotificationScreen>
                 Container(
                   color: backgroundColor,
                   padding: const EdgeInsets.only(
-                      top: 40, left: 16, right: 16, bottom: 8),
+                      top: 56, left: 16, right: 16, bottom: 8),
                   child: Row(
                     children: [
                       // Group selector button
-                      GestureDetector(
-                        onTap: _toggleSidebar,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDarkMode ? Colors.grey[800] : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    Colors.black.withAlpha((0.1 * 255).round()),
-                                offset: const Offset(0, 4),
-                                blurRadius: 15,
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.calendar_today,
-                                  size: 16,
-                                  color:
-                                      isDarkMode ? Colors.white : Colors.black),
-                              const SizedBox(width: 8),
-                              Text(
-                                groupProvider.currentSelectionName,
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode ? Colors.white : Colors.black,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                      // DIUBAH: Menggunakan SizedBox untuk ukuran yang pasti
+                      SizedBox(
+                        width: 148.0, // ukuran fix
+                        height: 50.0,
+                        // DIUBAH: Menggunakan InkWell untuk efek splash
+                        child: InkWell(
+                          onTap: _toggleSidebar,
+                          borderRadius: BorderRadius.circular(
+                              30), // Samakan dengan radius Container
+                          child: Container(
+                            // DIUBAH: Padding disesuaikan
+                            padding:
+                                const EdgeInsets.only(left: 17.0, right: 17.0),
+                            // DIUBAH: Dekorasi disamakan
+                            decoration: BoxDecoration(
+                              color:
+                                  isDarkMode ? Colors.grey[800] : Colors.white,
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black
+                                      .withAlpha((0.1 * 255).round()),
+                                  offset: const Offset(0, 4),
+                                  blurRadius: 6,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Row(
+                              // mainAxisSize tidak lagi diperlukan karena ukuran diatur oleh SizedBox
+                              children: [
+                                // DIUBAH: Ikon menggunakan SvgPicture
+                                SvgPicture.asset(
+                                  'assets/icons/calendar_selector-icon.svg',
+                                  width: 24,
+                                  height: 24,
+                                ),
+                                // DIUBAH: Spasi disesuaikan
+                                const SizedBox(width: 9),
+                                // DIUBAH: Teks dibungkus Flexible agar tidak overflow
+                                Flexible(
+                                  child: Text(
+                                    groupProvider.currentSelectionName,
+                                    // DIUBAH: TextStyle disamakan sepenuhnya
+                                    style: TextStyle(
+                                      color: isDarkMode
+                                          ? Colors.white
+                                          : const Color(0xFF222B45),
+                                      fontWeight: FontWeight.w500,
+                                      fontStyle: FontStyle.normal,
+                                      fontSize: 14,
+                                      fontFamily: 'Arial',
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       const Spacer(),
-                      TextButton.icon(
-                        onPressed: () async {
-                          await NotificationService.markAllAsRead();
-                          await _loadNotifications();
+                      TextButton(
+                        onPressed: () {
+                          // TODO: Tambahkan logika untuk "mark all read" di sini
+                          print('Mark all read tapped!');
                         },
-                        icon: const Icon(Icons.mark_email_read, size: 18),
-                        label: const Text('Mark All Read'),
                         style: TextButton.styleFrom(
-                          foregroundColor:
-                              isDarkMode ? Colors.white : Colors.black87,
+                          // Memberi sedikit padding di dalam tombol
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 8),
+                          // Membuat bentuk tombol lebih bulat
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            // Ikon SVG
+                            SvgPicture.asset(
+                              'assets/icons/mark_email_unread-icon.svg',
+                              width: 22, // Sesuaikan ukuran jika perlu
+                              height: 22,
+                              // Filter warna agar ikon sesuai dengan teks dan dark mode
+                              colorFilter: ColorFilter.mode(
+                                isDarkMode
+                                    ? Colors.white
+                                    : const Color(0xFF222B45),
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Teks "Mark all read"
+                            Text(
+                              'Mark all read',
+                              // Menerapkan gaya teks yang Anda minta
+                              style: TextStyle(
+                                fontStyle: FontStyle.normal,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                                // Warna teks juga disesuaikan untuk dark mode
+                                color: isDarkMode
+                                    ? Colors.white
+                                    : const Color(0xFF222B45),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -520,7 +580,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                             boxShadow: [
                                               BoxShadow(
                                                 color: Colors.black
-                                                    .withValues(alpha:0.05),
+                                                    .withValues(alpha: 0.05),
                                                 blurRadius: 10,
                                                 offset: const Offset(0, 4),
                                               ),
@@ -592,8 +652,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                   width: 1,
                                                   color: isDarkMode
                                                       ? Colors.grey[700]
-                                                      : Colors.grey[
-                                                          300],
+                                                      : Colors.grey[300],
                                                 ),
 
                                                 Expanded(
@@ -612,12 +671,17 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                             Container(
                                                               width: 8,
                                                               height: 8,
-                                                              decoration: BoxDecoration(
-                                                                shape: BoxShape.circle,
-                                                                color: Colors.transparent,
-                                                                border: Border.all(
-                                                                  color: dotColor,
-                                                                  width: 1.5,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                shape: BoxShape
+                                                                    .circle,
+                                                                color: Colors
+                                                                    .transparent,
+                                                                border:
+                                                                    Border.all(
+                                                                  color:
+                                                                      dotColor,
+                                                                  width: 2.5,
                                                                 ),
                                                               ),
                                                             ),
@@ -640,7 +704,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                             ),
                                                           ],
                                                         ),
-                                                        const SizedBox(height: 1,),
+                                                        const SizedBox(
+                                                          height: 1,
+                                                        ),
                                                         // Judul Acara
                                                         Text(
                                                           schedule.title,
@@ -656,8 +722,10 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                           overflow: TextOverflow
                                                               .ellipsis,
                                                         ),
-                                                        const SizedBox(height: 1,),
-                                                        
+                                                        const SizedBox(
+                                                          height: 1,
+                                                        ),
+
                                                         Text(
                                                           NotificationService
                                                               .getNotificationMessage(
@@ -666,8 +734,8 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                               const TextStyle(
                                                             fontStyle: FontStyle
                                                                 .normal,
-                                                            fontWeight: FontWeight
-                                                                .w400,
+                                                            fontWeight:
+                                                                FontWeight.w400,
                                                             fontSize: 13,
                                                             color: Color(
                                                                 0xFF8F9BB3),
@@ -997,7 +1065,8 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   Color _getNotificationColor(
       models.Notification notification, Color defaultColor) {
-    if (notification.schedule?.color != null && notification.schedule!.color!.isNotEmpty) {
+    if (notification.schedule?.color != null &&
+        notification.schedule!.color!.isNotEmpty) {
       try {
         String colorString = notification.schedule!.color!;
         int colorValue;
@@ -1014,10 +1083,12 @@ class _NotificationScreenState extends State<NotificationScreen>
         final scheduleColor = Color(colorValue);
         return scheduleColor;
       } catch (e) {
-        debugPrint('❌ Failed to parse notification schedule color: ${notification.schedule!.color}, error: $e');
+        debugPrint(
+            '❌ Failed to parse notification schedule color: ${notification.schedule!.color}, error: $e');
       }
     } else {
-      debugPrint('⚠️ No schedule color available for notification ${notification.id}, using fallback');
+      debugPrint(
+          '⚠️ No schedule color available for notification ${notification.id}, using fallback');
     }
 
     // Fallback: colors based on notification type

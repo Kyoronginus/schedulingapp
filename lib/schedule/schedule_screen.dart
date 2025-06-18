@@ -1196,7 +1196,7 @@ Widget _buildDetailRow(
                         color: Colors.transparent,
                         border: Border.all(
                           color: dotColor,
-                          width: 1.5,
+                          width: 3,
                         ),
                       ),
                     ),                    const SizedBox(width: 8),
