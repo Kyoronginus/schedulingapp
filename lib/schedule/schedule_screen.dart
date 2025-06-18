@@ -1409,11 +1409,9 @@ Widget _buildDetailRow(
       const Color(0xFFE91E63), // Pink
       const Color(0xFF9C27B0), // Purple variant
       const Color(0xFF00BCD4), // Cyan
-      const Color(0xFFFF5722), // Deep Orange
       const Color(0xFF607D8B), // Blue Grey
       const Color(0xFF795548), // Brown
       const Color(0xFFFFC107), // Amber
-      const Color(0xFF8BC34A), // Light Green
     ];
 
     // Use different colors for different types of schedules
