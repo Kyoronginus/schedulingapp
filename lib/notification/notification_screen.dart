@@ -209,21 +209,27 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         return 1;
       }
 
-      // Third priority: sort by event/schedule date (most recent first)
-      DateTime? aEventDate = _getEventDate(a);
-      DateTime? bEventDate = _getEventDate(b);
+      // Third priority: different sorting logic for read vs unread notifications
+      if (a.isRead && b.isRead) {
+        // For read notifications: sort by notification timestamp (most recent notifications first)
+        return b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc());
+      } else {
+        // For unread notifications: sort by event/schedule date (upcoming events first)
+        DateTime? aEventDate = _getEventDate(a);
+        DateTime? bEventDate = _getEventDate(b);
 
-      // If both have event dates, compare them
-      if (aEventDate != null && bEventDate != null) {
-        return bEventDate.compareTo(aEventDate); // Most recent first
+        // If both have event dates, compare them
+        if (aEventDate != null && bEventDate != null) {
+          return bEventDate.compareTo(aEventDate); // Most recent events first
+        }
+
+        // If only one has an event date, prioritize it
+        if (aEventDate != null && bEventDate == null) return -1;
+        if (bEventDate != null && aEventDate == null) return 1;
+
+        // Fallback: sort by notification timestamp (most recent first)
+        return b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc());
       }
-
-      // If only one has an event date, prioritize it
-      if (aEventDate != null && bEventDate == null) return -1;
-      if (bEventDate != null && aEventDate == null) return 1;
-
-      // Fallback: sort by notification timestamp
-      return b.timestamp.getDateTimeInUtc().compareTo(a.timestamp.getDateTimeInUtc());
     });
   }
 
@@ -618,6 +624,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                     selectedGroup: groupProvider.selectedGroup,
                     isPersonalMode: groupProvider.isPersonalMode,
                     showPersonalOption: true,
+                    showCreateGroupButton: false,
                     onGroupSelected: (group) {
                       groupProvider.selectGroup(group);
                       _closeSidebar();
@@ -629,8 +636,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                       _loadNotifications();
                     },
                     onCreateGroup: () {
-                      _closeSidebar();
-                      // TODO: Add create group functionality
+                      // This won't be called since showCreateGroupButton is false
                     },
                     currentUserId: groupProvider.currentUserId,
                   ),

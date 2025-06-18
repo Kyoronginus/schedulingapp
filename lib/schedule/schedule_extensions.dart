@@ -23,6 +23,7 @@ extension ScheduleExtension on Schedule {
       'location': location,
       'startTime': startTime.format(),
       'endTime': endTime.format(),
+      'color': color,
       'userId': userId,
       'groupId': groupId,
     };
@@ -59,6 +60,7 @@ extension ScheduleExtensions on Schedule {
     String? location,
     TemporalDateTime? startTime,
     TemporalDateTime? endTime,
+    String? color,
     User? user,
     Group? group,
   }) {
@@ -69,6 +71,7 @@ extension ScheduleExtensions on Schedule {
       location: location ?? this.location,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
+      color: color ?? this.color,
       user: user ?? this.user,
       group: group ?? this.group,
     );

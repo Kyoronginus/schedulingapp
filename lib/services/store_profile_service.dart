@@ -7,6 +7,11 @@ import '../models/User.dart';
 class CentralizedProfileImageService {
   static const String _s3KeyPrefix = 'profile-pictures/';
   static const Duration _signedUrlExpiry = Duration(seconds: 900);
+
+  // Global cache for profile picture URLs to avoid redundant fetches
+  static final Map<String, String?> _profilePictureCache = <String, String?>{};
+  static final Map<String, DateTime> _cacheTimestamps = <String, DateTime>{};
+  static const Duration _cacheExpiry = Duration(minutes: 30);
   
   static Future<String?> uploadProfilePicture(XFile imageFile, String userId) async {
     try {
@@ -22,6 +27,10 @@ class CentralizedProfileImageService {
       ).result;
 
       await _updateUserProfilePictureUrl(userId, s3Key);
+
+      // Clear cache for this user since we're uploading a new picture
+      clearCacheForUser(userId);
+
       final result = await Amplify.Storage.getUrl(
         key: s3Key,
         options: const StorageGetUrlOptions(
@@ -34,7 +43,9 @@ class CentralizedProfileImageService {
         ),
       ).result;
 
-      return result.url.toString();
+      final url = result.url.toString();
+      _setCachedUrl(userId, url);
+      return url;
     } catch (e) {
       safePrint('Error uploading profile picture: $e');
       // Try to get existing URL as fallback
@@ -42,11 +53,48 @@ class CentralizedProfileImageService {
     }
   }
 
+  // Cache management methods
+  static String? _getCachedUrl(String userId) {
+    final cachedUrl = _profilePictureCache[userId];
+    final timestamp = _cacheTimestamps[userId];
+
+    if (cachedUrl != null && timestamp != null) {
+      if (DateTime.now().difference(timestamp) < _cacheExpiry) {
+        return cachedUrl;
+      } else {
+        // Cache expired, remove it
+        _profilePictureCache.remove(userId);
+        _cacheTimestamps.remove(userId);
+      }
+    }
+    return null;
+  }
+
+  static void _setCachedUrl(String userId, String? url) {
+    _profilePictureCache[userId] = url;
+    _cacheTimestamps[userId] = DateTime.now();
+  }
+
+  static void clearCacheForUser(String userId) {
+    _profilePictureCache.remove(userId);
+    _cacheTimestamps.remove(userId);
+  }
+
   static Future<String?> getProfilePictureUrl(String userId) async {
+    // Check cache first
+    final cachedUrl = _getCachedUrl(userId);
+    if (cachedUrl != null) {
+      return cachedUrl;
+    }
+
     try {
+      safePrint('🔍 Fetching profile picture from network for user: $userId');
       final user = await _getUserById(userId);
       var s3Key = user?.profilePictureUrl;
-      if (s3Key == null || s3Key.isEmpty) return null;
+      if (s3Key == null || s3Key.isEmpty) {
+        _setCachedUrl(userId, null);
+        return null;
+      }
 
       // Handle legacy full-URL values
       if (s3Key.startsWith('http')) {
@@ -56,6 +104,7 @@ class CentralizedProfileImageService {
           s3Key = extracted;
         } else {
           safePrint('❌ Could not extract S3 key from legacy URL');
+          _setCachedUrl(userId, null);
           return null;
         }
       }
@@ -72,9 +121,13 @@ class CentralizedProfileImageService {
         ),
       ).result;
 
-      return result.url.toString();
+      final url = result.url.toString();
+      _setCachedUrl(userId, url);
+      safePrint('✅ Profile picture URL cached for user: $userId');
+      return url;
     } catch (e) {
       safePrint('Error getting profile picture URL: $e');
+      _setCachedUrl(userId, null);
       return null;
     }
   }

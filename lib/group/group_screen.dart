@@ -461,6 +461,7 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                       }
 
                       return PopupMenuButton<String>(
+                        key: ValueKey('popup_${member.id}'),
                         onSelected: (value) {
                           if (value == 'remove') {
                             _showRemoveMemberDialog(member);
@@ -519,23 +520,31 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
     final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
     if (groupProvider.selectedGroup == null) return;
 
+    // Capture context references before async operation to prevent deactivated widget errors
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final groupId = groupProvider.selectedGroup!.id;
+
     try {
       await GroupService.removeMemberFromGroup(
-        groupId: groupProvider.selectedGroup!.id,
+        groupId: groupId,
         userId: member.id,
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(content: Text('${member.name} removed from group')),
         );
 
-        // Refresh the members list
-        setState(() {});
+        // Refresh the members list after a brief delay to allow any open popups to close
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            setState(() {});
+          }
+        });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(content: Text('Failed to remove member: $e')),
         );
       }
@@ -584,34 +593,40 @@ class _GroupScreenState extends State<GroupScreen> with TickerProviderStateMixin
                   ),
                 ),
               ),
-              content: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Group Name*',
-                        hintText: 'e.g., Project Phoenix Team',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxHeight: 400, // Limit maximum height to prevent overflow
+                  maxWidth: 400,  // Limit maximum width for better layout
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Group Name*',
+                          hintText: 'e.g., Project Phoenix Team',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        ),
+                        maxLength: 50,
                       ),
-                      maxLength: 50,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        hintText: 'A short description of the group\'s purpose',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                          hintText: 'A short description of the group\'s purpose',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        ),
+                        maxLines: 3,
+                        maxLength: 200,
                       ),
-                      maxLines: 3,
-                      maxLength: 200,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               actions: [

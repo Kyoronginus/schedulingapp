@@ -18,6 +18,7 @@ class GroupSelectorSidebar extends StatefulWidget {
   final VoidCallback? onGroupsChanged;
   final String? currentUserId;
   final bool showPersonalOption;
+  final bool showCreateGroupButton;
 
   const GroupSelectorSidebar({
     super.key,
@@ -30,6 +31,7 @@ class GroupSelectorSidebar extends StatefulWidget {
     this.onGroupsChanged,
     this.currentUserId,
     this.showPersonalOption = false,
+    this.showCreateGroupButton = true,
   });
 
   @override
@@ -131,34 +133,35 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                   ),
           ),
 
-          // Add group button
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
-                  width: 1,
+          // Add group button (conditionally shown)
+          if (widget.showCreateGroupButton)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                    width: 1,
+                  ),
                 ),
               ),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: widget.onCreateGroup,
-                icon: const Icon(Icons.add),
-                label: const Text('Create New Group'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: widget.onCreateGroup,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Create New Group'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

@@ -43,6 +43,7 @@ class ScheduleService {
               endTime
               description
               location
+              color
               userId
               groupId
               createdAt
@@ -148,6 +149,7 @@ class ScheduleService {
               endTime
               description
               location
+              color
               userId
               groupId
             }
@@ -161,6 +163,7 @@ class ScheduleService {
             'location': schedule.location,
             'startTime': schedule.startTime.format(),
             'endTime': schedule.endTime.format(),
+            'color': schedule.color,
             'userId': schedule.user?.id,
             'groupId': schedule.group?.id,
             '_version': 1, // This might need to be adjusted based on your schema
@@ -220,6 +223,7 @@ class ScheduleService {
                 endTime
                 description
                 location
+                color
                 userId
                 groupId
                 user {
@@ -274,6 +278,7 @@ class ScheduleService {
                 endTime
                 description
                 location
+                color
                 userId
                 groupId
                 user {

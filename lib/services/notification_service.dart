@@ -570,7 +570,7 @@ class NotificationService {
         debugPrint('❌ Full error details: ${response.errors}');
       } else {
         debugPrint('✅ Notification created successfully: ${response.data}');
-        await _loadNotifications(); // Refresh cache from backend
+        // Note: Cache will be refreshed when user navigates to notification screen
       }
     } catch (e) {
       debugPrint('Error creating notification: $e');
@@ -642,7 +642,7 @@ class NotificationService {
         debugPrint('❌ Full error details: ${response.errors}');
       } else {
         debugPrint('✅ Upcoming notification created successfully: ${response.data}');
-        await _loadNotifications(); // Refresh cache from backend
+        // Note: Cache will be refreshed when user navigates to notification screen
       }
     } catch (e) {
       debugPrint('Error creating upcoming notification: $e');
@@ -712,7 +712,7 @@ class NotificationService {
         debugPrint('❌ Full error details: ${response.errors}');
       } else {
         debugPrint('✅ Invitation notification created successfully: ${response.data}');
-        await _loadNotifications(); // Refresh cache from backend
+        // Note: Cache will be refreshed when user navigates to notification screen
       }
     } catch (e) {
       debugPrint('Error creating invitation notification: $e');

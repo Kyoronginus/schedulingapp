@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
 import '../services/store_profile_service.dart';
 import '../services/refresh_service.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
 
 class ProfileAvatar extends StatefulWidget {
   final String userId;
@@ -31,17 +32,34 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
   bool _isLoading = true;
   String? _lastUserId; // Tracks the last user ID for which we loaded the profile picture
   StreamSubscription<void>? _profileChangeSubscription;
+  String? _currentUserId; // Cache current user ID to avoid repeated calls
 
   @override
   void initState() {
     super.initState();
     _loadProfilePicture();
+    _getCurrentUserId();
 
+    // Only listen to profile changes if this widget shows the current user's picture
     _profileChangeSubscription = RefreshService().profileChanges.listen((_) {
-      if (mounted) {
+      if (mounted && _shouldRefreshOnProfileChange()) {
         _loadProfilePicture();
       }
     });
+  }
+
+  Future<void> _getCurrentUserId() async {
+    try {
+      final user = await Amplify.Auth.getCurrentUser();
+      _currentUserId = user.userId;
+    } catch (e) {
+      _currentUserId = null;
+    }
+  }
+
+  bool _shouldRefreshOnProfileChange() {
+    // Only refresh if this widget is showing the current user's profile picture
+    return _currentUserId != null && widget.userId == _currentUserId;
   }
 
   @override
@@ -61,12 +79,11 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
     });
 
     try {
-      debugPrint('🖼️ ProfileAvatar: Loading profile picture for user ${widget.userId} (${widget.userName})');
       final url = await CentralizedProfileImageService.getProfilePictureUrl(widget.userId);
 
       if (mounted) {
         final shouldClearCache = _profilePictureUrl != null && _profilePictureUrl != url;
-        
+
         setState(() {
           _profilePictureUrl = url;
           _isLoading = false;
@@ -74,18 +91,11 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
         });
 
         if (shouldClearCache && url != null) {
-          debugPrint('🔄 Clearing cached image for updated profile');
           await CachedNetworkImage.evictFromCache(url);
-        }
-
-        if (_profilePictureUrl != null) {
-          debugPrint('✅ ProfileAvatar: Successfully loaded profile picture URL');
-        } else {
-          debugPrint('⚠️ ProfileAvatar: No profile picture URL found, will show initials');
         }
       }
     } catch (e) {
-      debugPrint('❌ ProfileAvatar: Error loading profile picture: $e');
+      debugPrint('❌ ProfileAvatar: Error loading profile picture for ${widget.userId}: $e');
       if (mounted) {
         setState(() {
           _profilePictureUrl = null;

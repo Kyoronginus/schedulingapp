@@ -48,6 +48,23 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
   Group? _selectedGroup;
   bool _isEditing = false;
   Timer? _timeValidityTimer;
+  Color _selectedColor = const Color(0xFF735BF2); // Default purple color
+
+  // Predefined color options for the color picker - matches calendar color palette
+  final List<Color> _colorOptions = [
+    const Color(0xFF735BF2), // Purple (default)
+    const Color(0xFF4CAF50), // Green
+    const Color(0xFF2196F3), // Blue
+    const Color(0xFFFF9800), // Orange
+    const Color(0xFFE91E63), // Pink
+    const Color(0xFF9C27B0), // Purple variant
+    const Color(0xFF00BCD4), // Cyan
+    const Color(0xFFFF5722), // Deep Orange
+    const Color(0xFF607D8B), // Blue Grey
+    const Color(0xFF795548), // Brown
+    const Color(0xFFFFC107), // Amber
+    const Color(0xFF8BC34A), // Light Green
+  ];
 
   @override
   void initState() {
@@ -68,6 +85,17 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
           TimeOfDay(hour: startDateTime.hour, minute: startDateTime.minute);
       _endTime = TimeOfDay(hour: endDateTime.hour, minute: endDateTime.minute);
       _selectedGroup = widget.scheduleToEdit!.group;
+
+      // Initialize color from existing schedule
+      if (widget.scheduleToEdit!.color != null && widget.scheduleToEdit!.color!.isNotEmpty) {
+        try {
+          _selectedColor = Color(int.parse(widget.scheduleToEdit!.color!));
+        } catch (e) {
+          _selectedColor = const Color(0xFF735BF2); // Default if parsing fails
+        }
+      } else {
+        _selectedColor = const Color(0xFF735BF2); // Default if no color set
+      }
     } else {
       _loadInitialData();
       final now = DateTime.now();
@@ -178,6 +206,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
           location: _locationController.text,
           startTime: TimezoneService.localToUtc(startDateTime),
           endTime: TimezoneService.localToUtc(endDateTime),
+          color: _selectedColor.toARGB32().toString(),
           group: _selectedGroup,
         );
         await ScheduleService.updateSchedule(updatedSchedule);
@@ -195,6 +224,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
               : _locationController.text.trim(),
           startTime: TimezoneService.localToUtc(startDateTime),
           endTime: TimezoneService.localToUtc(endDateTime),
+          color: _selectedColor.toARGB32().toString(),
           user: currentUser,
           group: _selectedGroup!,
         );
@@ -203,15 +233,17 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
       }
 
       if (mounted) {
-        Navigator.pop(context); // Tutup dialog
+        final navigator = Navigator.of(context);
+        navigator.pop(); // Tutup dialog
         widget.onFormClosed(); // Panggil callback untuk refresh
       }
     } catch (e) {
       // Error handling tidak berubah
       debugPrint('❌ ScheduleForm: Error creating/updating schedule: $e');
       if (mounted) {
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
         String errorMessage = e.toString().replaceAll('Exception: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        scaffoldMessenger.showSnackBar(SnackBar(
           content: Text('Error: $errorMessage'),
           backgroundColor: Colors.red,
         ));
@@ -436,6 +468,61 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                   ),
                   maxLines: 2,
                 ),
+                const SizedBox(height: 16),
+                // Color picker section
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Event Color',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFEDF1F7), width: 1.5),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: _colorOptions.map((color) {
+                          final isSelected = color == _selectedColor;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedColor = color;
+                              });
+                            },
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: isSelected
+                                    ? Border.all(color: Colors.black, width: 3)
+                                    : Border.all(color: Colors.grey.shade300, width: 1),
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 20,
+                                    )
+                                  : null,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -538,7 +625,8 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
             selectedTime.hour, selectedTime.minute);
         if (!TimezoneService.isLocalTimeInFuture(selectedDateTime)) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            final scaffoldMessenger = ScaffoldMessenger.of(context);
+            scaffoldMessenger.showSnackBar(const SnackBar(
                 content: Text('Selected time must be in the future')));
           }
           return;
@@ -549,7 +637,8 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
         final endMinutes = selectedTime.hour * 60 + selectedTime.minute;
         if (endMinutes <= startMinutes) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            final scaffoldMessenger = ScaffoldMessenger.of(context);
+            scaffoldMessenger.showSnackBar(const SnackBar(
                 content: Text('End time must be after start time')));
           }
           return;
