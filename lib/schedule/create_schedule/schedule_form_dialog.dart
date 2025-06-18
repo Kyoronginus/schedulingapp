@@ -471,58 +471,60 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 const SizedBox(height: 16),
                 // Color picker section
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Event Color',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFEDF1F7), width: 1.5),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: _colorOptions.map((color) {
-                          final isSelected = color == _selectedColor;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedColor = color;
-                              });
-                            },
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                border: isSelected
-                                    ? Border.all(color: Colors.black, width: 3)
-                                    : Border.all(color: Colors.grey.shade300, width: 1),
-                              ),
-                              child: isSelected
-                                  ? const Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                      size: 20,
-                                    )
-                                  : null,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    const Text(
+      'Event Color',
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: textColor,
+      ),
+    ),
+    const SizedBox(height: 8),
+    // DIUBAH: Menggunakan InputDecorator agar gaya konsisten
+    InputDecorator(
+      // Terapkan tema yang sudah Anda buat
+      decoration: inputDecorationTheme.copyWith(
+        // Sedikit penyesuaian padding agar pas untuk konten di dalamnya
+        contentPadding: const EdgeInsets.all(12.0),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        spacing: 12,
+        runSpacing: 12,
+        children: _colorOptions.map((color) {
+          final isSelected = color == _selectedColor;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedColor = color;
+              });
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: isSelected
+                    ? Border.all(color: Colors.black, width: 3)
+                    : Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: isSelected
+                  ? const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 20,
+                    )
+                  : null,
+            ),
+          );
+        }).toList(),
+      ),
+    ),
+  ],
+),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
