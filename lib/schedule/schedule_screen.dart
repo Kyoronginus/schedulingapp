@@ -36,7 +36,8 @@ class ScheduleScreen extends StatefulWidget {
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
-class _ScheduleScreenState extends State<ScheduleScreen> with TickerProviderStateMixin, NavigationMemoryMixin {
+class _ScheduleScreenState extends State<ScheduleScreen>
+    with TickerProviderStateMixin, NavigationMemoryMixin {
   final int _currentIndex = 0; // Schedule is the 1st tab (index 0)
   bool _isLoading = true;
   Map<DateTime, List<Schedule>> _groupedSchedules = {};
@@ -114,7 +115,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> with TickerProviderStat
       return _isAdminCache[groupId]!;
     }
 
-    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+    final groupProvider =
+        Provider.of<GroupSelectionProvider>(context, listen: false);
     final currentUserId = groupProvider.currentUserId;
 
     if (currentUserId == null) {
@@ -165,7 +167,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> with TickerProviderStat
     setState(() => _isLoading = true);
 
     try {
-      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+      final groupProvider =
+          Provider.of<GroupSelectionProvider>(context, listen: false);
       List<Schedule> schedules = [];
 
       if (groupProvider.isPersonalMode) {
@@ -173,7 +176,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> with TickerProviderStat
         schedules = await ScheduleService.loadAllSchedules();
       } else if (groupProvider.selectedGroup != null) {
         // Load schedules for the selected group
-        schedules = await ScheduleService.getGroupSchedules(groupProvider.selectedGroup!.id);
+        schedules = await ScheduleService.getGroupSchedules(
+            groupProvider.selectedGroup!.id);
       }
 
       // Check if widget is still mounted before calling setState
@@ -219,14 +223,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> with TickerProviderStat
     return _groupedSchedules[day] ?? [];
   }
 
-   void _showCreateScheduleDialog() {
-    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+  void _showCreateScheduleDialog() {
+    final groupProvider =
+        Provider.of<GroupSelectionProvider>(context, listen: false);
     showDialog(
       context: context,
       builder: (context) => ScheduleFormDialog(
         onFormClosed: _loadSchedules, // Refresh jadwal setelah form ditutup
         selectedDate: _selectedDay ?? DateTime.now(),
-        initialGroup: groupProvider.isPersonalMode ? null : groupProvider.selectedGroup,
+        initialGroup:
+            groupProvider.isPersonalMode ? null : groupProvider.selectedGroup,
       ),
     );
   }
@@ -273,195 +279,298 @@ class _ScheduleScreenState extends State<ScheduleScreen> with TickerProviderStat
     return NavigationMemoryWrapper(
       currentRoute: '/schedule',
       child: Scaffold(
-      backgroundColor: const Color(0xFFF1F1F1),
-      body: RefreshController(
-        onRefresh: _loadSchedules,
-        child: Stack(
-          children: [
-            // Main content
-            GestureDetector(
-              onTap: _closeSidebar,
-              child: _isLoading
-                  ? Center(
-                    child: CircularProgressIndicator(
-                      color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-                    ),
-                  )
-                  : RefreshIndicator(
-                  onRefresh: _loadSchedules,
-                  color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      top: 42.0,
-                      left: 17.0,
-                      right: 17.0
-                    ),
-                    child: Column(
-                      children: [
-                      // Top row with calendar selector and month/year selector
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 12.0,
-                        ),
-                        child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildCalendarSelector(),
-                               const SizedBox(width: 20),
-                              _buildMonthYearSelector(),
-                            ],
-                          ),
-                      ),
-
-                    // Calendar
-                    TableCalendar(
-                      firstDay: DateTime.utc(2000, 1, 1),
-                      lastDay: DateTime.utc(2100, 12, 31),
-                      focusedDay: _focusedDay,
-                      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                      eventLoader: _getSchedulesForDay,
-                      onDaySelected: (selectedDay, focusedDay) {
-                        setState(() {
-                          _selectedDay = selectedDay;
-                          _focusedDay = focusedDay;
-                        });
-                      },
-                      onPageChanged: (focusedDay) {
-                        setState(() {
-                          _focusedDay = focusedDay;
-                          _currentMonth = DateFormat('MMMM').format(focusedDay);
-                          _currentYear = focusedDay.year;
-                        });
-                      },
-                      startingDayOfWeek:
-                          StartingDayOfWeek.monday, // Start with Monday
-                      calendarStyle: CalendarStyle(
-                        todayDecoration: BoxDecoration(
-                          color: activeColor.withAlpha(76), // 0.3 opacity
-                          shape: BoxShape.circle,
-                        ),
-                        selectedDecoration: BoxDecoration(
-                          color: activeColor,
-                          shape: BoxShape.circle,
-                        ),
-                        // Only make Sunday red (last day of week when starting with Monday)
-                        weekendTextStyle: const TextStyle(
-                          color: Colors.black, // Default color for Saturday
-                        ),
-                        outsideTextStyle: TextStyle(color: Colors.grey[400]),
-                      ),
-                      headerVisible: false, // Hide the default header
-                      // ... properti TableCalendar lainnya seperti onDaySelected, onPageChanged, dll.
-
-// TAMBAHKAN BLOK INI:
-calendarBuilders: CalendarBuilders(
-  markerBuilder: (context, date, events) {
-    // events di sini adalah List<dynamic>, jadi kita cast ke List<Schedule>
-    final scheduleEvents = events.cast<Schedule>();
-    if (scheduleEvents.isEmpty) {
-      return null; // Jangan tampilkan apa-apa jika tidak ada acara
-    }
-
-    // Ambil warna unik dari setiap acara pada hari itu
-    // Ini untuk mencegah satu grup yang punya 3 acara menampilkan 3 titik yang sama
-    final uniqueColors = <Color>{};
-    for (var schedule in scheduleEvents) {
-      final color = _getDotColor(schedule, activeColor, uniqueColors.length);
-      uniqueColors.add(color);
-    }
-    
-    // Tampilkan titik-titik di bawah tanggal
-    return Positioned(
-      bottom: 5, // Atur posisi vertikal titik dari bawah
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: uniqueColors
-            .take(4) // Batasi maksimal 4 titik agar tidak terlalu ramai
-            .map((color) => Container(
-                  width: 6,
-                  height: 6,
-                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: color, // Gunakan warna dari acara
-                  ),
-                ))
-            .toList(),
-      ),
-    );
-  },
-),
-// ...  
-                    ),
-
-                    // Schedule list
-                    Expanded(child: _buildScheduleList()),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Sidebar overlay
-            if (_isSidebarOpen)
+        backgroundColor: const Color(0xFFF1F1F1),
+        body: RefreshController(
+          onRefresh: _loadSchedules,
+          child: Stack(
+            children: [
+              // Main content
               GestureDetector(
                 onTap: _closeSidebar,
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.5),
-                ),
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: isDarkMode
+                              ? const Color(0xFF4CAF50)
+                              : primaryColor,
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _loadSchedules,
+                        color:
+                            isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                              top: 42.0, left: 17.0, right: 17.0),
+                          child: Column(
+                            children: [
+                              // Top row with calendar selector and month/year selector
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 12.0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildCalendarSelector(),
+                                    const SizedBox(width: 20),
+                                    _buildMonthYearSelector(),
+                                  ],
+                                ),
+                              ),
+
+                              // Calendar
+                              Container(
+                                margin: const EdgeInsets.only(
+                                    top:
+                                        24.0), // Beri jarak ke daftar jadwal di bawahnya
+                                padding: const EdgeInsets.fromLTRB(8.0, 12.0,
+                                    8.0, 8.0), // Beri ruang di dalam container
+                                decoration: BoxDecoration(
+                                  color: Colors
+                                      .white, // INI DIA! Warna background putih
+                                  borderRadius: BorderRadius.circular(
+                                      16.0), // Sudut yang membulat agar cantik
+                                ),
+                                child: TableCalendar(
+                                  firstDay: DateTime.utc(2000, 1, 1),
+                                  lastDay: DateTime.utc(2100, 12, 31),
+                                  focusedDay: _focusedDay,
+                                  selectedDayPredicate: (day) =>
+                                      isSameDay(_selectedDay, day),
+                                  eventLoader: _getSchedulesForDay,
+                                  onDaySelected: (selectedDay, focusedDay) {
+                                    setState(() {
+                                      _selectedDay = selectedDay;
+                                      _focusedDay = focusedDay;
+                                    });
+                                  },
+                                  onPageChanged: (focusedDay) {
+                                    setState(() {
+                                      _focusedDay = focusedDay;
+                                      _currentMonth =
+                                          DateFormat('MMMM').format(focusedDay);
+                                      _currentYear = focusedDay.year;
+                                    });
+                                  },
+                                  startingDayOfWeek: StartingDayOfWeek
+                                      .monday, // Start with Monday
+                                  daysOfWeekHeight: 30.0,
+                                  daysOfWeekStyle: const DaysOfWeekStyle(
+                                    // Style untuk hari Senin sampai Sabtu
+                                    weekdayStyle: TextStyle(
+                                      fontWeight:
+                                          FontWeight.bold, // font-weight: 600
+                                      fontSize: 17, // font-size: 17px
+                                      color:
+                                          Color(0xFF0F140F), // color: #0F140F
+                                    ),
+                                    // Style untuk hari Minggu
+                                    weekendStyle: TextStyle(
+                                      fontWeight:
+                                          FontWeight.bold, // font-weight: 600
+                                      fontSize: 17, // font-size: 17px
+                                      color: Color(
+                                          0xFF0F140F), // color: #0F140F (membuat 'Sun' juga berwarna hitam)
+                                    ),
+                                  ),
+                                  weekendDays: const [DateTime.sunday],
+                                  rowHeight: 43.0,
+                                  calendarStyle: CalendarStyle(
+                                    cellMargin: const EdgeInsets.all(4.0),
+
+                                    todayDecoration: const BoxDecoration(
+                                      shape: BoxShape
+                                          .circle, // Pastikan bentuknya tetap lingkaran
+                                    ),
+
+                                    selectedDecoration: BoxDecoration(
+                                      color: activeColor,
+                                      shape: BoxShape.circle,
+                                    ),
+
+                                    // Only make Sunday red (last day of week when starting with Monday)
+                                    weekendTextStyle: const TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+
+                                    outsideTextStyle: const TextStyle(
+                                        color: Color(0xFF8F9BB3),
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+
+                                    defaultTextStyle: const TextStyle(
+                                      fontWeight:
+                                          FontWeight.bold, // font-weight: 500
+                                      fontSize: 18, // font-size: 18px
+                                      color:
+                                          Color(0xFF252525), // color: #252525
+                                    ),
+
+                                    // Gaya untuk hari akhir pekan (Sabtu & Minggu)
+                                    // Ini akan mengubah angka weekend yang tadinya merah menjadi hitam.
+                                    // weekendTextStyle: const TextStyle(
+                                    //   fontWeight: FontWeight.w500,
+                                    //   fontSize: 18,
+                                    //   color: Color(0xFF252525),
+                                    // ),
+
+                                    // Kita biarkan warnanya putih agar kontras dengan background ungu.
+                                    selectedTextStyle: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                    ),
+
+                                    // Gaya untuk tanggal hari ini
+                                    // Kita gunakan style yang sama, tapi mungkin Anda ingin membuatnya bold.
+                                    todayTextStyle:  TextStyle(
+                                      fontWeight: FontWeight
+                                          .bold, // Atau FontWeight.bold agar lebih menonjol
+                                      fontSize: 18,
+                                      color: activeColor,
+                                    ),
+
+                                    // Dekorasi dan style lainnya tetap sama
+                                    // todayDecoration: BoxDecoration(
+                                    //   color: activeColor.withAlpha(76),
+                                    //   shape: BoxShape.circle,
+                                    // ),
+
+                                    // selectedDecoration: BoxDecoration(
+                                    //   color: activeColor,
+                                    //   shape: BoxShape.circle,
+                                    // ),
+
+                                    // outsideTextStyle: TextStyle(
+                                    //     fontSize:
+                                    //         16, // Samakan ukuran font jika mau
+                                    //     color: Colors.grey[
+                                    //         400] // Biarkan abu-abu agar tidak membingungkan
+                                    //     ),
+                                  ),
+                                  headerVisible:
+                                      false, // Hide the default header
+                                  // ... properti TableCalendar lainnya seperti onDaySelected, onPageChanged, dll.
+
+                                  // TAMBAHKAN BLOK INI:
+                                  calendarBuilders: CalendarBuilders(
+                                    markerBuilder: (context, date, events) {
+                                      // events di sini adalah List<dynamic>, jadi kita cast ke List<Schedule>
+                                      final scheduleEvents =
+                                          events.cast<Schedule>();
+                                      if (scheduleEvents.isEmpty) {
+                                        return null; // Jangan tampilkan apa-apa jika tidak ada acara
+                                      }
+
+                                      // Ambil warna unik dari setiap acara pada hari itu
+                                      // Ini untuk mencegah satu grup yang punya 3 acara menampilkan 3 titik yang sama
+                                      final uniqueColors = <Color>{};
+                                      for (var schedule in scheduleEvents) {
+                                        final color = _getDotColor(schedule,
+                                            activeColor, uniqueColors.length);
+                                        uniqueColors.add(color);
+                                      }
+
+                                      // Tampilkan titik-titik di bawah tanggal
+                                      return Positioned(
+                                        bottom:
+                                            -4, // Atur posisi vertikal titik dari bawah
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: uniqueColors
+                                              .take(
+                                                  4) // Batasi maksimal 4 titik agar tidak terlalu ramai
+                                              .map((color) => Container(
+                                                    width: 6,
+                                                    height: 6,
+                                                    margin: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 1.5),
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color:
+                                                          color, // Gunakan warna dari acara
+                                                    ),
+                                                  ))
+                                              .toList(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+
+                              // Schedule list
+                              Expanded(child: _buildScheduleList()),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
 
-            // Animated sidebar
-            AnimatedBuilder(
-              animation: _sidebarAnimation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(_sidebarAnimation.value * 320, 0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: GroupSelectorSidebar(
-                      groups: groupProvider.groups,
-                      selectedGroup: groupProvider.selectedGroup,
-                      isPersonalMode: groupProvider.isPersonalMode,
-                      showPersonalOption: true,
-                      onGroupSelected: (group) {
-                        groupProvider.selectGroup(group);
-                        _closeSidebar();
-                        _loadSchedules();
-                      },
-                      onPersonalModeSelected: () {
-                        groupProvider.selectPersonalMode();
-                        _closeSidebar();
-                        _loadSchedules();
-                      },
-                      onCreateGroup: () {
-                        _closeSidebar();
-                        // TODO: Add create group functionality
-                      },
-                      currentUserId: groupProvider.currentUserId,
-                    ),
+              // Sidebar overlay
+              if (_isSidebarOpen)
+                GestureDetector(
+                  onTap: _closeSidebar,
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.5),
                   ),
-                );
-              },
-            ),
-        ],
-      ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateScheduleDialog,
-        backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
+                ),
+
+              // Animated sidebar
+              AnimatedBuilder(
+                animation: _sidebarAnimation,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(_sidebarAnimation.value * 320, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: GroupSelectorSidebar(
+                        groups: groupProvider.groups,
+                        selectedGroup: groupProvider.selectedGroup,
+                        isPersonalMode: groupProvider.isPersonalMode,
+                        showPersonalOption: true,
+                        onGroupSelected: (group) {
+                          groupProvider.selectGroup(group);
+                          _closeSidebar();
+                          _loadSchedules();
+                        },
+                        onPersonalModeSelected: () {
+                          groupProvider.selectPersonalMode();
+                          _closeSidebar();
+                          _loadSchedules();
+                        },
+                        onCreateGroup: () {
+                          _closeSidebar();
+                          // TODO: Add create group functionality
+                        },
+                        currentUserId: groupProvider.currentUserId,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _showCreateScheduleDialog,
+          backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+          child: const Icon(
+            Icons.add,
+            color: Colors.white,
+          ),
+        ),
+        bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
       ),
     );
   }
-
-
 
   Widget _buildMonthYearSelector() {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -470,65 +579,63 @@ calendarBuilders: CalendarBuilders(
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
 
     return Center(
-  child: Container(
-    width: 172,
-    height: 50,
-    padding: const EdgeInsets.only(left: 17.0, right: 17.0),
-    decoration: BoxDecoration(
-      color: isDarkMode ? Colors.grey[800] : Colors.white,
-      borderRadius: BorderRadius.circular(30),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withAlpha((0.1 * 255).round()),
-          offset: const Offset(0, 4),
-          blurRadius: 15,
+      child: Container(
+        width: 172,
+        height: 50,
+        padding: const EdgeInsets.only(left: 17.0, right: 17.0),
+        decoration: BoxDecoration(
+          color: isDarkMode ? Colors.grey[800] : Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((0.1 * 255).round()),
+              offset: const Offset(0, 4),
+              blurRadius: 15,
+            ),
+          ],
         ),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SvgPicture.asset(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            SvgPicture.asset(
               'assets/icons/month_year_selector-icon.svg',
               width: 24,
               height: 24,
             ),
-        const SizedBox(width: 8),
-        Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                _currentMonth,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF222B45),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _currentMonth,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF222B45),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                overflow: TextOverflow.ellipsis,
-
-              ),
-              Text(
-                '$_currentYear',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF8F9BB3),
+                Text(
+                  '$_currentYear',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF8F9BB3),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                overflow: TextOverflow.ellipsis,
+              ],
+            ),
+            const Spacer(),
+            Icon(Icons.arrow_drop_down, color: textColor),
+          ],
+        ),
+      ),
+    )
 
-              ),
-            ],
-          ),
-        const Spacer(),
-        Icon(Icons.arrow_drop_down, color: textColor),
-      ],
-    ),
-  ),
-)
-
-      // Foreground decoration moved up
-    .onTap(() {
+        // Foreground decoration moved up
+        .onTap(() {
       // Show month picker when tapped
       showDialog(
         context: context,
@@ -571,31 +678,29 @@ calendarBuilders: CalendarBuilders(
                               // Show year picker when month/year text is tapped
                               showDialog(
                                 context: context,
-                                builder:
-                                    (context) => AlertDialog(
-                                      title: const Text('Select Year'),
-                                      content: SizedBox(
-                                        width: 300,
-                                        height: 300,
-                                        child: ListView.builder(
-                                          itemCount:
-                                              101, // 100 years (2000-2100)
-                                          itemBuilder: (context, index) {
-                                            final year = 2000 + index;
-                                            return ListTile(
-                                              title: Text('$year'),
-                                              selected: year == displayYear,
-                                              onTap: () {
-                                                setState(() {
-                                                  displayYear = year;
-                                                });
-                                                Navigator.pop(context);
-                                              },
-                                            );
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Select Year'),
+                                  content: SizedBox(
+                                    width: 300,
+                                    height: 300,
+                                    child: ListView.builder(
+                                      itemCount: 101, // 100 years (2000-2100)
+                                      itemBuilder: (context, index) {
+                                        final year = 2000 + index;
+                                        return ListTile(
+                                          title: Text('$year'),
+                                          selected: year == displayYear,
+                                          onTap: () {
+                                            setState(() {
+                                              displayYear = year;
+                                            });
+                                            Navigator.pop(context);
                                           },
-                                        ),
-                                      ),
+                                        );
+                                      },
                                     ),
+                                  ),
+                                ),
                               );
                             },
                             child: Text(
@@ -632,9 +737,9 @@ calendarBuilders: CalendarBuilders(
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 7,
-                              childAspectRatio: 1,
-                            ),
+                          crossAxisCount: 7,
+                          childAspectRatio: 1,
+                        ),
                         itemCount: 7 * 7, // Header row + up to 6 rows of days
                         itemBuilder: (context, index) {
                           // First row is day headers (Mon, Tue, Wed, etc.)
@@ -653,10 +758,9 @@ calendarBuilders: CalendarBuilders(
                                 dayNames[index],
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color:
-                                      index == 6
-                                          ? Colors.red
-                                          : null, // Sunday in red
+                                  color: index == 6
+                                      ? Colors.red
+                                      : null, // Sunday in red
                                 ),
                               ),
                             );
@@ -684,15 +788,13 @@ calendarBuilders: CalendarBuilders(
                           }
 
                           final date = DateTime(displayYear, displayMonth, day);
-                          final isSelected =
-                              date.year == _currentYear &&
+                          final isSelected = date.year == _currentYear &&
                               date.month ==
                                   DateFormat(
                                     'MMMM',
                                   ).parse(_currentMonth).month &&
                               date.day == (_selectedDay ?? _focusedDay).day;
-                          final isToday =
-                              date.year == DateTime.now().year &&
+                          final isToday = date.year == DateTime.now().year &&
                               date.month == DateTime.now().month &&
                               date.day == DateTime.now().day;
 
@@ -710,26 +812,23 @@ calendarBuilders: CalendarBuilders(
                             child: Container(
                               margin: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
-                                color:
-                                    isSelected
-                                        ? activeColor
-                                        : (isToday
-                                            ? activeColor.withAlpha(76)
-                                            : null), // 0.3 opacity
+                                color: isSelected
+                                    ? activeColor
+                                    : (isToday
+                                        ? activeColor.withAlpha(76)
+                                        : null), // 0.3 opacity
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
                                 child: Text(
                                   day.toString(),
                                   style: TextStyle(
-                                    color:
-                                        isSelected
-                                            ? Colors.white
-                                            : (isSunday ? Colors.red : null),
-                                    fontWeight:
-                                        isToday || isSelected
-                                            ? FontWeight.bold
-                                            : null,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : (isSunday ? Colors.red : null),
+                                    fontWeight: isToday || isSelected
+                                        ? FontWeight.bold
+                                        : null,
                                   ),
                                 ),
                               ),
@@ -781,11 +880,10 @@ calendarBuilders: CalendarBuilders(
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
 
     final day = _selectedDay ?? _focusedDay;
-    final schedules =
-        _groupedSchedules.values
-            .expand((list) => list)
-            .where((s) => isSameDay(TimezoneService.utcToLocal(s.startTime), day))
-            .toList();
+    final schedules = _groupedSchedules.values
+        .expand((list) => list)
+        .where((s) => isSameDay(TimezoneService.utcToLocal(s.startTime), day))
+        .toList();
 
     // Sort schedules by start time (using local timezone)
     schedules.sort(
@@ -872,10 +970,9 @@ calendarBuilders: CalendarBuilders(
                                 child: Linkify(
                                   text: schedule.description!,
                                   style: TextStyle(
-                                    color:
-                                        isDarkMode
-                                            ? Colors.grey[300]
-                                            : Colors.grey[700],
+                                    color: isDarkMode
+                                        ? Colors.grey[300]
+                                        : Colors.grey[700],
                                     fontSize: 14,
                                   ),
                                   maxLines: 2,
@@ -899,101 +996,92 @@ calendarBuilders: CalendarBuilders(
                                     // Show full description
                                     showDialog(
                                       context: context,
-                                      builder:
-                                          (context) => AlertDialog(
-                                            title: Text(schedule.title),
-                                            content: SingleChildScrollView(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Linkify(
-                                                    text: schedule.description!,
-                                                    style: TextStyle(
-                                                      color:
-                                                          isDarkMode
-                                                              ? Colors.grey[300]
-                                                              : Colors
-                                                                  .grey[700],
+                                      builder: (context) => AlertDialog(
+                                        title: Text(schedule.title),
+                                        content: SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Linkify(
+                                                text: schedule.description!,
+                                                style: TextStyle(
+                                                  color: isDarkMode
+                                                      ? Colors.grey[300]
+                                                      : Colors.grey[700],
+                                                ),
+                                                linkStyle: TextStyle(
+                                                  color: activeColor,
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                ),
+                                                onOpen: (link) async {
+                                                  if (await canLaunchUrl(
+                                                    Uri.parse(link.url),
+                                                  )) {
+                                                    await launchUrl(
+                                                      Uri.parse(link.url),
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                              if (schedule.location != null &&
+                                                  schedule.location!
+                                                      .isNotEmpty) ...[
+                                                const SizedBox(height: 16),
+                                                Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.location_on,
+                                                      size: 16,
                                                     ),
-                                                    linkStyle: TextStyle(
-                                                      color: activeColor,
-                                                      decoration:
-                                                          TextDecoration
-                                                              .underline,
+                                                    const SizedBox(
+                                                      width: 4,
                                                     ),
-                                                    onOpen: (link) async {
-                                                      if (await canLaunchUrl(
-                                                        Uri.parse(link.url),
-                                                      )) {
-                                                        await launchUrl(
-                                                          Uri.parse(link.url),
-                                                        );
-                                                      }
-                                                    },
-                                                  ),
-                                                  if (schedule.location !=
-                                                          null &&
-                                                      schedule
-                                                          .location!
-                                                          .isNotEmpty) ...[
-                                                    const SizedBox(height: 16),
-                                                    Row(
-                                                      children: [
-                                                        const Icon(
-                                                          Icons.location_on,
-                                                          size: 16,
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 4,
-                                                        ),
-                                                        Expanded(
-                                                          child: GestureDetector(
-                                                            onTap: () async {
-                                                              // Try to launch as map URL
-                                                              final mapUrl =
-                                                                  'https://maps.google.com/?q=${Uri.encodeComponent(schedule.location!)}';
-                                                              if (await canLaunchUrl(
-                                                                Uri.parse(
-                                                                  mapUrl,
-                                                                ),
-                                                              )) {
-                                                                await launchUrl(
-                                                                  Uri.parse(
-                                                                    mapUrl,
-                                                                  ),
-                                                                );
-                                                              }
-                                                            },
-                                                            child: Text(
-                                                              schedule
-                                                                  .location!,
-                                                              style: TextStyle(
-                                                                color:
-                                                                    activeColor,
-                                                                decoration:
-                                                                    TextDecoration
-                                                                        .underline,
-                                                              ),
+                                                    Expanded(
+                                                      child: GestureDetector(
+                                                        onTap: () async {
+                                                          // Try to launch as map URL
+                                                          final mapUrl =
+                                                              'https://maps.google.com/?q=${Uri.encodeComponent(schedule.location!)}';
+                                                          if (await canLaunchUrl(
+                                                            Uri.parse(
+                                                              mapUrl,
                                                             ),
+                                                          )) {
+                                                            await launchUrl(
+                                                              Uri.parse(
+                                                                mapUrl,
+                                                              ),
+                                                            );
+                                                          }
+                                                        },
+                                                        child: Text(
+                                                          schedule.location!,
+                                                          style: TextStyle(
+                                                            color: activeColor,
+                                                            decoration:
+                                                                TextDecoration
+                                                                    .underline,
                                                           ),
                                                         ),
-                                                      ],
+                                                      ),
                                                     ),
                                                   ],
-                                                ],
-                                              ),
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed:
-                                                    () =>
-                                                        Navigator.pop(context),
-                                                child: const Text('Close'),
-                                              ),
+                                                ),
+                                              ],
                                             ],
                                           ),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            child: const Text('Close'),
+                                          ),
+                                        ],
+                                      ),
                                     );
                                   },
                                   child: Text(
@@ -1018,10 +1106,9 @@ calendarBuilders: CalendarBuilders(
                               Icon(
                                 Icons.location_on,
                                 size: 16,
-                                color:
-                                    isDarkMode
-                                        ? Colors.grey[300]
-                                        : Colors.grey[700],
+                                color: isDarkMode
+                                    ? Colors.grey[300]
+                                    : Colors.grey[700],
                               ),
                               const SizedBox(width: 4),
                               Expanded(
@@ -1037,10 +1124,9 @@ calendarBuilders: CalendarBuilders(
                                   child: Text(
                                     schedule.location!,
                                     style: TextStyle(
-                                      color:
-                                          isDarkMode
-                                              ? Colors.grey[300]
-                                              : Colors.grey[700],
+                                      color: isDarkMode
+                                          ? Colors.grey[300]
+                                          : Colors.grey[700],
                                       fontSize: 14,
                                       decoration: TextDecoration.underline,
                                     ),
@@ -1058,59 +1144,56 @@ calendarBuilders: CalendarBuilders(
 
                 // Options button - only shown for admins
                 FutureBuilder<bool>(
-                  future:
-                      schedule.group != null
-                          ? _isUserAdmin(schedule.group!.id)
-                          : Future.value(
-                            true,
-                          ), // Personal schedules are always editable
+                  future: schedule.group != null
+                      ? _isUserAdmin(schedule.group!.id)
+                      : Future.value(
+                          true,
+                        ), // Personal schedules are always editable
                   builder: (context, snapshot) {
                     final isAdmin = snapshot.data ?? false;
 
                     return isAdmin
                         ? IconButton(
-                          icon: Icon(
-                            Icons.more_vert,
-                            color:
-                                isDarkMode
-                                    ? Colors.grey[400]
-                                    : Colors.grey[700],
-                          ),
-                          onPressed: () {
-                            // Show options menu for admin
-                            showModalBottomSheet(
-                              context: context,
-                              builder:
-                                  (context) => Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ListTile(
-                                        leading: const Icon(Icons.edit),
-                                        title: const Text('Edit Schedule'),
-                                        onTap: () {
-                                          Navigator.pop(context);
-                                          _showEditScheduleForm(schedule);
-                                        },
+                            icon: Icon(
+                              Icons.more_vert,
+                              color: isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[700],
+                            ),
+                            onPressed: () {
+                              // Show options menu for admin
+                              showModalBottomSheet(
+                                context: context,
+                                builder: (context) => Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ListTile(
+                                      leading: const Icon(Icons.edit),
+                                      title: const Text('Edit Schedule'),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        _showEditScheduleForm(schedule);
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
                                       ),
-                                      ListTile(
-                                        leading: const Icon(
-                                          Icons.delete,
-                                          color: Colors.red,
-                                        ),
-                                        title: const Text(
-                                          'Delete Schedule',
-                                          style: TextStyle(color: Colors.red),
-                                        ),
-                                        onTap: () {
-                                          Navigator.pop(context);
-                                          _showDeleteConfirmation(schedule);
-                                        },
+                                      title: const Text(
+                                        'Delete Schedule',
+                                        style: TextStyle(color: Colors.red),
                                       ),
-                                    ],
-                                  ),
-                            );
-                          },
-                        )
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        _showDeleteConfirmation(schedule);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          )
                         : const SizedBox.shrink(); // Hide button for non-admins
                   },
                 ),
@@ -1129,14 +1212,16 @@ calendarBuilders: CalendarBuilders(
 
   // Show edit schedule overlay
   void _showEditScheduleForm(Schedule schedule) {
-    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+    final groupProvider =
+        Provider.of<GroupSelectionProvider>(context, listen: false);
     showDialog(
       context: context,
       builder: (context) => ScheduleFormDialog(
         scheduleToEdit: schedule,
         onFormClosed: _loadSchedules,
         selectedDate: TimezoneService.utcToLocal(schedule.startTime),
-        initialGroup: schedule.group ?? (groupProvider.isPersonalMode ? null : groupProvider.selectedGroup),
+        initialGroup: schedule.group ??
+            (groupProvider.isPersonalMode ? null : groupProvider.selectedGroup),
       ),
     );
   }
@@ -1147,27 +1232,26 @@ calendarBuilders: CalendarBuilders(
 
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Schedule'),
-            content: Text(
-              'Are you sure you want to delete "${schedule.title}"?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _deleteSchedule(schedule);
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Delete'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Schedule'),
+        content: Text(
+          'Are you sure you want to delete "${schedule.title}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteSchedule(schedule);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1198,7 +1282,8 @@ calendarBuilders: CalendarBuilders(
 
   // Helper method to get dot color based on schedule
   Color _getDotColor(Schedule schedule, Color defaultColor, int index) {
-    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+    final groupProvider =
+        Provider.of<GroupSelectionProvider>(context, listen: false);
 
     // Use different colors for different types of schedules
     if (schedule.group != null) {
@@ -1218,10 +1303,9 @@ calendarBuilders: CalendarBuilders(
           Colors.deepOrange,
         ];
         // Use hash of group id to determine color or use index if provided
-        final colorIndex =
-            index < colors.length
-                ? index
-                : schedule.group!.id.hashCode % colors.length;
+        final colorIndex = index < colors.length
+            ? index
+            : schedule.group!.id.hashCode % colors.length;
         return colors[colorIndex];
       }
     } else {
@@ -1232,7 +1316,8 @@ calendarBuilders: CalendarBuilders(
 
   Widget _buildCalendarSelector() {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+    final groupProvider =
+        Provider.of<GroupSelectionProvider>(context, listen: false);
     final isDarkMode = themeProvider.isDarkMode;
     final textColor = isDarkMode ? Colors.white : const Color(0xFF222B45);
 
@@ -1288,6 +1373,5 @@ calendarBuilders: CalendarBuilders(
         ),
       ),
     );
-
   }
 }
