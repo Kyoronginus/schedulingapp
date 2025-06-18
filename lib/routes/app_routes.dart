@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../auth/login/login_screen.dart';
 import '../auth/password/forgot_password_screen.dart';
-import '../auth/password/change_password_dialog.dart';
 import '../schedule/schedule_screen.dart';
 import '../auth/register/register_screen.dart';
 import '../dynamo/set_user_name_screen.dart';

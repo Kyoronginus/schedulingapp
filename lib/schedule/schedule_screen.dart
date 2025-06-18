@@ -18,7 +18,6 @@ import '../services/refresh_service.dart';
 import '../widgets/smart_back_button.dart';
 import 'create_schedule/schedule_form_dialog.dart';
 import '../dynamo/group_service.dart';
-import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -494,16 +493,13 @@ class _ScheduleScreenState extends State<ScheduleScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         
-        // DIUBAH: content sekarang adalah Stack untuk menumpuk tombol Close
         content: Stack(
           children: [
-            // Layer 1: Konten Utama Dialog (yang sudah kita buat)
             ClipRRect(
               borderRadius: BorderRadius.circular(16.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ===== HEADER BERWARNA =====
                   Container(
                     color: dotColor,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -518,7 +514,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                     ),
                   ),
 
-                  // ===== KONTEN DETAIL DI BAWAH HEADER =====
                   Container(
                     color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
                     padding: const EdgeInsets.all(24.0),
@@ -547,7 +542,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                               content: schedule.location,
                               isLink: true,
                             ),
-                          // ... dan seterusnya untuk detail lain ...
                         ],
                       ),
                     ),
@@ -556,7 +550,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
               ),
             ),
 
-            // Layer 2: Tombol Close 'X' di pojok kanan atas
             Positioned(
               top: 8,
               right: 8,
@@ -568,19 +561,14 @@ class _ScheduleScreenState extends State<ScheduleScreen>
             ),
           ],
         ),
-        
-        // DIUBAH: Hapus seluruh bagian 'actions' dari sini
-        // actions: [ ... ], 
       );
     },
   );
 }
 
-  // DIUBAH: Fungsi helper diperbarui untuk gaya teks yang lebih baik
-// DIUBAH: Fungsi helper sekarang menggunakan String path ikon SVG
 Widget _buildDetailRow(
   BuildContext context, {
-  required String iconAsset, // <-- Menerima String path aset
+  required String iconAsset,
   required String title,
   required String? content,
   bool isLink = false,
@@ -598,17 +586,13 @@ Widget _buildDetailRow(
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // DIUBAH: Menggunakan SvgPicture.asset
         SvgPicture.asset(
           iconAsset,
           width: 20,
           height: 20,
-          // Beri warna ikon sesuai subTextColor agar konsisten
-          // colorFilter: ColorFilter.mode(subTextColor, BlendMode.srcIn),
         ),
         const SizedBox(width: 16),
         Expanded(
-          // ... sisa kode di dalam Expanded tetap sama
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -705,14 +689,14 @@ Widget _buildDetailRow(
                               Container(
                                 margin: const EdgeInsets.only(
                                     top:
-                                        16.0), // Beri jarak ke daftar jadwal di bawahnya
+                                        16.0),
                                 padding: const EdgeInsets.fromLTRB(8.0, 12.0,
-                                    8.0, 8.0), // Beri ruang di dalam container
+                                    8.0, 8.0),
                                 decoration: BoxDecoration(
                                   color: Colors
-                                      .white, // INI DIA! Warna background putih
+                                      .white,
                                   borderRadius: BorderRadius.circular(
-                                      16.0), // Sudut yang membulat agar cantik
+                                      16.0),
                                 ),
                                 child: TableCalendar(
                                   firstDay: DateTime.utc(2000, 1, 1),
@@ -739,21 +723,19 @@ Widget _buildDetailRow(
                                       .monday, // Start with Monday
                                   daysOfWeekHeight: 30.0,
                                   daysOfWeekStyle: const DaysOfWeekStyle(
-                                    // Style untuk hari Senin sampai Sabtu
                                     weekdayStyle: TextStyle(
                                       fontWeight:
-                                          FontWeight.bold, // font-weight: 600
-                                      fontSize: 17, // font-size: 17px
+                                          FontWeight.bold,
+                                      fontSize: 17,
                                       color:
-                                          Color(0xFF0F140F), // color: #0F140F
+                                          Color(0xFF0F140F),
                                     ),
-                                    // Style untuk hari Minggu
                                     weekendStyle: TextStyle(
                                       fontWeight:
-                                          FontWeight.bold, // font-weight: 600
-                                      fontSize: 17, // font-size: 17px
+                                          FontWeight.bold,
+                                      fontSize: 17,
                                       color: Color(
-                                          0xFF0F140F), // color: #0F140F (membuat 'Sun' juga berwarna hitam)
+                                          0xFF0F140F),
                                     ),
                                   ),
                                   weekendDays: const [DateTime.sunday],
@@ -763,7 +745,7 @@ Widget _buildDetailRow(
 
                                     todayDecoration: const BoxDecoration(
                                       shape: BoxShape
-                                          .circle, // Pastikan bentuknya tetap lingkaran
+                                          .circle,
                                     ),
 
                                     selectedDecoration: BoxDecoration(
@@ -785,42 +767,36 @@ Widget _buildDetailRow(
 
                                     defaultTextStyle: const TextStyle(
                                       fontWeight:
-                                          FontWeight.w500, // font-weight: 500
-                                      fontSize: 18, // font-size: 18px
+                                          FontWeight.w500,
+                                      fontSize: 18,
                                       color:
-                                          Color(0xFF252525), // color: #252525
+                                          Color(0xFF252525),
                                     ),
 
-                                    // Kita biarkan warnanya putih agar kontras dengan background ungu.
                                     selectedTextStyle: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 18,
                                       color: Colors.white,
                                     ),
 
-                                    // Gaya untuk tanggal hari ini
-                                    // Kita gunakan style yang sama, tapi mungkin Anda ingin membuatnya w500.
                                     todayTextStyle: TextStyle(
                                       fontWeight: FontWeight
-                                          .bold, // Atau FontWeight.bold agar lebih menonjol
+                                          .bold,
                                       fontSize: 18,
                                       color: activeColor,
                                     ),
                                   ),
                                   headerVisible:
-                                      false, // Hide the default header
-                                  // TAMBAHKAN BLOK INI:
+                                      false,
+
                                   calendarBuilders: CalendarBuilders(
                                     markerBuilder: (context, date, events) {
-                                      // events di sini adalah List<dynamic>, jadi kita cast ke List<Schedule>
                                       final scheduleEvents =
                                           events.cast<Schedule>();
                                       if (scheduleEvents.isEmpty) {
-                                        return null; // Jangan tampilkan apa-apa jika tidak ada acara
+                                        return null;
                                       }
 
-                                      // Ambil warna unik dari setiap acara pada hari itu
-                                      // Ini untuk mencegah satu grup yang punya 3 acara menampilkan 3 titik yang sama
                                       final uniqueColors = <Color>{};
                                       for (var schedule in scheduleEvents) {
                                         final color = _getDotColor(schedule,
@@ -828,16 +804,15 @@ Widget _buildDetailRow(
                                         uniqueColors.add(color);
                                       }
 
-                                      // Tampilkan titik-titik di bawah tanggal
                                       return Positioned(
                                         bottom:
-                                            -4, // Atur posisi vertikal titik dari bawah
+                                            -4,
                                         child: Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: uniqueColors
                                               .take(
-                                                  4) // Batasi maksimal 4 titik agar tidak terlalu ramai
+                                                  4)
                                               .map((color) => Container(
                                                     width: 6,
                                                     height: 6,
@@ -846,8 +821,11 @@ Widget _buildDetailRow(
                                                         horizontal: 1.5),
                                                     decoration: BoxDecoration(
                                                       shape: BoxShape.circle,
-                                                      color:
-                                                          color, // Gunakan warna dari acara
+                                                      color: Colors.transparent, 
+                                                      border: Border.all(
+                                                        color: color, 
+                                                        width: 1.5,
+                                                      ),
                                                     ),
                                                   ))
                                               .toList(),
@@ -929,17 +907,16 @@ Widget _buildDetailRow(
           backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(
-                32), // Sesuaikan nilai ini untuk mengatur tingkat kebundaran
+                32),
           ),
           child: SvgPicture.asset(
-            'assets/icons/plus-icon.svg', // Path ke file SVG Anda
-            // PENTING: Untuk memberi warna pada SVG, gunakan colorFilter
+            'assets/icons/plus-icon.svg',
             colorFilter: const ColorFilter.mode(
-              Colors.white, // Warna yang Anda inginkan
+              Colors.white,
               BlendMode.srcIn,
             ),
-            width: 22, // Sesuaikan ukuran lebar ikon
-            height: 22, // Sesuaikan ukuran tinggi ikon
+            width: 22,
+            height: 22,
           ),
         ),
         bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
@@ -990,11 +967,9 @@ Widget _buildDetailRow(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // BAGIAN HEADER (NAVIGASI TAHUN)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // DIUBAH: Tombol navigasi diberi latar belakang
 
                               IconButton(
                                 icon:
@@ -1012,7 +987,6 @@ Widget _buildDetailRow(
                                   color: textColor,
                                 ),
                               ),
-                              // DIUBAH: Tombol navigasi diberi latar belakang
 
                               IconButton(
                                 icon:
@@ -1025,7 +999,6 @@ Widget _buildDetailRow(
                           ),
                           const SizedBox(height: 16),
 
-                          // BAGIAN KONTEN (GRID PILIHAN BULAN)
                           GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
@@ -1058,24 +1031,22 @@ Widget _buildDetailRow(
                                   _updateMonthYear(monthIndex, displayYear);
                                   Navigator.pop(context);
                                 },
-                                // DIUBAH: Menyesuaikan radius splash effect
                                 borderRadius: BorderRadius.circular(8),
                                 child: Container(
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: isSelected ? activeColor : null,
                                     borderRadius: BorderRadius.circular(8),
-                                    // DIUBAH: Logika border diperbarui
                                     border: Border.all(
                                       color: isSelected
                                           ? Colors
-                                              .transparent // Jika terpilih, tidak perlu border
+                                              .transparent
                                           : isCurrentMonth
-                                              ? activeColor // Jika bulan ini, beri border warna aktif
+                                              ? activeColor
                                               : (isDarkMode
                                                   ? Colors.grey[700]!
                                                   : Colors.grey[
-                                                      300]!), // Border default
+                                                      300]!),
                                       width: 1.5,
                                     ),
                                   ),
@@ -1188,7 +1159,7 @@ Widget _buildDetailRow(
           child: Text(
             'No Schedule For Today.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 16),
+            style: TextStyle(color: textColor.withValues(alpha:0.6), fontSize: 16),
           ),
         ),
       );
@@ -1201,13 +1172,10 @@ Widget _buildDetailRow(
         final schedule = schedules[index];
         final dotColor = _getDotColor(schedule, activeColor, 0);
 
-        // DIUBAH: Menggunakan Container sebagai dasar, bukan Card
         return GestureDetector(
           onTap: () {
-            // Panggil fungsi untuk menampilkan dialog detail
             _showScheduleDetailDialog(context, schedule);
           },
-          // Samakan radiusnya agar efek "splash" terlihat rapi
           child: Container(
             margin: const EdgeInsets.only(bottom: 12.0),
             padding: const EdgeInsets.fromLTRB(16.0, 8.0, 18.0, 10.0),
@@ -1218,24 +1186,31 @@ Widget _buildDetailRow(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // BARIS ATAS: Waktu dan Tombol Opsi
                 Row(
                   children: [
-                    // Ikon dan Waktu
-                    Icon(Icons.circle, size: 10, color: dotColor),
-                    const SizedBox(width: 8),
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.transparent,
+                        border: Border.all(
+                          color: dotColor,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),                    const SizedBox(width: 8),
                     Text(
                       '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
                       style: const TextStyle(
-                        fontStyle: FontStyle.normal, // Sesuai permintaan
-                        fontWeight: FontWeight.bold, // Sudah sesuai (600)
-                        fontSize: 13.0, // Diubah dari 14 menjadi 12
+                        fontStyle: FontStyle.normal,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13.0,
                         color: Color(
-                            0xFF8F9BB3), // Diubah dari dotColor ke warna spesifik
+                            0xFF8F9BB3),
                       ),
                     ),
-                    const Spacer(), // Mendorong tombol ke kanan
-                    // Tombol Opsi (More)
+                    const Spacer(),
                     FutureBuilder<bool>(
                       future: schedule.group != null
                           ? _isUserAdmin(schedule.group!.id)
@@ -1250,12 +1225,11 @@ Widget _buildDetailRow(
                                   padding: EdgeInsets.zero,
                                   icon: Icon(
                                     Icons
-                                        .more_horiz, // DIUBAH: ikon titik tiga horizontal
+                                        .more_horiz,
                                     color: subTextColor,
                                     size: 24,
                                   ),
                                   onPressed: () {
-                                    // Logika showModalBottomSheet tetap sama
                                     showModalBottomSheet(
                                       context: context,
                                       builder: (context) => Column(
@@ -1292,15 +1266,13 @@ Widget _buildDetailRow(
                   ],
                 ),
 
-                // JUDUL JADWAL
                 Text(
                   schedule.title,
                   style: TextStyle(
                     fontStyle: FontStyle.normal,
                     fontWeight:
-                        FontWeight.w600, // Diubah dari bold (w700) ke w600
-                    fontSize: 17.0, // Diubah dari 20 ke 16
-                    // Warna diatur dengan mempertimbangkan Dark Mode
+                        FontWeight.w600,
+                    fontSize: 17.0,
                     color: isDarkMode ? Colors.white : const Color(0xFF222B45),
                   ),
                   maxLines: 2,
@@ -1308,16 +1280,15 @@ Widget _buildDetailRow(
                 ),
                 const SizedBox(height: 2),
 
-                // DESKRIPSI (jika ada)
                 if (schedule.description != null &&
                     schedule.description!.isNotEmpty)
                   Text(
                     schedule.description!,
                     style: const TextStyle(
                       fontStyle: FontStyle.normal,
-                      fontWeight: FontWeight.w400, // w400 sama dengan normal
-                      fontSize: 14.0, // Diubah dari 14 ke 10
-                      color: Color(0xFF8F9BB3), // Warna baru yang spesifik
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14.0,
+                      color: Color(0xFF8F9BB3),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1407,18 +1378,14 @@ Widget _buildDetailRow(
 
   // Helper method to get dot color based on schedule
   Color _getDotColor(Schedule schedule, Color defaultColor, int index) {
-    // First priority: use custom color from schedule if available
     if (schedule.color != null && schedule.color!.isNotEmpty) {
       try {
-        // Handle both hex strings and integer strings
         String colorString = schedule.color!;
         int colorValue;
 
         if (colorString.startsWith('#')) {
-          // Handle hex color strings like "#FF5722"
           colorValue = int.parse(colorString.substring(1), radix: 16);
           if (colorString.length == 7) {
-            // Add alpha channel if not present
             colorValue = 0xFF000000 | colorValue;
           }
         } else {
@@ -1428,7 +1395,6 @@ Widget _buildDetailRow(
 
         return Color(colorValue);
       } catch (e) {
-        // If color parsing fails, fall back to default logic
         debugPrint(
             'Failed to parse schedule color: ${schedule.color}, error: $e');
       }

@@ -31,9 +31,8 @@ class _NotificationScreenState extends State<NotificationScreen>
   bool _isLoadingMore = false;
   StreamSubscription<void>? _profileRefreshSubscription;
 
-  // Pagination and streaming
-  final int _pageSize = 2; // Load 20 notifications at a time
-  String? _nextToken; // For pagination
+  final int _pageSize = 2;
+  String? _nextToken;
   final ScrollController _scrollController = ScrollController();
 
   // Sidebar state
@@ -553,7 +552,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                             color: Color(
                                                                 0xFF222B45),
                                                             fontStyle: FontStyle
-                                                                .normal, // Default, jadi ini opsional
+                                                                .normal,
                                                             height: 1,
                                                           ),
                                                         ),
@@ -590,14 +589,13 @@ class _NotificationScreenState extends State<NotificationScreen>
 
                                                 const SizedBox(width: 14.0),
                                                 Container(
-                                                  width: 1, // Lebar garis
+                                                  width: 1,
                                                   color: isDarkMode
                                                       ? Colors.grey[700]
                                                       : Colors.grey[
-                                                          300], // Warna garis
+                                                          300],
                                                 ),
 
-                                                // Kolom Detail (Kanan)
                                                 Expanded(
                                                   child: Padding(
                                                     padding: const EdgeInsets
@@ -609,17 +607,18 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                           CrossAxisAlignment
                                                               .start,
                                                       children: [
-                                                        // Baris Waktu dengan titik
                                                         Row(
                                                           children: [
                                                             Container(
                                                               width: 8,
                                                               height: 8,
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: dotColor,
-                                                                shape: BoxShape
-                                                                    .circle,
+                                                              decoration: BoxDecoration(
+                                                                shape: BoxShape.circle,
+                                                                color: Colors.transparent,
+                                                                border: Border.all(
+                                                                  color: dotColor,
+                                                                  width: 1.5,
+                                                                ),
                                                               ),
                                                             ),
                                                             const SizedBox(
@@ -647,7 +646,6 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                           schedule.title,
                                                           style:
                                                               const TextStyle(
-                                                            // Properti ini adalah default
                                                             fontWeight:
                                                                 FontWeight.bold,
                                                             fontSize: 18,
@@ -660,7 +658,6 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                         ),
                                                         const SizedBox(height: 1,),
                                                         
-                                                        // Pesan Notifikasi
                                                         Text(
                                                           NotificationService
                                                               .getNotificationMessage(
@@ -670,7 +667,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                             fontStyle: FontStyle
                                                                 .normal,
                                                             fontWeight: FontWeight
-                                                                .w400, // FontWeight.normal juga setara dengan w400
+                                                                .w400,
                                                             fontSize: 13,
                                                             color: Color(
                                                                 0xFF8F9BB3),

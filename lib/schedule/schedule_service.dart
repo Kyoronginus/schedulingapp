@@ -325,27 +325,15 @@ class ScheduleService {
   static Future<List<Schedule>> loadAllSchedules() async {
     try {
       final groups = await GroupService.getUserGroups();
-      debugPrint('🧩 所属グループ数: ${groups.length}');
 
       final allSchedules = <Schedule>[];
 
       for (final group in groups) {
-        debugPrint('📅 ${group.name}（ID: ${group.id}）のスケジュールを取得中...');
         final groupSchedules =
             await ScheduleService.getGroupSchedules(group.id);
-        debugPrint('✅ ${groupSchedules.length} 件取得');
         allSchedules.addAll(groupSchedules);
       }
       debugPrint('📦 スケジュール総数: ${allSchedules.length}');
-
-      void debugScheduleList(List<Schedule> schedules) {
-        for (final s in schedules) {
-          debugPrint(
-              '📅 Schedule: ${s.title}, start=${s.startTime.getDateTimeInUtc().toLocal()}');
-        }
-      }
-
-      debugScheduleList(allSchedules);
 
       return allSchedules;
     } catch (e) {

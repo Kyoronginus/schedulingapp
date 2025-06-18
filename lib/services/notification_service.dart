@@ -487,9 +487,7 @@ class NotificationService {
               try {
                 final notification = Notification.fromJson(item);
                 // Debug: Log schedule color information for group notifications
-                if (notification.schedule?.color != null) {
-                  debugPrint('🎨 Group notification ${notification.id} has schedule color: ${notification.schedule!.color}');
-                } else {
+                if (notification.schedule?.color == null) {
                   debugPrint('⚠️ Group notification ${notification.id} missing schedule color');
                 }
                 if (!groupNotifications.any((n) => n.id == notification.id)) {
