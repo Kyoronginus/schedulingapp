@@ -69,6 +69,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   bool _isSidebarOpen = false;
   late AnimationController _sidebarAnimationController;
   late Animation<double> _sidebarAnimation;
+  late AnimationController _navbarAnimationController;
+  late Animation<double> _navbarAnimation;
 
   // Refresh service subscriptions
   StreamSubscription<void>? _scheduleRefreshSubscription;
@@ -81,7 +83,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 
     // Initialize sidebar animation
     _sidebarAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
     _sidebarAnimation = Tween<double>(
@@ -89,6 +91,19 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       end: 0.0,
     ).animate(CurvedAnimation(
       parent: _sidebarAnimationController,
+      curve: Curves.easeInOut,
+    ));
+
+    // Initialize navbar animation
+    _navbarAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _navbarAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _navbarAnimationController,
       curve: Curves.easeInOut,
     ));
 
@@ -122,6 +137,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     _groupRefreshSubscription?.cancel();
     _profileRefreshSubscription?.cancel();
     _sidebarAnimationController.dispose();
+    _navbarAnimationController.dispose();
     super.dispose();
   }
 
@@ -196,18 +212,21 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       } else if (groupProvider.selectedGroup != null) {
         // In group mode, display schedules for the selected group
         displaySchedules = allSchedules
-            .where((schedule) => schedule.group?.id == groupProvider.selectedGroup!.id)
+            .where((schedule) =>
+                schedule.group?.id == groupProvider.selectedGroup!.id)
             .toList();
       }
 
       // Detect conflicts using ALL schedules for accurate conflict detection
       final allGroupedSchedules = _groupSchedulesByDate(allSchedules);
-      final conflicts = ScheduleConflictDetector.detectAllConflicts(allGroupedSchedules);
+      final conflicts =
+          ScheduleConflictDetector.detectAllConflicts(allGroupedSchedules);
 
       // Check if widget is still mounted before calling setState
       if (!mounted) return;
       setState(() {
-        _allSchedules = allSchedules; // Store all schedules for conflict detection
+        _allSchedules =
+            allSchedules; // Store all schedules for conflict detection
         _groupedSchedules = _groupSchedulesByDate(displaySchedules);
         _conflictsByDate = conflicts;
 
@@ -251,8 +270,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     final normalizedDay = DateTime.utc(day.year, day.month, day.day);
     return _groupedSchedules[normalizedDay] ?? [];
   }
-
-
 
   void _showCreateScheduleDialog() {
     final groupProvider =
@@ -496,8 +513,10 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 
     if (_isSidebarOpen) {
       _sidebarAnimationController.forward();
+      _navbarAnimationController.forward();
     } else {
       _sidebarAnimationController.reverse();
+      _navbarAnimationController.reverse();
     }
   }
 
@@ -507,162 +526,173 @@ class _ScheduleScreenState extends State<ScheduleScreen>
         _isSidebarOpen = false;
       });
       _sidebarAnimationController.reverse();
+      _navbarAnimationController.reverse();
     }
   }
 
   void _showScheduleDetailDialog(BuildContext context, Schedule schedule) {
-  final theme = Theme.of(context);
-  final isDarkMode = theme.brightness == Brightness.dark;
-  final activeColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
-  final dotColor = _getDotColor(schedule, activeColor, 0);
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final activeColor =
+        isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
+    final dotColor = _getDotColor(schedule, activeColor, 0);
 
-  showDialog(
-    context: context,
-    builder: (dialogContext) {
-      return AlertDialog(
-        contentPadding: EdgeInsets.zero,
-        title: null,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        
-        content: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    color: dotColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                    width: double.infinity,
-                    child: Text(
-                      schedule.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                      ),
-                    ),
-                  ),
-
-                  Container(
-                    color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
-                    padding: const EdgeInsets.all(24.0),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                           _buildDetailRow(
-                            dialogContext,
-                            iconAsset: 'assets/icons/calendar_navbar-icon.svg',
-                            title: 'Date',
-                            content: DateFormat('EEEE, dd MMMM yy').format(TimezoneService.utcToLocal(schedule.startTime)),
-                          ),
-                          _buildDetailRow(
-                            dialogContext,
-                            iconAsset: 'assets/icons/clock-icon.svg',
-                            title: 'Time',
-                            content: '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
-                          ),
-                          if (schedule.location != null && schedule.location!.isNotEmpty)
-                            _buildDetailRow(
-                              dialogContext,
-                              iconAsset: 'assets/icons/pin_location-icon.svg',
-                              title: 'Location',
-                              content: schedule.location,
-                              isLink: true,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Positioned(
-              top: 8,
-              right: 8,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(dialogContext),
-                tooltip: 'Close',
-              ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-Widget _buildDetailRow(
-  BuildContext context, {
-  required String iconAsset,
-  required String title,
-  required String? content,
-  bool isLink = false,
-}) {
-  final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-  final subTextColor = Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey;
-  final primaryColor = Theme.of(context).primaryColor;
-
-  if (content == null || content.isEmpty) {
-    return const SizedBox.shrink();
-  }
-
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6.0),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SvgPicture.asset(
-          iconAsset,
-          width: 20,
-          height: 20,
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          contentPadding: EdgeInsets.zero,
+          title: null,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          content: Stack(
             children: [
-              Text(title, style: TextStyle(color: subTextColor, fontSize: 14)),
-              const SizedBox(height: 4),
-              isLink
-                  ? InkWell(
-                      onTap: () async {
-                        final query = Uri.encodeComponent(content);
-                        final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        }
-                      },
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      color: dotColor,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 20),
+                      width: double.infinity,
                       child: Text(
-                        content,
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontSize: 16,
-                          decoration: TextDecoration.underline,
+                        schedule.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
                         ),
                       ),
-                    )
-                  : Text(
-                      content,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                    ),
+                    Container(
+                      color:
+                          isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                      padding: const EdgeInsets.all(24.0),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildDetailRow(
+                              dialogContext,
+                              iconAsset:
+                                  'assets/icons/calendar_navbar-icon.svg',
+                              title: 'Date',
+                              content: DateFormat('EEEE, dd MMMM yy').format(
+                                  TimezoneService.utcToLocal(
+                                      schedule.startTime)),
+                            ),
+                            _buildDetailRow(
+                              dialogContext,
+                              iconAsset: 'assets/icons/clock-icon.svg',
+                              title: 'Time',
+                              content:
+                                  '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
+                            ),
+                            if (schedule.location != null &&
+                                schedule.location!.isNotEmpty)
+                              _buildDetailRow(
+                                dialogContext,
+                                iconAsset: 'assets/icons/pin_location-icon.svg',
+                                title: 'Location',
+                                content: schedule.location,
+                                isLink: true,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(dialogContext),
+                  tooltip: 'Close',
+                ),
+              ),
             ],
           ),
-        ),
-      ],
-    ),
-  );
-}
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(
+    BuildContext context, {
+    required String iconAsset,
+    required String title,
+    required String? content,
+    bool isLink = false,
+  }) {
+    final textColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final subTextColor =
+        Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey;
+    final primaryColor = Theme.of(context).primaryColor;
+
+    if (content == null || content.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SvgPicture.asset(
+            iconAsset,
+            width: 20,
+            height: 20,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: TextStyle(color: subTextColor, fontSize: 14)),
+                const SizedBox(height: 4),
+                isLink
+                    ? InkWell(
+                        onTap: () async {
+                          final query = Uri.encodeComponent(content);
+                          final uri = Uri.parse(
+                              'https://www.google.com/maps/search/?api=1&query=$query');
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri,
+                                mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        child: Text(
+                          content,
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontSize: 16,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        content,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -675,6 +705,7 @@ Widget _buildDetailRow(
     return NavigationMemoryWrapper(
       currentRoute: '/schedule',
       child: Scaffold(
+        extendBody: true,
         backgroundColor: const Color(0xFFF1F1F1),
         body: RefreshController(
           onRefresh: _loadSchedules,
@@ -719,16 +750,12 @@ Widget _buildDetailRow(
 
                               // Calendar
                               Container(
-                                margin: const EdgeInsets.only(
-                                    top:
-                                        16.0),
-                                padding: const EdgeInsets.fromLTRB(8.0, 12.0,
-                                    8.0, 8.0),
+                                margin: const EdgeInsets.only(top: 16.0),
+                                padding: const EdgeInsets.fromLTRB(
+                                    8.0, 12.0, 8.0, 8.0),
                                 decoration: BoxDecoration(
-                                  color: Colors
-                                      .white,
-                                  borderRadius: BorderRadius.circular(
-                                      16.0),
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16.0),
                                 ),
                                 child: TableCalendar(
                                   firstDay: DateTime.utc(2000, 1, 1),
@@ -756,18 +783,14 @@ Widget _buildDetailRow(
                                   daysOfWeekHeight: 30.0,
                                   daysOfWeekStyle: const DaysOfWeekStyle(
                                     weekdayStyle: TextStyle(
-                                      fontWeight:
-                                          FontWeight.bold,
+                                      fontWeight: FontWeight.bold,
                                       fontSize: 17,
-                                      color:
-                                          Color(0xFF0F140F),
+                                      color: Color(0xFF0F140F),
                                     ),
                                     weekendStyle: TextStyle(
-                                      fontWeight:
-                                          FontWeight.bold,
+                                      fontWeight: FontWeight.bold,
                                       fontSize: 17,
-                                      color: Color(
-                                          0xFF0F140F),
+                                      color: Color(0xFF0F140F),
                                     ),
                                   ),
                                   weekendDays: const [DateTime.sunday],
@@ -776,8 +799,7 @@ Widget _buildDetailRow(
                                     cellMargin: const EdgeInsets.all(4.0),
 
                                     todayDecoration: const BoxDecoration(
-                                      shape: BoxShape
-                                          .circle,
+                                      shape: BoxShape.circle,
                                     ),
 
                                     selectedDecoration: BoxDecoration(
@@ -798,11 +820,9 @@ Widget _buildDetailRow(
                                         fontWeight: FontWeight.w500),
 
                                     defaultTextStyle: const TextStyle(
-                                      fontWeight:
-                                          FontWeight.w500,
+                                      fontWeight: FontWeight.w500,
                                       fontSize: 18,
-                                      color:
-                                          Color(0xFF252525),
+                                      color: Color(0xFF252525),
                                     ),
 
                                     selectedTextStyle: const TextStyle(
@@ -812,14 +832,12 @@ Widget _buildDetailRow(
                                     ),
 
                                     todayTextStyle: TextStyle(
-                                      fontWeight: FontWeight
-                                          .bold,
+                                      fontWeight: FontWeight.bold,
                                       fontSize: 18,
                                       color: activeColor,
                                     ),
                                   ),
-                                  headerVisible:
-                                      false,
+                                  headerVisible: false,
 
                                   calendarBuilders: CalendarBuilders(
                                     markerBuilder: (context, date, events) {
@@ -830,22 +848,27 @@ Widget _buildDetailRow(
                                       }
 
                                       // Check if there are conflicts on this date
-                                      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+                                      final groupProvider =
+                                          Provider.of<GroupSelectionProvider>(
+                                              context,
+                                              listen: false);
                                       bool hasConflict = false;
 
                                       // Normalize the date to match our conflict detection keys
-                                      final normalizedDate = DateTime.utc(date.year, date.month, date.day);
+                                      final normalizedDate = DateTime.utc(
+                                          date.year, date.month, date.day);
 
                                       // Only show conflicts in group mode, not in personal mode
                                       if (!groupProvider.isPersonalMode) {
                                         // In group mode, show conflicts only for the selected group
-                                        final currentGroupId = groupProvider.selectedGroup?.id;
+                                        final currentGroupId =
+                                            groupProvider.selectedGroup?.id;
                                         hasConflict = currentGroupId != null &&
-                                            ScheduleConflictDetector.groupHasConflictOnDate(
-                                              currentGroupId,
-                                              normalizedDate,
-                                              _conflictsByDate
-                                            );
+                                            ScheduleConflictDetector
+                                                .groupHasConflictOnDate(
+                                                    currentGroupId,
+                                                    normalizedDate,
+                                                    _conflictsByDate);
                                       }
 
                                       final uniqueColors = <Color>{};
@@ -887,7 +910,8 @@ Widget _buildDetailRow(
                                           Container(
                                             width: 6,
                                             height: 6,
-                                            margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 1.5),
                                             child: SvgPicture.asset(
                                               'assets/icons/x-icon.svg',
                                               width: 6,
@@ -900,7 +924,8 @@ Widget _buildDetailRow(
                                       return Positioned(
                                         bottom: -4,
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: dots,
                                         ),
                                       );
@@ -975,24 +1000,29 @@ Widget _buildDetailRow(
             ],
           ),
         ),
-        floatingActionButton: !groupProvider.isPersonalMode ? FloatingActionButton(
-          onPressed: _showCreateScheduleDialog,
-          backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-                32),
-          ),
-          child: SvgPicture.asset(
-            'assets/icons/plus-icon.svg',
-            colorFilter: const ColorFilter.mode(
-              Colors.white,
-              BlendMode.srcIn,
-            ),
-            width: 22,
-            height: 22,
-          ),
-        ) : null,
-        bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
+        floatingActionButton: !groupProvider.isPersonalMode
+            ? FloatingActionButton(
+                onPressed: _showCreateScheduleDialog,
+                backgroundColor:
+                    isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: SvgPicture.asset(
+                  'assets/icons/plus-icon.svg',
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
+                  width: 22,
+                  height: 22,
+                ),
+              )
+            : null,
+        bottomNavigationBar: AnimatedBottomNavBar(
+          currentIndex: _currentIndex,
+          navbarAnimation: _navbarAnimation,
+        ),
       ),
     );
   }
@@ -1043,7 +1073,6 @@ Widget _buildDetailRow(
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-
                               IconButton(
                                 icon:
                                     Icon(Icons.chevron_left, color: textColor),
@@ -1051,7 +1080,6 @@ Widget _buildDetailRow(
                                   setState(() => displayYear--);
                                 },
                               ),
-
                               Text(
                                 '$displayYear',
                                 style: TextStyle(
@@ -1060,7 +1088,6 @@ Widget _buildDetailRow(
                                   color: textColor,
                                 ),
                               ),
-
                               IconButton(
                                 icon:
                                     Icon(Icons.chevron_right, color: textColor),
@@ -1071,7 +1098,6 @@ Widget _buildDetailRow(
                             ],
                           ),
                           const SizedBox(height: 16),
-
                           GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
@@ -1112,14 +1138,12 @@ Widget _buildDetailRow(
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color: isSelected
-                                          ? Colors
-                                              .transparent
+                                          ? Colors.transparent
                                           : isCurrentMonth
                                               ? activeColor
                                               : (isDarkMode
                                                   ? Colors.grey[700]!
-                                                  : Colors.grey[
-                                                      300]!),
+                                                  : Colors.grey[300]!),
                                       width: 1.5,
                                     ),
                                   ),
@@ -1233,7 +1257,8 @@ Widget _buildDetailRow(
           child: Text(
             'No Schedule For Today.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: textColor.withValues(alpha:0.6), fontSize: 16),
+            style: TextStyle(
+                color: textColor.withValues(alpha: 0.6), fontSize: 16),
           ),
         ),
       );
@@ -1241,7 +1266,7 @@ Widget _buildDetailRow(
 
     return ListView.builder(
       itemCount: totalItems,
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 125.0),
       itemBuilder: (context, index) {
         // First show all regular schedules, then conflict notices
         if (index < schedules.length) {
@@ -1249,136 +1274,137 @@ Widget _buildDetailRow(
           final dotColor = _getDotColor(schedule, activeColor, 0);
 
           return GestureDetector(
-          onTap: () {
-            _showScheduleDetailDialog(context, schedule);
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12.0),
-            padding: const EdgeInsets.fromLTRB(16.0, 8.0, 18.0, 10.0),
-            decoration: BoxDecoration(
-              color: cardBackgroundColor,
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.transparent,
-                        border: Border.all(
-                          color: dotColor,
-                          width: 3,
+            onTap: () {
+              _showScheduleDetailDialog(context, schedule);
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12.0),
+              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 18.0, 10.0),
+              decoration: BoxDecoration(
+                color: cardBackgroundColor,
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.transparent,
+                          border: Border.all(
+                            color: dotColor,
+                            width: 3,
+                          ),
                         ),
                       ),
-                    ),                    const SizedBox(width: 8),
-                    Text(
-                      '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
-                      style: const TextStyle(
-                        fontStyle: FontStyle.normal,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13.0,
-                        color: Color(
-                            0xFF8F9BB3),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
+                        style: const TextStyle(
+                          fontStyle: FontStyle.normal,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.0,
+                          color: Color(0xFF8F9BB3),
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                    FutureBuilder<bool>(
-                      future: schedule.group != null
-                          ? _isUserAdmin(schedule.group!.id)
-                          : Future.value(true),
-                      builder: (context, snapshot) {
-                        final isAdmin = snapshot.data ?? false;
-                        return isAdmin
-                            ? SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: IconButton(
-                                  padding: EdgeInsets.zero,
-                                  icon: Icon(
-                                    Icons
-                                        .more_horiz,
-                                    color: subTextColor,
-                                    size: 24,
+                      const Spacer(),
+                      FutureBuilder<bool>(
+                        future: schedule.group != null
+                            ? _isUserAdmin(schedule.group!.id)
+                            : Future.value(true),
+                        builder: (context, snapshot) {
+                          final isAdmin = snapshot.data ?? false;
+                          return isAdmin
+                              ? SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: Icon(
+                                      Icons.more_horiz,
+                                      color: subTextColor,
+                                      size: 24,
+                                    ),
+                                    onPressed: () {
+                                      showModalBottomSheet(
+                                        context: context,
+                                        builder: (context) => Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ListTile(
+                                              leading: const Icon(Icons.edit),
+                                              title:
+                                                  const Text('Edit Schedule'),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                _showEditScheduleForm(schedule);
+                                              },
+                                            ),
+                                            ListTile(
+                                              leading: const Icon(Icons.delete,
+                                                  color: Colors.red),
+                                              title: const Text(
+                                                  'Delete Schedule',
+                                                  style: TextStyle(
+                                                      color: Colors.red)),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                _showDeleteConfirmation(
+                                                    schedule);
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
-                                  onPressed: () {
-                                    showModalBottomSheet(
-                                      context: context,
-                                      builder: (context) => Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          ListTile(
-                                            leading: const Icon(Icons.edit),
-                                            title: const Text('Edit Schedule'),
-                                            onTap: () {
-                                              Navigator.pop(context);
-                                              _showEditScheduleForm(schedule);
-                                            },
-                                          ),
-                                          ListTile(
-                                            leading: const Icon(Icons.delete,
-                                                color: Colors.red),
-                                            title: const Text('Delete Schedule',
-                                                style: TextStyle(
-                                                    color: Colors.red)),
-                                            onTap: () {
-                                              Navigator.pop(context);
-                                              _showDeleteConfirmation(schedule);
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              )
-                            : const SizedBox.shrink();
-                      },
-                    ),
-                  ],
-                ),
-
-                Text(
-                  schedule.title,
-                  style: TextStyle(
-                    fontStyle: FontStyle.normal,
-                    fontWeight:
-                        FontWeight.w600,
-                    fontSize: 17.0,
-                    color: isDarkMode ? Colors.white : const Color(0xFF222B45),
+                                )
+                              : const SizedBox.shrink();
+                        },
+                      ),
+                    ],
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-
-                if (schedule.description != null &&
-                    schedule.description!.isNotEmpty)
                   Text(
-                    schedule.description!,
-                    style: const TextStyle(
+                    schedule.title,
+                    style: TextStyle(
                       fontStyle: FontStyle.normal,
-                      fontWeight: FontWeight.w400,
-                      fontSize: 14.0,
-                      color: Color(0xFF8F9BB3),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 17.0,
+                      color:
+                          isDarkMode ? Colors.white : const Color(0xFF222B45),
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-              ],
+                  const SizedBox(height: 2),
+                  if (schedule.description != null &&
+                      schedule.description!.isNotEmpty)
+                    Text(
+                      schedule.description!,
+                      style: const TextStyle(
+                        fontStyle: FontStyle.normal,
+                        fontWeight: FontWeight.w400,
+                        fontSize: 14.0,
+                        color: Color(0xFF8F9BB3),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
             ),
-          ),
-        );
+          );
         } else {
           // Show conflict availability notice
           final noticeIndex = index - schedules.length;
           final notice = conflictNotices[noticeIndex];
 
-          return _buildConflictNoticeWidget(notice, cardBackgroundColor, textColor, subTextColor);
+          return _buildConflictNoticeWidget(
+              notice, cardBackgroundColor, textColor, subTextColor);
         }
       },
     );
@@ -1455,7 +1481,8 @@ Widget _buildDetailRow(
         return schedule.user!.name;
       }
       if (schedule.user != null && schedule.user!.email.isNotEmpty) {
-        return schedule.user!.email.split('@')[0]; // Use email prefix as username
+        return schedule.user!.email
+            .split('@')[0]; // Use email prefix as username
       }
       return 'Someone';
     } catch (e) {
@@ -1544,7 +1571,8 @@ Widget _buildDetailRow(
 
   // Helper method to get conflict availability notices for a specific day
   List<ConflictAvailabilityNotice> _getConflictNoticesForDay(DateTime day) {
-    final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+    final groupProvider =
+        Provider.of<GroupSelectionProvider>(context, listen: false);
 
     // Only show conflict notices in group mode
     if (groupProvider.isPersonalMode || groupProvider.selectedGroup == null) {
@@ -1575,10 +1603,11 @@ Widget _buildDetailRow(
     for (final selectedSchedule in selectedGroupSchedules) {
       for (final otherSchedule in allSchedulesForDate) {
         if (otherSchedule.group?.id != selectedGroupId &&
-            ScheduleConflictDetector.schedulesOverlap(selectedSchedule, otherSchedule)) {
-
+            ScheduleConflictDetector.schedulesOverlap(
+                selectedSchedule, otherSchedule)) {
           // Create a conflict notice (avoid duplicates)
-          if (!notices.any((notice) => notice.conflictingSchedule.id == otherSchedule.id)) {
+          if (!notices.any(
+              (notice) => notice.conflictingSchedule.id == otherSchedule.id)) {
             notices.add(ConflictAvailabilityNotice(
               conflictingSchedule: otherSchedule,
               startTime: otherSchedule.startTime,

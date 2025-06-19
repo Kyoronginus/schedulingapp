@@ -40,12 +40,13 @@ class NotificationService {
   }
 
   static Future<bool> markAsUnread(String notificationId) async {
-  try {
-    return true;
-  } catch (e) {
-    return false;
+    try {
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
-}
+
   // Load notifications from Amplify backend using GraphQL API
   static Future<void> _loadNotifications() async {
     try {
@@ -71,17 +72,21 @@ class NotificationService {
         document: userGroupsQuery,
         variables: {'userId': _currentUserId},
       );
-      final userGroupsResponse = await Amplify.API.query(request: userGroupsRequest).response;
+      final userGroupsResponse =
+          await Amplify.API.query(request: userGroupsRequest).response;
 
       if (userGroupsResponse.hasErrors) {
-        debugPrint('Error getting user groups: ${userGroupsResponse.errors.first.message}');
+        debugPrint(
+            'Error getting user groups: ${userGroupsResponse.errors.first.message}');
         return;
       }
 
       // Extract group IDs that the user is a member of
       final userGroupsData = json.decode(userGroupsResponse.data ?? '{}');
       final userGroupItems = userGroupsData['listGroupUsers']?['items'] ?? [];
-      final userGroupIds = userGroupItems.map<String>((item) => item['groupId'] as String).toList();
+      final userGroupIds = userGroupItems
+          .map<String>((item) => item['groupId'] as String)
+          .toList();
 
       debugPrint('🔍 User $_currentUserId is member of groups: $userGroupIds');
 
@@ -106,13 +111,18 @@ class NotificationService {
         document: userInvitationsQuery,
         variables: {'userId': _currentUserId},
       );
-      final userInvitationsResponse = await Amplify.API.query(request: userInvitationsRequest).response;
+      final userInvitationsResponse =
+          await Amplify.API.query(request: userInvitationsRequest).response;
 
       List<String> userInvitationIds = [];
       if (!userInvitationsResponse.hasErrors) {
-        final invitationsData = json.decode(userInvitationsResponse.data ?? '{}');
-        final invitationItems = invitationsData['listGroupInvitations']?['items'] ?? [];
-        userInvitationIds = invitationItems.map<String>((item) => item['id'] as String).toList();
+        final invitationsData =
+            json.decode(userInvitationsResponse.data ?? '{}');
+        final invitationItems =
+            invitationsData['listGroupInvitations']?['items'] ?? [];
+        userInvitationIds = invitationItems
+            .map<String>((item) => item['id'] as String)
+            .toList();
       }
 
       // Fetch invitation notifications using the invitation IDs
@@ -160,15 +170,18 @@ class NotificationService {
             document: invitationNotificationsQuery,
             variables: {'invitationId': invitationId},
           );
-          final invitationResponse = await Amplify.API.query(request: invitationRequest).response;
+          final invitationResponse =
+              await Amplify.API.query(request: invitationRequest).response;
 
           if (invitationResponse.hasErrors) {
-            debugPrint('Error loading invitation notifications for invitation $invitationId: ${invitationResponse.errors.first.message}');
+            debugPrint(
+                'Error loading invitation notifications for invitation $invitationId: ${invitationResponse.errors.first.message}');
             continue;
           }
 
           final invitationData = json.decode(invitationResponse.data ?? '{}');
-          final invitationItems = invitationData['listNotifications']?['items'] ?? [];
+          final invitationItems =
+              invitationData['listNotifications']?['items'] ?? [];
 
           for (final item in invitationItems) {
             try {
@@ -202,16 +215,21 @@ class NotificationService {
             document: groupSchedulesQuery,
             variables: {'groupId': groupId},
           );
-          final groupSchedulesResponse = await Amplify.API.query(request: groupSchedulesRequest).response;
+          final groupSchedulesResponse =
+              await Amplify.API.query(request: groupSchedulesRequest).response;
 
           if (groupSchedulesResponse.hasErrors) {
-            debugPrint('Error loading schedules for group $groupId: ${groupSchedulesResponse.errors.first.message}');
+            debugPrint(
+                'Error loading schedules for group $groupId: ${groupSchedulesResponse.errors.first.message}');
             continue;
           }
 
-          final schedulesData = json.decode(groupSchedulesResponse.data ?? '{}');
+          final schedulesData =
+              json.decode(groupSchedulesResponse.data ?? '{}');
           final scheduleItems = schedulesData['listSchedules']?['items'] ?? [];
-          final scheduleIds = scheduleItems.map<String>((item) => item['id'] as String).toList();
+          final scheduleIds = scheduleItems
+              .map<String>((item) => item['id'] as String)
+              .toList();
 
           // Now fetch notifications for these schedules
           for (final scheduleId in scheduleIds) {
@@ -255,21 +273,25 @@ class NotificationService {
               document: scheduleNotificationsQuery,
               variables: {'scheduleId': scheduleId},
             );
-            final scheduleResponse = await Amplify.API.query(request: scheduleRequest).response;
+            final scheduleResponse =
+                await Amplify.API.query(request: scheduleRequest).response;
 
             if (scheduleResponse.hasErrors) {
-              debugPrint('Error loading notifications for schedule $scheduleId: ${scheduleResponse.errors.first.message}');
+              debugPrint(
+                  'Error loading notifications for schedule $scheduleId: ${scheduleResponse.errors.first.message}');
               continue;
             }
 
             final scheduleData = json.decode(scheduleResponse.data ?? '{}');
-            final notificationItems = scheduleData['listNotifications']?['items'] ?? [];
+            final notificationItems =
+                scheduleData['listNotifications']?['items'] ?? [];
 
             for (final item in notificationItems) {
               try {
                 final notification = Notification.fromJson(item);
                 if (notification.schedule?.color == null) {
-                  debugPrint('⚠️ Notification ${notification.id} missing schedule color');
+                  debugPrint(
+                      '⚠️ Notification ${notification.id} missing schedule color');
                 }
                 if (!allNotifications.any((n) => n.id == notification.id)) {
                   allNotifications.add(notification);
@@ -285,9 +307,11 @@ class NotificationService {
       // Process notifications to set correct isRead status for current user
       final processedNotifications = allNotifications.map((notification) {
         // Check if current user is in readByUsers array
-        final isReadByCurrentUser = notification.readByUsers?.contains(_currentUserId) ?? false;
+        final isReadByCurrentUser =
+            notification.readByUsers?.contains(_currentUserId) ?? false;
 
-        debugPrint('🔍 Processing notification ${notification.id}: readByUsers=${notification.readByUsers}, currentUser=$_currentUserId, isReadByCurrentUser=$isReadByCurrentUser');
+        debugPrint(
+            '🔍 Processing notification ${notification.id}: readByUsers=${notification.readByUsers}, currentUser=$_currentUserId, isReadByCurrentUser=$isReadByCurrentUser');
 
         // Return notification with corrected isRead status
         return notification.copyWith(isRead: isReadByCurrentUser);
@@ -296,7 +320,8 @@ class NotificationService {
       _cachedNotifications = processedNotifications;
 
       // Don't sort here - let the notification screen handle sorting by event date
-      debugPrint('✅ Loaded ${_cachedNotifications.length} notifications for user $_currentUserId');
+      debugPrint(
+          '✅ Loaded ${_cachedNotifications.length} notifications for user $_currentUserId');
     } catch (e) {
       debugPrint('Error loading notifications: $e');
     }
@@ -310,7 +335,8 @@ class NotificationService {
   }
 
   // Get notifications for a specific group
-  static Future<List<Notification>> getNotificationsForGroup(String groupId) async {
+  static Future<List<Notification>> getNotificationsForGroup(
+      String groupId) async {
     await initialize(); // Ensure service is initialized
 
     try {
@@ -341,13 +367,18 @@ class NotificationService {
         document: groupInvitationsQuery,
         variables: {'userId': _currentUserId, 'groupId': groupId},
       );
-      final groupInvitationsResponse = await Amplify.API.query(request: groupInvitationsRequest).response;
+      final groupInvitationsResponse =
+          await Amplify.API.query(request: groupInvitationsRequest).response;
 
       List<String> groupInvitationIds = [];
       if (!groupInvitationsResponse.hasErrors) {
-        final invitationsData = json.decode(groupInvitationsResponse.data ?? '{}');
-        final invitationItems = invitationsData['listGroupInvitations']?['items'] ?? [];
-        groupInvitationIds = invitationItems.map<String>((item) => item['id'] as String).toList();
+        final invitationsData =
+            json.decode(groupInvitationsResponse.data ?? '{}');
+        final invitationItems =
+            invitationsData['listGroupInvitations']?['items'] ?? [];
+        groupInvitationIds = invitationItems
+            .map<String>((item) => item['id'] as String)
+            .toList();
       }
 
       // Fetch invitation notifications for this group
@@ -394,11 +425,13 @@ class NotificationService {
           document: invitationNotificationsQuery,
           variables: {'invitationId': invitationId},
         );
-        final invitationResponse = await Amplify.API.query(request: invitationRequest).response;
+        final invitationResponse =
+            await Amplify.API.query(request: invitationRequest).response;
 
         if (!invitationResponse.hasErrors) {
           final invitationData = json.decode(invitationResponse.data ?? '{}');
-          final invitationItems = invitationData['listNotifications']?['items'] ?? [];
+          final invitationItems =
+              invitationData['listNotifications']?['items'] ?? [];
 
           for (final item in invitationItems) {
             try {
@@ -428,12 +461,14 @@ class NotificationService {
         document: groupSchedulesQuery,
         variables: {'groupId': groupId},
       );
-      final groupSchedulesResponse = await Amplify.API.query(request: groupSchedulesRequest).response;
+      final groupSchedulesResponse =
+          await Amplify.API.query(request: groupSchedulesRequest).response;
 
       if (!groupSchedulesResponse.hasErrors) {
         final schedulesData = json.decode(groupSchedulesResponse.data ?? '{}');
         final scheduleItems = schedulesData['listSchedules']?['items'] ?? [];
-        final scheduleIds = scheduleItems.map<String>((item) => item['id'] as String).toList();
+        final scheduleIds =
+            scheduleItems.map<String>((item) => item['id'] as String).toList();
 
         // Fetch notifications for these schedules
         for (final scheduleId in scheduleIds) {
@@ -477,18 +512,21 @@ class NotificationService {
             document: scheduleNotificationsQuery,
             variables: {'scheduleId': scheduleId},
           );
-          final scheduleResponse = await Amplify.API.query(request: scheduleRequest).response;
+          final scheduleResponse =
+              await Amplify.API.query(request: scheduleRequest).response;
 
           if (!scheduleResponse.hasErrors) {
             final scheduleData = json.decode(scheduleResponse.data ?? '{}');
-            final notificationItems = scheduleData['listNotifications']?['items'] ?? [];
+            final notificationItems =
+                scheduleData['listNotifications']?['items'] ?? [];
 
             for (final item in notificationItems) {
               try {
                 final notification = Notification.fromJson(item);
                 // Debug: Log schedule color information for group notifications
                 if (notification.schedule?.color == null) {
-                  debugPrint('⚠️ Group notification ${notification.id} missing schedule color');
+                  debugPrint(
+                      '⚠️ Group notification ${notification.id} missing schedule color');
                 }
                 if (!groupNotifications.any((n) => n.id == notification.id)) {
                   groupNotifications.add(notification);
@@ -503,12 +541,14 @@ class NotificationService {
 
       // Process notifications to set correct isRead status for current user
       final processedNotifications = groupNotifications.map((notification) {
-        final isReadByCurrentUser = notification.readByUsers?.contains(_currentUserId) ?? false;
+        final isReadByCurrentUser =
+            notification.readByUsers?.contains(_currentUserId) ?? false;
         return notification.copyWith(isRead: isReadByCurrentUser);
       }).toList();
 
       // Don't sort here - let the notification screen handle sorting by event date
-      debugPrint('✅ Loaded ${processedNotifications.length} notifications for group $groupId');
+      debugPrint(
+          '✅ Loaded ${processedNotifications.length} notifications for group $groupId');
       return processedNotifications;
     } catch (e) {
       debugPrint('❌ Error loading group notifications: $e');
@@ -575,7 +615,8 @@ class NotificationService {
 
       final response = await Amplify.API.mutate(request: request).response;
       if (response.hasErrors) {
-        debugPrint('❌ Error creating notification: ${response.errors.first.message}');
+        debugPrint(
+            '❌ Error creating notification: ${response.errors.first.message}');
         debugPrint('❌ Full error details: ${response.errors}');
       } else {
         debugPrint('✅ Notification created successfully: ${response.data}');
@@ -593,11 +634,13 @@ class NotificationService {
     try {
       // Validate that the schedule has a valid ID
       if (schedule.id.isEmpty) {
-        debugPrint('❌ Cannot create upcoming notification: Schedule ID is empty');
+        debugPrint(
+            '❌ Cannot create upcoming notification: Schedule ID is empty');
         return;
       }
 
-      debugPrint('🔔 Creating upcoming notification for schedule: ${schedule.id}');
+      debugPrint(
+          '🔔 Creating upcoming notification for schedule: ${schedule.id}');
 
       final message = NotificationService.getNotificationMessage(Notification(
         schedule: schedule,
@@ -647,10 +690,12 @@ class NotificationService {
 
       final response = await Amplify.API.mutate(request: request).response;
       if (response.hasErrors) {
-        debugPrint('❌ Error creating upcoming notification: ${response.errors.first.message}');
+        debugPrint(
+            '❌ Error creating upcoming notification: ${response.errors.first.message}');
         debugPrint('❌ Full error details: ${response.errors}');
       } else {
-        debugPrint('✅ Upcoming notification created successfully: ${response.data}');
+        debugPrint(
+            '✅ Upcoming notification created successfully: ${response.data}');
         // Note: Cache will be refreshed when user navigates to notification screen
       }
     } catch (e) {
@@ -659,17 +704,20 @@ class NotificationService {
   }
 
   // Add a notification for a group invitation
-  static Future<void> addGroupInvitationNotification(GroupInvitation invitation) async {
+  static Future<void> addGroupInvitationNotification(
+      GroupInvitation invitation) async {
     await initialize();
 
     try {
       // Validate that the invitation has a valid ID
       if (invitation.id.isEmpty) {
-        debugPrint('❌ Cannot create invitation notification: Invitation ID is empty');
+        debugPrint(
+            '❌ Cannot create invitation notification: Invitation ID is empty');
         return;
       }
 
-      debugPrint('🔔 Creating invitation notification for invitation: ${invitation.id}');
+      debugPrint(
+          '🔔 Creating invitation notification for invitation: ${invitation.id}');
 
       final message = NotificationService.getNotificationMessage(Notification(
         groupInvitation: invitation,
@@ -717,10 +765,12 @@ class NotificationService {
 
       final response = await Amplify.API.mutate(request: request).response;
       if (response.hasErrors) {
-        debugPrint('❌ Error creating invitation notification: ${response.errors.first.message}');
+        debugPrint(
+            '❌ Error creating invitation notification: ${response.errors.first.message}');
         debugPrint('❌ Full error details: ${response.errors}');
       } else {
-        debugPrint('✅ Invitation notification created successfully: ${response.data}');
+        debugPrint(
+            '✅ Invitation notification created successfully: ${response.data}');
         // Note: Cache will be refreshed when user navigates to notification screen
       }
     } catch (e) {
@@ -755,7 +805,8 @@ class NotificationService {
 
       final getResponse = await Amplify.API.query(request: getRequest).response;
       if (getResponse.hasErrors) {
-        debugPrint('❌ Error getting notification: ${getResponse.errors.first.message}');
+        debugPrint(
+            '❌ Error getting notification: ${getResponse.errors.first.message}');
         return false;
       }
 
@@ -766,7 +817,8 @@ class NotificationService {
       }
 
       final notificationData = json.decode(data)['getNotification'];
-      final currentReadByUsers = List<String>.from(notificationData['readByUsers'] ?? []);
+      final currentReadByUsers =
+          List<String>.from(notificationData['readByUsers'] ?? []);
 
       // Add current user to readByUsers if not already present
       if (!currentReadByUsers.contains(_currentUserId)) {
@@ -793,14 +845,17 @@ class NotificationService {
         },
       );
 
-      final updateResponse = await Amplify.API.mutate(request: updateRequest).response;
+      final updateResponse =
+          await Amplify.API.mutate(request: updateRequest).response;
       if (updateResponse.hasErrors) {
-        debugPrint('❌ Error marking notification as read: ${updateResponse.errors.first.message}');
+        debugPrint(
+            '❌ Error marking notification as read: ${updateResponse.errors.first.message}');
         return false;
       } else {
         debugPrint('✅ Notification marked as read for user: $_currentUserId');
         // Update cache
-        final index = _cachedNotifications.indexWhere((n) => n.id == notificationId);
+        final index =
+            _cachedNotifications.indexWhere((n) => n.id == notificationId);
         if (index != -1) {
           _cachedNotifications[index] = _cachedNotifications[index].copyWith(
             isRead: true, // Mark as read for current user
@@ -820,7 +875,8 @@ class NotificationService {
     await initialize();
 
     try {
-      final List<Notification> notificationsToUpdate = _cachedNotifications.where((n) => !n.isRead).toList();
+      final List<Notification> notificationsToUpdate =
+          _cachedNotifications.where((n) => !n.isRead).toList();
 
       for (final notification in notificationsToUpdate) {
         await markAsRead(notification.id);
@@ -857,7 +913,8 @@ class NotificationService {
         final userName = _resolveUserDisplayName(notification.schedule?.user);
         return '$userName created an event ${_getTimeAgo(TimezoneService.utcToLocal(notification.timestamp))}';
       case NotificationType.UPCOMING:
-        final startTimeLocal = TimezoneService.utcToLocal(notification.schedule!.startTime);
+        final startTimeLocal =
+            TimezoneService.utcToLocal(notification.schedule!.startTime);
         final now = DateTime.now();
         final difference = startTimeLocal.difference(now);
 
@@ -869,9 +926,12 @@ class NotificationService {
           return 'Event will start in ${difference.inDays} days';
         }
       case NotificationType.INVITATION:
-        final inviterName = _resolveUserDisplayName(notification.groupInvitation?.invitedByUser);
-        final groupName = notification.groupInvitation?.group?.name ?? 'a group';
-        final role = notification.groupInvitation?.isAdmin == true ? 'admin' : 'member';
+        final inviterName = _resolveUserDisplayName(
+            notification.groupInvitation?.invitedByUser);
+        final groupName =
+            notification.groupInvitation?.group?.name ?? 'a group';
+        final role =
+            notification.groupInvitation?.isAdmin == true ? 'admin' : 'member';
         return '$inviterName invited you to join "$groupName" as $role';
     }
   }
@@ -921,7 +981,8 @@ class NotificationService {
       final response = await Amplify.API.mutate(request: request).response;
 
       if (response.hasErrors) {
-        debugPrint('❌ Error deleting notification: ${response.errors.first.message}');
+        debugPrint(
+            '❌ Error deleting notification: ${response.errors.first.message}');
         return false;
       } else {
         debugPrint('✅ Notification deleted successfully: $notificationId');

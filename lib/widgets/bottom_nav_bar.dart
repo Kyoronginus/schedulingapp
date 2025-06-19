@@ -13,6 +13,50 @@ class BottomNavBar extends StatelessWidget {
     required this.currentIndex,
   });
 
+  @override
+  Widget build(BuildContext context) {
+    return _BottomNavBarContent(currentIndex: currentIndex);
+  }
+}
+
+class AnimatedBottomNavBar extends StatelessWidget {
+  final int currentIndex;
+  final Animation<double>? navbarAnimation;
+
+  const AnimatedBottomNavBar({
+    super.key,
+    required this.currentIndex,
+    this.navbarAnimation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (navbarAnimation == null) {
+      return _BottomNavBarContent(currentIndex: currentIndex);
+    }
+
+    return AnimatedBuilder(
+      animation: navbarAnimation!,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, navbarAnimation!.value * 115.0), // Slide down by navbar height
+          child: Opacity(
+            opacity: 1.0 - navbarAnimation!.value, // Fade out as it slides down
+            child: _BottomNavBarContent(currentIndex: currentIndex),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BottomNavBarContent extends StatelessWidget {
+  final int currentIndex;
+
+  const _BottomNavBarContent({
+    required this.currentIndex,
+  });
+
   void _onItemTapped(BuildContext context, int index) {
     String route;
     switch (index) {

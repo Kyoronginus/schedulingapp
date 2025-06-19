@@ -31,6 +31,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   bool _isLoading = true;
   bool _isLoadingMore = false;
   StreamSubscription<void>? _profileRefreshSubscription;
+  StreamSubscription<void>? _groupRefreshSubscription;
 
   final int _pageSize = 2;
   String? _nextToken;
@@ -40,6 +41,8 @@ class _NotificationScreenState extends State<NotificationScreen>
   bool _isSidebarOpen = false;
   late AnimationController _sidebarAnimationController;
   late Animation<double> _sidebarAnimation;
+  late AnimationController _navbarAnimationController;
+  late Animation<double> _navbarAnimation;
 
   @override
   void initState() {
@@ -47,7 +50,7 @@ class _NotificationScreenState extends State<NotificationScreen>
 
     // Initialize sidebar animation
     _sidebarAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
     _sidebarAnimation = Tween<double>(
@@ -55,6 +58,19 @@ class _NotificationScreenState extends State<NotificationScreen>
       end: 0.0,
     ).animate(CurvedAnimation(
       parent: _sidebarAnimationController,
+      curve: Curves.easeInOut,
+    ));
+
+    // Initialize navbar animation
+    _navbarAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _navbarAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _navbarAnimationController,
       curve: Curves.easeInOut,
     ));
 
@@ -69,13 +85,22 @@ class _NotificationScreenState extends State<NotificationScreen>
         _loadNotifications();
       }
     });
+
+    // Listen for group changes to refresh notifications when group membership changes
+    _groupRefreshSubscription = RefreshService().groupChanges.listen((_) {
+      if (mounted) {
+        _loadNotifications();
+      }
+    });
   }
 
   @override
   void dispose() {
     _profileRefreshSubscription?.cancel();
+    _groupRefreshSubscription?.cancel();
     _scrollController.dispose();
     _sidebarAnimationController.dispose();
+    _navbarAnimationController.dispose();
     super.dispose();
   }
 
@@ -86,8 +111,10 @@ class _NotificationScreenState extends State<NotificationScreen>
 
     if (_isSidebarOpen) {
       _sidebarAnimationController.forward();
+      _navbarAnimationController.forward();
     } else {
       _sidebarAnimationController.reverse();
+      _navbarAnimationController.reverse();
     }
   }
 
@@ -97,6 +124,7 @@ class _NotificationScreenState extends State<NotificationScreen>
         _isSidebarOpen = false;
       });
       _sidebarAnimationController.reverse();
+      _navbarAnimationController.reverse();
     }
   }
 
@@ -337,6 +365,7 @@ class _NotificationScreenState extends State<NotificationScreen>
         isDarkMode ? const Color(0xFF121212) : Colors.grey[100];
 
     return Scaffold(
+      extendBody: true,
       backgroundColor: backgroundColor,
       body: Stack(
         children: [
@@ -417,25 +446,20 @@ class _NotificationScreenState extends State<NotificationScreen>
                       TextButton(
                         onPressed: () {
                           // TODO: Tambahkan logika untuk "mark all read" di sini
-                          print('Mark all read tapped!');
                         },
                         style: TextButton.styleFrom(
-                          // Memberi sedikit padding di dalam tombol
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 8),
-                          // Membuat bentuk tombol lebih bulat
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
                         child: Row(
                           children: [
-                            // Ikon SVG
                             SvgPicture.asset(
                               'assets/icons/mark_email_unread-icon.svg',
-                              width: 22, // Sesuaikan ukuran jika perlu
+                              width: 22,
                               height: 22,
-                              // Filter warna agar ikon sesuai dengan teks dan dark mode
                               colorFilter: ColorFilter.mode(
                                 isDarkMode
                                     ? Colors.white
@@ -484,10 +508,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                                 controller: _scrollController,
                                 itemCount: _notifications.length +
                                     (_isLoadingMore ? 1 : 0),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.only(
+                                    top: 8, bottom: 125.0),
                                 itemBuilder: (context, index) {
-                                  // Show loading indicator at the bottom when loading more
                                   if (index == _notifications.length) {
                                     return const Padding(
                                       padding: EdgeInsets.all(16.0),
@@ -807,7 +830,10 @@ class _NotificationScreenState extends State<NotificationScreen>
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: _currentIndex),
+      bottomNavigationBar: AnimatedBottomNavBar(
+        currentIndex: _currentIndex,
+        navbarAnimation: _navbarAnimation,
+      ),
     );
   }
 
@@ -1021,7 +1047,14 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   Future<void> _acceptInvitation(String invitationId) async {
     try {
+      // Get the group provider before any async calls
+      final groupProvider =
+          Provider.of<GroupSelectionProvider>(context, listen: false);
+
       await GroupService.acceptGroupInvitation(invitationId);
+
+      // Refresh the group provider to immediately show the new group in the sidebar
+      await groupProvider.refreshGroups();
 
       // Refresh notifications to get the latest state
       await _loadNotifications();

@@ -7,6 +7,7 @@ import '../models/GroupInvitation.dart';
 import '../models/InvitationStatus.dart';
 import '../services/notification_service.dart';
 import '../services/oauth_user_service.dart';
+import '../services/refresh_service.dart';
 
 class GroupService {
   static Future<Group?> getSelectedGroup() async {
@@ -95,6 +96,9 @@ class GroupService {
       final memberResponse =
           await Amplify.API.mutate(request: memberRequest).response;
       debugPrint('✅ GroupUser created: ${memberResponse.data}');
+
+      // Notify all screens about the group change so they can refresh their data
+      RefreshService().notifyGroupChange();
     } catch (e) {
       debugPrint('❌ Failed to create group or member: $e');
       rethrow;
@@ -292,6 +296,9 @@ class GroupService {
       }
 
       debugPrint('✅ Group invitation accepted and user added to group');
+
+      // Notify all screens about the group change so they can refresh their data
+      RefreshService().notifyGroupChange();
     } catch (e) {
       debugPrint('❌ Failed to accept group invitation: $e');
       rethrow;
