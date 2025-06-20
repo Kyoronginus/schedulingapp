@@ -66,17 +66,34 @@ class SchedulingApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        // Show loading screen until theme is initialized
+        if (!themeProvider.isInitialized) {
+          return MaterialApp(
+            title: 'Scheduling App',
+            theme: ThemeData.light(), // Default theme while loading
+            home: const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            debugShowCheckedModeBanner: false,
+          );
+        }
 
-    return MaterialApp(
-      title: 'Scheduling App',
-      theme: themeProvider.getTheme(),
-      initialRoute: '/auth',
-      routes: {
-        '/auth': (context) => const AuthWrapper(),
-        ...AppRoutes.routes,
+        // Theme is loaded, show the actual app
+        return MaterialApp(
+          title: 'Scheduling App',
+          theme: themeProvider.getTheme(),
+          initialRoute: '/auth',
+          routes: {
+            '/auth': (context) => const AuthWrapper(),
+            ...AppRoutes.routes,
+          },
+          debugShowCheckedModeBanner: false,
+        );
       },
-      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -135,9 +152,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(
+          color: Theme.of(context).primaryColor,
+        ),
       ),
     );
   }

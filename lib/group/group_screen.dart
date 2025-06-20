@@ -208,7 +208,7 @@ class _GroupScreenState extends State<GroupScreen>
 
         extendBody: true,
 
-        backgroundColor: const Color(0xFFF1F1F1),
+        backgroundColor: isDarkMode ? Colors.black : const Color(0xFFF1F1F1),
         body: Stack(
           children: [
             Padding(
@@ -227,8 +227,8 @@ class _GroupScreenState extends State<GroupScreen>
                       )
                     : groupProvider.groups.isEmpty
                         ? _buildEmptyState(
-                            textColor: const Color(0xFF000000),
-                            subTextColor: const Color(0xFF000000),
+                            textColor: isDarkMode ? Colors.white : const Color(0xFF000000),
+                            subTextColor: isDarkMode ? Colors.grey.shade400 : const Color(0xFF000000),
                           )
                         : _buildGroupContent(),
               ),
@@ -321,6 +321,9 @@ class _GroupScreenState extends State<GroupScreen>
 
   Widget _buildEmptyState(
       {required Color textColor, required Color subTextColor}) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     // Widget terluar adalah Padding, bukan Center, untuk memberi jarak dari tepi.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
@@ -334,7 +337,7 @@ class _GroupScreenState extends State<GroupScreen>
           Icon(
             Icons.groups_3_outlined, // Ikon yang relevan dengan grup
             size: 72,
-            color: Colors.grey[400],
+            color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
           ),
           const SizedBox(height: 24),
 
@@ -509,7 +512,7 @@ class _GroupScreenState extends State<GroupScreen>
         color: Colors.transparent,
         // 2. Diberi garis tepi (outline) dengan warna sekunder
         border: Border.all(
-          color: secondaryColor, // Menggunakan warna yang Anda impor
+          color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
           width: 2.5, // Ketebalan garis bisa disesuaikan
         ),
         // 3. Sudut tetap dibuat tumpul

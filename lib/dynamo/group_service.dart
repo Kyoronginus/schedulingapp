@@ -215,10 +215,12 @@ class GroupService {
       final response = await Amplify.API.mutate(request: request).response;
 
       if (response.hasErrors) {
-        throw Exception('Failed to create invitation: ${response.errors.first.message}');
+        throw Exception(
+            'Failed to create invitation: ${response.errors.first.message}');
       }
 
-      final invitationData = jsonDecode(response.data!)['createGroupInvitation'];
+      final invitationData =
+          jsonDecode(response.data!)['createGroupInvitation'];
       final invitation = GroupInvitation.fromJson(invitationData);
 
       debugPrint('✅ Group invitation created: ${invitation.id}');
@@ -254,13 +256,16 @@ class GroupService {
         variables: {'id': invitationId},
       );
 
-      final invitationResponse = await Amplify.API.query(request: invitationRequest).response;
+      final invitationResponse =
+          await Amplify.API.query(request: invitationRequest).response;
 
       if (invitationResponse.hasErrors) {
-        throw Exception('Failed to get invitation: ${invitationResponse.errors.first.message}');
+        throw Exception(
+            'Failed to get invitation: ${invitationResponse.errors.first.message}');
       }
 
-      final invitationData = jsonDecode(invitationResponse.data!)['getGroupInvitation'];
+      final invitationData =
+          jsonDecode(invitationResponse.data!)['getGroupInvitation'];
       final groupId = invitationData['groupId'];
       final invitedUserId = invitationData['invitedUserId'];
       final isAdmin = invitationData['isAdmin'];
@@ -289,10 +294,12 @@ class GroupService {
         },
       );
 
-      final memberResponse = await Amplify.API.mutate(request: memberRequest).response;
+      final memberResponse =
+          await Amplify.API.mutate(request: memberRequest).response;
 
       if (memberResponse.hasErrors) {
-        throw Exception('Failed to add user to group: ${memberResponse.errors.first.message}');
+        throw Exception(
+            'Failed to add user to group: ${memberResponse.errors.first.message}');
       }
 
       debugPrint('✅ Group invitation accepted and user added to group');
@@ -367,10 +374,12 @@ class GroupService {
         },
       );
 
-      final deleteResponse = await Amplify.API.mutate(request: deleteRequest).response;
+      final deleteResponse =
+          await Amplify.API.mutate(request: deleteRequest).response;
 
       if (deleteResponse.hasErrors) {
-        throw Exception('Failed to remove member: ${deleteResponse.errors.first.message}');
+        throw Exception(
+            'Failed to remove member: ${deleteResponse.errors.first.message}');
       }
 
       debugPrint('✅ Member removed from group');
@@ -380,10 +389,9 @@ class GroupService {
     }
   }
 
-
-
   // Update group information (name and description)
-  static Future<bool> updateGroup(String groupId, String name, String? description) async {
+  static Future<bool> updateGroup(
+      String groupId, String name, String? description) async {
     try {
       final request = GraphQLRequest<String>(
         document: '''
@@ -537,7 +545,8 @@ class GroupService {
   }
 
   // Helper method to update invitation status
-  static Future<void> _updateInvitationStatus(String invitationId, InvitationStatus status) async {
+  static Future<void> _updateInvitationStatus(
+      String invitationId, InvitationStatus status) async {
     final request = GraphQLRequest<String>(
       document: '''
       mutation UpdateGroupInvitation(\$input: UpdateGroupInvitationInput!) {
@@ -558,7 +567,8 @@ class GroupService {
     final response = await Amplify.API.mutate(request: request).response;
 
     if (response.hasErrors) {
-      throw Exception('Failed to update invitation status: ${response.errors.first.message}');
+      throw Exception(
+          'Failed to update invitation status: ${response.errors.first.message}');
     }
   }
 }

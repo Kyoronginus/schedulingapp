@@ -148,15 +148,15 @@ Future<bool> signInWithGoogle(BuildContext context) async {
     final String actualErrorMessage = e.message.toLowerCase();
     final bool isAccountLinkingSignal =
         actualErrorMessage.contains('user already exists') || // Common message
-        actualErrorMessage.contains(
-          'aliasexistsexception',
-        ) || // Another common one
-        actualErrorMessage.contains(
-          'already found an entry for username',
-        ) || // Internal Amplify message
-        actualErrorMessage.contains(
-          'successfully linked new provider',
-        ); // Lambda trigger message
+            actualErrorMessage.contains(
+              'aliasexistsexception',
+            ) || // Another common one
+            actualErrorMessage.contains(
+              'already found an entry for username',
+            ) || // Internal Amplify message
+            actualErrorMessage.contains(
+              'successfully linked new provider',
+            ); // Lambda trigger message
 
     if (isAccountLinkingSignal) {
       debugPrint('✅ Account linking signal detected. Retrying login...');
@@ -210,15 +210,15 @@ Future<bool> signInWithFacebook(BuildContext context) async {
     final String actualErrorMessage = e.message.toLowerCase();
     final bool isAccountLinkingSignal =
         actualErrorMessage.contains('user already exists') || // Common message
-        actualErrorMessage.contains(
-          'aliasexistsexception',
-        ) || // Another common one
-        actualErrorMessage.contains(
-          'already found an entry for username',
-        ) || // Internal Amplify message
-        actualErrorMessage.contains(
-          'successfully linked new provider',
-        ); // Lambda trigger message
+            actualErrorMessage.contains(
+              'aliasexistsexception',
+            ) || // Another common one
+            actualErrorMessage.contains(
+              'already found an entry for username',
+            ) || // Internal Amplify message
+            actualErrorMessage.contains(
+              'successfully linked new provider',
+            ); // Lambda trigger message
 
     if (isAccountLinkingSignal) {
       debugPrint('✅ Account linking signal detected. Retrying login...');
@@ -283,12 +283,14 @@ void _handleOAuthError(
 Future<void> reinitializeGroupProvider(BuildContext context) async {
   try {
     if (context.mounted) {
-      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+      final groupProvider =
+          Provider.of<GroupSelectionProvider>(context, listen: false);
       await groupProvider.reinitialize();
       debugPrint('✅ GroupSelectionProvider reinitialized after login');
     }
   } catch (e) {
-    debugPrint('❌ Failed to reinitialize GroupSelectionProvider after login: $e');
+    debugPrint(
+        '❌ Failed to reinitialize GroupSelectionProvider after login: $e');
   }
 }
 

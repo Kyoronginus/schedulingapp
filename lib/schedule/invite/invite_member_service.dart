@@ -21,9 +21,7 @@ class InviteMemberService {
       }
     }
   ''',
-        variables: {
-          'email': email.trim().toLowerCase(),
-        },
+        variables: {'email': email.trim().toLowerCase()},
       );
 
       final response = await Amplify.API.query(request: request).response;
@@ -48,21 +46,26 @@ class InviteMemberService {
         try {
           // Find the enum value whose name matches the string (case-insensitive)
           return AuthMethod.values.firstWhere(
-            (e) => e.name.toUpperCase() == methodName.toUpperCase()
+            (e) => e.name.toUpperCase() == methodName.toUpperCase(),
           );
         } catch (e) {
           // This catches errors if the string from the DB is not a valid enum member
-          debugPrint('⚠️ Warning: Unknown AuthMethod string received: "$methodName"');
+          debugPrint(
+            '⚠️ Warning: Unknown AuthMethod string received: "$methodName"',
+          );
           return null;
         }
       }
 
       final primaryMethod = _parseAuthMethod(userData['primaryAuthMethod']);
       if (primaryMethod == null) {
-        throw Exception('Failed to parse a required primaryAuthMethod from string: "${userData['primaryAuthMethod']}"');
+        throw Exception(
+          'Failed to parse a required primaryAuthMethod from string: "${userData['primaryAuthMethod']}"',
+        );
       }
 
-      final linkedMethodsData = userData['linkedAuthMethods'] as List<dynamic>? ?? [];
+      final linkedMethodsData =
+          userData['linkedAuthMethods'] as List<dynamic>? ?? [];
       final List<AuthMethod> linkedMethods = linkedMethodsData
           .map((method) => _parseAuthMethod(method as String?))
           .whereType<AuthMethod>() // Filters out any nulls that failed to parse
@@ -75,7 +78,6 @@ class InviteMemberService {
         primaryAuthMethod: primaryMethod,
         linkedAuthMethods: linkedMethods,
       );
-
     } catch (e) {
       debugPrint('🔴 An exception occurred in findUserByEmail: $e');
       rethrow; // Rethrow to allow the UI layer to handle the error
@@ -98,11 +100,7 @@ class InviteMemberService {
         }
         ''',
         variables: {
-          'input': {
-            'userId': userId,
-            'groupId': groupId,
-            'isAdmin': isAdmin,
-          },
+          'input': {'userId': userId, 'groupId': groupId, 'isAdmin': isAdmin},
         },
       );
 
@@ -119,3 +117,4 @@ class InviteMemberService {
     }
   }
 }
+

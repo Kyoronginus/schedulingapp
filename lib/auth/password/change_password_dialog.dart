@@ -168,9 +168,8 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
           _storedPassword != null) {
         _currentPasswordMatches =
             _currentPasswordController.text == _storedPassword;
-        _currentPasswordInlineError = _currentPasswordMatches
-            ? null
-            : 'The password input is incorrect.';
+        _currentPasswordInlineError =
+            _currentPasswordMatches ? null : 'The password input is incorrect.';
       } else {
         _currentPasswordMatches = false;
         _currentPasswordInlineError = null;
@@ -184,9 +183,8 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
           _confirmPasswordController.text.isNotEmpty) {
         _passwordsMatch =
             _newPasswordController.text == _confirmPasswordController.text;
-        _confirmPasswordInlineError = _passwordsMatch
-            ? null
-            : "Passwords don't match.";
+        _confirmPasswordInlineError =
+            _passwordsMatch ? null : "Passwords don't match.";
       } else {
         _confirmPasswordInlineError = null;
       }
@@ -337,12 +335,10 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   Widget build(BuildContext context) {
     // UI State Calculation
     final currentPasswordHasInput = _currentPasswordController.text.isNotEmpty;
-    final currentPasswordMismatch =
-        currentPasswordHasInput &&
+    final currentPasswordMismatch = currentPasswordHasInput &&
         _storedPassword != null &&
         !_currentPasswordMatches;
-    final passwordsHaveInput =
-        _newPasswordController.text.isNotEmpty &&
+    final passwordsHaveInput = _newPasswordController.text.isNotEmpty &&
         _confirmPasswordController.text.isNotEmpty;
     final passwordMismatch = passwordsHaveInput && !_passwordsMatch;
 
@@ -595,10 +591,12 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty)
+                            if (value == null || value.isEmpty) {
                               return 'Please confirm your password';
-                            if (value != _newPasswordController.text)
+                            }
+                            if (value != _newPasswordController.text) {
                               return 'Passwords do not match';
+                            }
                             return null;
                           },
                         ),
@@ -629,9 +627,9 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                         onPressed: _isOAuthUser
                             ? null
                             : () => Navigator.pushNamed(
-                                context,
-                                AppRoutes.forgotPassword,
-                              ),
+                                  context,
+                                  AppRoutes.forgotPassword,
+                                ),
                         child: Text(
                           "Forgot Password?",
                           style: TextStyle(
@@ -694,4 +692,3 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
     );
   }
 }
-

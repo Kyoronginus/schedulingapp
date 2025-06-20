@@ -841,6 +841,9 @@ class _NotificationScreenState extends State<NotificationScreen>
     final invitation = notification.groupInvitation;
     if (invitation == null) return const SizedBox.shrink();
 
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Dismissible(
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
@@ -866,11 +869,15 @@ class _NotificationScreenState extends State<NotificationScreen>
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: notification.isRead ? Colors.green[50] : Colors.white,
+            color: isDarkMode
+                ? (notification.isRead ? Colors.grey[850] : const Color(0xFF2A2A2A))
+                : (notification.isRead ? Colors.green[50] : Colors.white),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withValues(alpha: 25),
+                color: isDarkMode
+                    ? Colors.black.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(alpha: 0.1),
                 blurRadius: 3,
                 offset: const Offset(0, 1),
               ),
@@ -892,7 +899,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                       children: [
                         Icon(
                           Icons.group_add,
-                          color: Colors.orange[700],
+                          color: isDarkMode ? Colors.orange[400] : Colors.orange[700],
                           size: 32,
                         ),
                         const SizedBox(height: 4),
@@ -900,7 +907,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                           'Invite',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                           ),
                         ),
                       ],
@@ -909,7 +916,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                   // Vertical divider
                   Container(
                     width: 1,
-                    color: Colors.grey[300],
+                    color: isDarkMode ? Colors.grey[600] : Colors.grey[300],
                   ),
                   // Content column
                   Expanded(
@@ -920,12 +927,12 @@ class _NotificationScreenState extends State<NotificationScreen>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Title
-                          const Text(
+                          Text(
                             'Group Invitation',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: isDarkMode ? Colors.white : Colors.black,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -938,7 +945,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                       notification),
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey[600],
+                                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 2,
@@ -949,9 +956,13 @@ class _NotificationScreenState extends State<NotificationScreen>
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: notification.isRead
-                                      ? Colors.green[100]
-                                      : Colors.blue[100],
+                                  color: isDarkMode
+                                      ? (notification.isRead
+                                          ? Colors.green[800]
+                                          : Colors.blue[800])
+                                      : (notification.isRead
+                                          ? Colors.green[100]
+                                          : Colors.blue[100]),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
@@ -962,9 +973,13 @@ class _NotificationScreenState extends State<NotificationScreen>
                                           ? Icons.check_circle
                                           : Icons.circle,
                                       size: 12,
-                                      color: notification.isRead
-                                          ? Colors.green[700]
-                                          : Colors.blue,
+                                      color: isDarkMode
+                                          ? (notification.isRead
+                                              ? Colors.green[300]
+                                              : Colors.blue[300])
+                                          : (notification.isRead
+                                              ? Colors.green[700]
+                                              : Colors.blue),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
@@ -972,9 +987,13 @@ class _NotificationScreenState extends State<NotificationScreen>
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w500,
-                                        color: notification.isRead
-                                            ? Colors.green[700]
-                                            : Colors.blue,
+                                        color: isDarkMode
+                                            ? (notification.isRead
+                                                ? Colors.green[300]
+                                                : Colors.blue[300])
+                                            : (notification.isRead
+                                                ? Colors.green[700]
+                                                : Colors.blue),
                                       ),
                                     ),
                                   ],

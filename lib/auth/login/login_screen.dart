@@ -7,6 +7,7 @@ import '../../routes/app_routes.dart';
 import '../../widgets/exception_message.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
 import '../../providers/group_selection_provider.dart';
+import '../../theme/theme_provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -35,7 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
       await login(_emailController.text, _passwordController.text);
       if (!mounted) return;
 
-      final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+      final groupProvider =
+          Provider.of<GroupSelectionProvider>(context, listen: false);
       await groupProvider.reinitialize();
 
       if (!mounted) return;
@@ -111,25 +113,40 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inputDecorationTheme = InputDecoration(
-      // Gaya untuk hint dan label saat tidak aktif
-      hintStyle: const TextStyle(color: Color(0xFF999999)),
-      labelStyle: const TextStyle(color: Color(0xFF999999)),
+    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
 
-      // Gaya untuk border saat tidak aktif
+    final inputDecorationTheme = InputDecoration(
+      // Theme-aware hint and label styles
+      hintStyle: TextStyle(
+        color: isDarkMode ? Colors.white54 : const Color(0xFF999999),
+      ),
+      labelStyle: TextStyle(
+        color: isDarkMode ? Colors.white70 : const Color(0xFF999999),
+      ),
+
+      // Theme-aware border styles
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide(color: secondaryColor, width: 1.5),
+        borderSide: BorderSide(
+          color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
+          width: 1.5,
+        ),
       ),
 
-      // Gaya untuk border saat aktif (di-klik)
+      // Theme-aware focused border
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide(color: primaryColor, width: 1.5),
+        borderSide: BorderSide(
+          color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+          width: 1.5,
+        ),
       ),
     );
+
     return KeyboardAwareScaffold(
-      backgroundColor: const Color(0XFFF2F2F2),
+      backgroundColor: theme.scaffoldBackgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 0),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -139,17 +156,15 @@ class _LoginScreenState extends State<LoginScreen> {
           Container(
             padding: const EdgeInsets.all(24.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  // Warna bayangan dibuat sedikit transparan
-                  color: Colors.black.withValues(alpha: 0.2),
-                  // Seberapa menyebar bayangannya
+                  color: isDarkMode
+                      ? Colors.black.withValues(alpha: 0.5)
+                      : Colors.black.withValues(alpha: 0.2),
                   spreadRadius: 2,
-                  // Seberapa kabur bayangannya
                   blurRadius: 8,
-                  // Posisi bayangan (horizontal, vertikal)
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -158,11 +173,11 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Logo or app icon
-                const Text("Login to your Account",
+                Text("Login to your Account",
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF222B45),
+                      color: isDarkMode ? Colors.white : const Color(0xFF222B45),
                     ),
                     textAlign: TextAlign.start),
                 const SizedBox(height: 8),
@@ -198,7 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(
                       "Forgot Password?",
                       style: TextStyle(
-                        color: primaryColor,
+                        color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -210,14 +225,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
+                      backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     child: _isLoading
-                        ? CircularProgressIndicator(color: primaryColor)
+                        ? CircularProgressIndicator(
+                            color: isDarkMode ? Colors.white : primaryColor,
+                          )
                         : const Text(
                             "Login",
                             style: TextStyle(
@@ -240,27 +257,27 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 const SizedBox(height: 24),
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: Divider(
-                        color: Color(0xFFCACACA),
+                        color: isDarkMode ? Colors.grey.shade600 : const Color(0xFFCACACA),
                         thickness: 1.5,
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         "OR",
                         style: TextStyle(
-                          color: Color(0xFFCACACA),
+                          color: isDarkMode ? Colors.grey.shade400 : const Color(0xFFCACACA),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     Expanded(
                       child: Divider(
-                        color: Color(0xFFCACACA),
+                        color: isDarkMode ? Colors.grey.shade600 : const Color(0xFFCACACA),
                         thickness: 1.5,
                       ),
                     ),
@@ -273,8 +290,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   text: "Continue with Google",
                   onPressed: _handleGoogleSignIn,
-                  backgroundColor: Colors.white,
-                  textColor: Colors.black87,
+                  backgroundColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.white,
+                  textColor: isDarkMode ? Colors.white : Colors.black87,
                 ), // Register link
                 const SizedBox(height: 24),
                 _buildSocialButton(
@@ -283,16 +300,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   text: "Continue with Facebook",
                   onPressed: _handleFacebookSignIn,
-                  backgroundColor: Colors.white,
-                  textColor: Colors.black,
+                  backgroundColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.white,
+                  textColor: isDarkMode ? Colors.white : Colors.black,
                 ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       "Don't have an account?",
-                      style: TextStyle(color: Color(0xFF999999)),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : const Color(0xFF999999),
+                      ),
                     ),
                     TextButton(
                       onPressed: () {
@@ -302,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text(
                         "Register",
                         style: TextStyle(
-                          color: primaryColor,
+                          color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -324,6 +343,9 @@ class _LoginScreenState extends State<LoginScreen> {
     required Color backgroundColor,
     required Color textColor,
   }) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return SizedBox(
       height: 56,
       child: ElevatedButton(
@@ -336,8 +358,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           elevation: 0,
           side: BorderSide(
-            color: secondaryColor, // Warna garis tepi (abu-abu muda)
-            width: 1.5, // Ketebalan garis tepi
+            color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
+            width: 1.5,
           ),
         ),
         child: Row(
@@ -351,7 +373,10 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(width: 12),
             Text(
               text,
-              style: const TextStyle(fontSize: 16, color: Color(0xFF999999)),
+              style: TextStyle(
+                fontSize: 16,
+                color: textColor,
+              ),
             ),
           ],
         ),

@@ -47,7 +47,8 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
 
         // Note: User record creation is now handled by Lambda triggers
         // No need to manually create user record here
-        debugPrint('ℹ️ User record will be created by post-confirmation Lambda trigger');
+        debugPrint(
+            'ℹ️ User record will be created by post-confirmation Lambda trigger');
 
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, AppRoutes.login);
@@ -66,25 +67,26 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
     }
   }
 
-  Future<void> _resendCode() async{
+  Future<void> _resendCode() async {
     if (!mounted) return;
-    setState((){
+    setState(() {
       _isLoading = true;
       _message = "";
     });
 
-    try{
-      final result = await Amplify.Auth.resendSignUpCode(username: widget.email);
+    try {
+      final result =
+          await Amplify.Auth.resendSignUpCode(username: widget.email);
       if (!mounted) return;
       setState(() {
         _message = '✅ Code resent to ${result.codeDeliveryDetails.destination}';
       });
-    } on AuthException catch (e){
+    } on AuthException catch (e) {
       if (!mounted) return;
       setState(() {
         _message = '❌ ${e.message}';
       });
-    } finally{
+    } finally {
       // ignore: control_flow_in_finally
       if (!mounted) return;
       setState(() {
@@ -223,7 +225,8 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
                             elevation: 4,
                           ),
                           child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white)
                               : const Text(
                                   "Confirm Sign Up",
                                   style: TextStyle(
@@ -255,7 +258,9 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
                           child: Text(
                             _message,
                             style: TextStyle(
-                              color: _message.startsWith("✅") ? Colors.green : Colors.red,
+                              color: _message.startsWith("✅")
+                                  ? Colors.green
+                                  : Colors.red,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),

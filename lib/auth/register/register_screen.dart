@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'confirm_signup_screen.dart';
@@ -8,6 +9,7 @@ import '../auth_service.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
 import '../../widgets/enhanced_password_field.dart';
 import '../../widgets/password_validation_widget.dart';
+import '../../theme/theme_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -51,9 +53,9 @@ class _RegisterPageState extends State<RegisterScreen> {
     setState(() {
       _passwordIsValid = PasswordValidator.isPasswordValid(password);
       _passwordsMatch = password.isNotEmpty &&
-                      confirmPassword.isNotEmpty &&
-                      password == confirmPassword &&
-                      _passwordIsValid;
+          confirmPassword.isNotEmpty &&
+          password == confirmPassword &&
+          _passwordIsValid;
 
       if (confirmPassword.isNotEmpty && password != confirmPassword) {
         _confirmPasswordInlineError = "Passwords do not match";
@@ -75,10 +77,10 @@ class _RegisterPageState extends State<RegisterScreen> {
     final confirmPassword = confirmPasswordController.text.trim();
     final name = nameController.text.trim();
 
-    try{
+    try {
       // Validate inputs
       String? error;
-      if(name.isEmpty) {
+      if (name.isEmpty) {
         error = 'Please enter your name';
       } else if (email.isEmpty) {
         error = 'Please enter your email';
@@ -113,20 +115,21 @@ class _RegisterPageState extends State<RegisterScreen> {
       if (!mounted) return;
 
       // Navigate to ConfirmSignUpScreen
-      if(signUpResult.isSignUpComplete){
+      if (signUpResult.isSignUpComplete) {
         Navigator.pushReplacementNamed(context, AppRoutes.login);
-      }else{
+      } else {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ConfirmSignUpScreen(email: email),
           ),
         );
-      }  
+      }
     } on AuthException catch (e) {
       if (!mounted) return;
-      if(e.message.contains("already exists") || e.message.contains("username exists")){
-        try{
+      if (e.message.contains("already exists") ||
+          e.message.contains("username exists")) {
+        try {
           await Amplify.Auth.resendSignUpCode(username: email);
 
           if (!mounted) return;
@@ -136,11 +139,11 @@ class _RegisterPageState extends State<RegisterScreen> {
               builder: (context) => ConfirmSignUpScreen(email: email),
             ),
           );
-        } on AuthException catch (resendError){
+        } on AuthException catch (resendError) {
           if (!mounted) return;
-          if(resendError.message.contains("already confirmed")){
+          if (resendError.message.contains("already confirmed")) {
             Navigator.pushReplacementNamed(context, AppRoutes.login);
-          } else{
+          } else {
             setState(() {
               _errorMessage = resendError.message;
             });
@@ -187,7 +190,7 @@ class _RegisterPageState extends State<RegisterScreen> {
       }
     }
   }
-  
+
   Future<void> _handleFacebookSignIn() async {
     setState(() => _isLoading = true);
 
@@ -213,217 +216,237 @@ class _RegisterPageState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inputDecorationTheme = InputDecoration(
-      // Gaya untuk hint dan label saat tidak aktif
-      hintStyle: const TextStyle(color: Color(0xFF999999)),
-      labelStyle: const TextStyle(color: Color(0xFF999999)),
+    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
 
-      // Gaya untuk border saat tidak aktif
+    final inputDecorationTheme = InputDecoration(
+      // Theme-aware hint and label styles
+      hintStyle: TextStyle(
+        color: isDarkMode ? Colors.white54 : const Color(0xFF999999),
+      ),
+      labelStyle: TextStyle(
+        color: isDarkMode ? Colors.white70 : const Color(0xFF999999),
+      ),
+
+      // Theme-aware border styles
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide(color: secondaryColor, width: 1.5),
+        borderSide: BorderSide(
+          color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
+          width: 1.5,
+        ),
       ),
 
-      // Gaya untuk border saat aktif (di-klik)
+      // Theme-aware focused border
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide(color: primaryColor, width: 1.5),
+        borderSide: BorderSide(
+          color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+          width: 1.5,
+        ),
       ),
     );
+
     return KeyboardAwareScaffold(
-      backgroundColor: const Color(0XFFF2F2F2),
+      backgroundColor: theme.scaffoldBackgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 0),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-                const SizedBox(height: 48),
-                // Create account text
-                Container(
-                  padding: const EdgeInsets.all(24.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        // Warna bayangan dibuat sedikit transparan
-                        color: Colors.black.withValues(alpha: 0.2),
-                        // Seberapa menyebar bayangannya
-                        spreadRadius: 2,
-                        // Seberapa kabur bayangannya
-                        blurRadius: 8,
-                        // Posisi bayangan (horizontal, vertikal)
-                        offset: const Offset(0, 4), 
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        "Create your Account",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF222B45),
-                        ),
-                        textAlign: TextAlign.start
-                      ),
-                      const SizedBox(height: 8),
-                      // Name field
-                          TextField(
-                              controller: nameController,
-                              decoration: inputDecorationTheme.copyWith(
-                                labelText: "Name",
-                                hintText: "Enter your name",
-                              ),
-                            ),
-                      const SizedBox(height: 16),
-                      // Email field
-                      TextField(
-                          controller: emailController,
-                          decoration: inputDecorationTheme.copyWith(
-                            labelText: "Email",
-                            hintText: "Enter your email"
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      // Password field
-                      EnhancedPasswordField(
-                        controller: passwordController,
-                        focusNode: _passwordFocus,
-                        hintText: "Enter your password",
-                        labelText: "Password",
-                        showValidationIcon: passwordController.text.isNotEmpty,
-                        isValid: _passwordIsValid,
-                        hasMismatch: passwordController.text.isNotEmpty && !_passwordIsValid,
-                        onChanged: _validateMatchingPasswords,
-                      ),
-                      const SizedBox(height: 16),
-                      // Confirm Password field
-                      EnhancedPasswordField(
-                        controller: confirmPasswordController,
-                        focusNode: _confirmPasswordFocus,
-                        hintText: "Confirm your password",
-                        labelText: "Confirm password",
-                        showValidationIcon: passwordController.text.isNotEmpty && confirmPasswordController.text.isNotEmpty && _passwordIsValid,
-                        isValid: _passwordsMatch,
-                        hasMismatch: confirmPasswordController.text.isNotEmpty && (!_passwordsMatch || !_passwordIsValid),
-                        inlineError: _confirmPasswordInlineError,
-                        onChanged: _validateMatchingPasswords,
-                      ),
-                      // Password validation criteria (moved below confirm password)
-                      PasswordValidationWidget(
-                        password: passwordController.text,
-                        showValidation: passwordController.text.isNotEmpty,
-                      ),
-                      const SizedBox(height: 16),
-                      // Register button
-                      SizedBox(
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _registerUser,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? CircularProgressIndicator(color: primaryColor)
-                              : const Text(
-                                  "Register",
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      if (_errorMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 16),
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.normal,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      const SizedBox(height: 24),
-                      // Login link
-                const Row(
-                    children: [
-                      Expanded(
-                        child: Divider(
-                          color: Color(0xFFCACACA),
-                          thickness: 1.5,
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          "OR",
-                          style: TextStyle(
-                            color: Color(0xFFCACACA),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Divider(
-                          color: Color(0xFFCACACA),
-                          thickness: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  _buildSocialButton(
-                    icon: SvgPicture.asset('assets/icons/google-icon.svg',),
-                    text: "Continue with Google",
-                    onPressed: _handleGoogleSignIn,
-                    backgroundColor: Colors.white,
-                    textColor: Colors.black87,
-                  ),
-                  const SizedBox(height: 24),
-                  _buildSocialButton(
-                    icon: SvgPicture.asset(
-                      'assets/icons/facebook-icon.svg',
+          const SizedBox(height: 48),
+          // Create account text
+          Container(
+            padding: const EdgeInsets.all(24.0),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: isDarkMode
+                      ? Colors.black.withValues(alpha: 0.5)
+                      : Colors.black.withValues(alpha: 0.2),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text("Create your Account",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : const Color(0xFF222B45),
                     ),
-                    text: "Continue with Facebook",
-                    onPressed: _handleFacebookSignIn,
-                    backgroundColor: Colors.white,
-                    textColor: Colors.black,
-                  ),
-                  const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Already have an account?",
-                            style: TextStyle(color: Color(0xFF999999)),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pushReplacementNamed(context, AppRoutes.login);
-                            },
-                            child: Text(
-                              "Login",
-                              style: TextStyle(
-                                color: primaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    ],
+                    textAlign: TextAlign.start),
+                const SizedBox(height: 8),
+                // Name field
+                TextField(
+                  controller: nameController,
+                  decoration: inputDecorationTheme.copyWith(
+                    labelText: "Name",
+                    hintText: "Enter your name",
                   ),
                 ),
+                const SizedBox(height: 16),
+                // Email field
+                TextField(
+                  controller: emailController,
+                  decoration: inputDecorationTheme.copyWith(
+                      labelText: "Email", hintText: "Enter your email"),
+                ),
+                const SizedBox(height: 16),
+                // Password field
+                EnhancedPasswordField(
+                  controller: passwordController,
+                  focusNode: _passwordFocus,
+                  hintText: "Enter your password",
+                  labelText: "Password",
+                  showValidationIcon: passwordController.text.isNotEmpty,
+                  isValid: _passwordIsValid,
+                  hasMismatch:
+                      passwordController.text.isNotEmpty && !_passwordIsValid,
+                  onChanged: _validateMatchingPasswords,
+                ),
+                const SizedBox(height: 16),
+                // Confirm Password field
+                EnhancedPasswordField(
+                  controller: confirmPasswordController,
+                  focusNode: _confirmPasswordFocus,
+                  hintText: "Confirm your password",
+                  labelText: "Confirm password",
+                  showValidationIcon: passwordController.text.isNotEmpty &&
+                      confirmPasswordController.text.isNotEmpty &&
+                      _passwordIsValid,
+                  isValid: _passwordsMatch,
+                  hasMismatch: confirmPasswordController.text.isNotEmpty &&
+                      (!_passwordsMatch || !_passwordIsValid),
+                  inlineError: _confirmPasswordInlineError,
+                  onChanged: _validateMatchingPasswords,
+                ),
+                // Password validation criteria (moved below confirm password)
+                PasswordValidationWidget(
+                  password: passwordController.text,
+                  showValidation: passwordController.text.isNotEmpty,
+                ),
+                const SizedBox(height: 16),
+                // Register button
+                SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _registerUser,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? CircularProgressIndicator(
+                            color: isDarkMode ? Colors.white : primaryColor,
+                          )
+                        : const Text(
+                            "Register",
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.normal,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 const SizedBox(height: 24),
+                // Login link
+                Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: isDarkMode ? Colors.grey.shade600 : const Color(0xFFCACACA),
+                        thickness: 1.5,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        "OR",
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.grey.shade400 : const Color(0xFFCACACA),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: isDarkMode ? Colors.grey.shade600 : const Color(0xFFCACACA),
+                        thickness: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildSocialButton(
+                  icon: SvgPicture.asset(
+                    'assets/icons/google-icon.svg',
+                  ),
+                  text: "Continue with Google",
+                  onPressed: _handleGoogleSignIn,
+                  backgroundColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.white,
+                  textColor: isDarkMode ? Colors.white : Colors.black87,
+                ),
+                const SizedBox(height: 24),
+                _buildSocialButton(
+                  icon: SvgPicture.asset(
+                    'assets/icons/facebook-icon.svg',
+                  ),
+                  text: "Continue with Facebook",
+                  onPressed: _handleFacebookSignIn,
+                  backgroundColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.white,
+                  textColor: isDarkMode ? Colors.white : Colors.black,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Already have an account?",
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : const Color(0xFF999999),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(
+                            context, AppRoutes.login);
+                      },
+                      child: Text(
+                        "Login",
+                        style: TextStyle(
+                          color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -436,6 +459,9 @@ class _RegisterPageState extends State<RegisterScreen> {
     required Color backgroundColor,
     required Color textColor,
   }) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return SizedBox(
       height: 56,
       child: ElevatedButton(
@@ -448,24 +474,24 @@ class _RegisterPageState extends State<RegisterScreen> {
           ),
           elevation: 0,
           side: BorderSide(
-          color: secondaryColor, // Warna garis tepi (abu-abu muda)
-          width: 1.5, // Ketebalan garis tepi
-        ),
+            color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
+            width: 1.5,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(
-            width: 24,
-            height: 24,
-            child: icon,
+              width: 24,
+              height: 24,
+              child: icon,
             ),
             const SizedBox(width: 12),
             Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: Color(0xFF999999)
+                color: textColor,
               ),
             ),
           ],
