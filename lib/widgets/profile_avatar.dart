@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 import '../services/store_profile_service.dart';
 import '../services/refresh_service.dart';
+import '../theme/theme_provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 
 class ProfileAvatar extends StatefulWidget {
@@ -153,23 +155,28 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
           width: widget.size,
           height: widget.size,
           fit: BoxFit.cover,
-          placeholder: (context, url) => Container(
-            width: widget.size,
-            height: widget.size,
-            color: Colors.grey[300],
-            child: Center(
-              child: SizedBox(
-                width: widget.size * 0.3,
-                height: widget.size * 0.3,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.0,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.grey[600]!,
+          placeholder: (context, url) {
+            final themeProvider = Provider.of<ThemeProvider>(context);
+            final isDarkMode = themeProvider.isDarkMode;
+
+            return Container(
+              width: widget.size,
+              height: widget.size,
+              color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+              child: Center(
+                child: SizedBox(
+                  width: widget.size * 0.3,
+                  height: widget.size * 0.3,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.0,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isDarkMode ? Colors.grey[400]! : Colors.grey[600]!,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
           errorWidget: (context, url, error) {
             debugPrint('❌ CachedNetworkImage error for URL $url: $error');
             return _buildInitialsAvatar();

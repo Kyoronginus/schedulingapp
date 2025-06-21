@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:provider/provider.dart';
 import '../../utils/utils_functions.dart';
 import '../../services/secure_storage_service.dart';
 import '../../services/auth_method_service.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/password_validation_widget.dart';
+import '../../theme/theme_provider.dart';
 import 'password_verification_screen.dart';
 
 class ChangePasswordDialog extends StatefulWidget {
@@ -81,20 +83,32 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   }
 
   void _showOAuthPasswordChangeDialog() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDarkMode = themeProvider.isDarkMode;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           title: Row(
             children: [
-              Icon(Icons.info_outline, color: primaryColor, size: 28),
+              Icon(
+                Icons.info_outline,
+                color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                size: 28,
+              ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Password Change Not Available',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
               ),
             ],
           ),
@@ -102,45 +116,71 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Your account is linked to an external provider (Google or Facebook). To change your password, please:',
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
               ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: isDarkMode ? const Color(0xFF3A3A3A) : Colors.grey[50],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(
+                    color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                  ),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '1. Go to your provider\'s website:',
-                      style: TextStyle(fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
                     ),
-                    SizedBox(height: 8),
-                    Text('• Google: myaccount.google.com'),
-                    Text('• Facebook: facebook.com/settings'),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• Google: myaccount.google.com',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      '• Facebook: facebook.com/settings',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     Text(
                       '2. Navigate to Security settings',
-                      style: TextStyle(fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
                     ),
-                    SizedBox(height: 8),
-                    Text('3. Change your password there'),
+                    const SizedBox(height: 8),
+                    Text(
+                      '3. Change your password there',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'The new password will automatically apply to this app.',
                 style: TextStyle(
                   fontSize: 14,
                   fontStyle: FontStyle.italic,
-                  color: Colors.grey,
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey,
                 ),
               ),
             ],
@@ -151,7 +191,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
               child: Text(
                 'Got it',
                 style: TextStyle(
-                  color: primaryColor,
+                  color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -241,11 +281,14 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
     bool isValid = false,
     bool hasMismatch = false,
   }) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDarkMode = themeProvider.isDarkMode;
+
     if (focusNode.hasFocus) {
       if (hasMismatch) return Colors.red;
-      return isValid ? Colors.green : primaryColor;
+      return isValid ? Colors.green : (isDarkMode ? const Color(0xFF4CAF50) : primaryColor);
     }
-    return secondaryColor;
+    return isDarkMode ? Colors.grey.shade600 : secondaryColor;
   }
 
   Widget? _getNewPasswordMatchIcon() {
@@ -333,6 +376,9 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     // UI State Calculation
     final currentPasswordHasInput = _currentPasswordController.text.isNotEmpty;
     final currentPasswordMismatch = currentPasswordHasInput &&
@@ -366,7 +412,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          color: Colors.white, // Latar belakang kartu
+          color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white, // Latar belakang kartu
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -385,22 +431,22 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // 2. Teks judul sekarang menjadi elemen pertama
-                        const Text(
+                        Text(
                           "Change Password",
                           style: TextStyle(
                             fontSize:
                                 24, // Ukuran font sedikit disesuaikan agar rapi
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF222B45),
+                            color: isDarkMode ? Colors.white : const Color(0xFF222B45),
                           ),
                         ),
                         // 3. Tombol IconButton sekarang menjadi elemen terakhir
                         IconButton(
                           onPressed: () => Navigator.pop(context),
                           // 4. Ikon diubah menjadi silang (close)
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.close,
-                            color: Colors.grey, // Warna dibuat lebih soft
+                            color: isDarkMode ? Colors.grey.shade400 : Colors.grey, // Warna dibuat lebih soft
                             size: 24,
                           ),
                         ),
@@ -415,11 +461,19 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                           focusNode: _currentPasswordFocus,
                           controller: _currentPasswordController,
                           obscureText: _obscureCurrentPassword,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
                           decoration: InputDecoration(
                             hintText: "Current Password",
+                            hintStyle: TextStyle(
+                              color: isDarkMode ? Colors.white54 : Colors.grey,
+                            ),
+                            fillColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.grey.shade50,
+                            filled: true,
                             prefixIcon: Icon(
                               Icons.lock_outline,
-                              color: primaryColor,
+                              color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                             ),
                             suffixIcon: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -439,7 +493,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                                     _obscureCurrentPassword
                                         ? Icons.visibility_outlined
                                         : Icons.visibility_off_outlined,
-                                    color: primaryColor,
+                                    color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                                   ),
                                   onPressed: () {
                                     setState(
@@ -457,7 +511,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
                               borderSide: BorderSide(
-                                color: secondaryColor,
+                                color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
                                 width: 1.5,
                               ),
                             ),
@@ -492,9 +546,20 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                       focusNode: _newPasswordFocus,
                       controller: _newPasswordController,
                       obscureText: _obscureNewPassword,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
                       decoration: InputDecoration(
                         hintText: "New Password",
-                        prefixIcon: Icon(Icons.lock, color: primaryColor),
+                        hintStyle: TextStyle(
+                          color: isDarkMode ? Colors.white54 : Colors.grey,
+                        ),
+                        fillColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.grey.shade50,
+                        filled: true,
+                        prefixIcon: Icon(
+                          Icons.lock,
+                          color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                        ),
                         suffixIcon: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -505,7 +570,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                                 _obscureNewPassword
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
-                                color: primaryColor,
+                                color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                               ),
                               onPressed: () {
                                 setState(
@@ -523,7 +588,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                           borderSide: BorderSide(
-                            color: secondaryColor,
+                            color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
                             width: 1.5,
                           ),
                         ),
@@ -547,9 +612,20 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                           focusNode: _confirmPasswordFocus,
                           controller: _confirmPasswordController,
                           obscureText: _obscureConfirmPassword,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
                           decoration: InputDecoration(
                             hintText: "Confirm New Password",
-                            prefixIcon: Icon(Icons.lock, color: primaryColor),
+                            hintStyle: TextStyle(
+                              color: isDarkMode ? Colors.white54 : Colors.grey,
+                            ),
+                            fillColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.grey.shade50,
+                            filled: true,
+                            prefixIcon: Icon(
+                              Icons.lock,
+                              color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                            ),
                             suffixIcon: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -560,7 +636,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                                     _obscureConfirmPassword
                                         ? Icons.visibility_outlined
                                         : Icons.visibility_off_outlined,
-                                    color: primaryColor,
+                                    color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                                   ),
                                   onPressed: () {
                                     setState(
@@ -578,7 +654,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
                               borderSide: BorderSide(
-                                color: secondaryColor,
+                                color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
                                 width: 2,
                               ),
                             ),
@@ -635,7 +711,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                           style: TextStyle(
                             color: _isOAuthUser
                                 ? Colors.grey.withValues(alpha: 0.5)
-                                : primaryColor,
+                                : (isDarkMode ? const Color(0xFF4CAF50) : primaryColor),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -650,7 +726,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                             ? null
                             : _validateAndSendVerificationCode,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                          backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),

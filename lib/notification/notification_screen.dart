@@ -627,13 +627,13 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                       children: [
                                                         Text(
                                                           day,
-                                                          style:
-                                                              const TextStyle(
+                                                          style: TextStyle(
                                                             fontWeight:
                                                                 FontWeight.w600,
                                                             fontSize: 34,
-                                                            color: Color(
-                                                                0xFF222B45),
+                                                            color: isDarkMode
+                                                                ? Colors.white
+                                                                : const Color(0xFF222B45),
                                                             fontStyle: FontStyle
                                                                 .normal,
                                                             height: 1,
@@ -641,26 +641,26 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                         ),
                                                         Text(
                                                           month,
-                                                          style:
-                                                              const TextStyle(
+                                                          style: TextStyle(
                                                             fontWeight:
                                                                 FontWeight.w600,
                                                             fontSize: 15,
-                                                            color: Color(
-                                                                0xFF222B45),
+                                                            color: isDarkMode
+                                                                ? Colors.white
+                                                                : const Color(0xFF222B45),
                                                             fontStyle: FontStyle
                                                                 .normal,
                                                           ),
                                                         ),
                                                         Text(
                                                           year,
-                                                          style:
-                                                              const TextStyle(
+                                                          style: TextStyle(
                                                             fontWeight:
                                                                 FontWeight.w600,
                                                             fontSize: 10,
-                                                            color: Color(
-                                                                0xFF8F9BB3),
+                                                            color: isDarkMode
+                                                                ? Colors.grey[400]
+                                                                : const Color(0xFF8F9BB3),
                                                             fontStyle: FontStyle
                                                                 .normal,
                                                           ),
@@ -712,8 +712,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                                 width: 5),
                                                             Text(
                                                               '$startTime-$endTime',
-                                                              style:
-                                                                  const TextStyle(
+                                                              style: TextStyle(
                                                                 fontStyle:
                                                                     FontStyle
                                                                         .normal,
@@ -721,8 +720,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                                     FontWeight
                                                                         .w500,
                                                                 fontSize: 13,
-                                                                color: Color(
-                                                                    0xFF8F9BB3),
+                                                                color: isDarkMode
+                                                                    ? Colors.grey[400]
+                                                                    : const Color(0xFF8F9BB3),
                                                               ),
                                                             ),
                                                           ],
@@ -733,13 +733,13 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                         // Judul Acara
                                                         Text(
                                                           schedule.title,
-                                                          style:
-                                                              const TextStyle(
+                                                          style: TextStyle(
                                                             fontWeight:
                                                                 FontWeight.bold,
                                                             fontSize: 18,
-                                                            color: Color(
-                                                                0xFF222B45),
+                                                            color: isDarkMode
+                                                                ? Colors.white
+                                                                : const Color(0xFF222B45),
                                                           ),
                                                           maxLines: 1,
                                                           overflow: TextOverflow
@@ -753,15 +753,15 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                           NotificationService
                                                               .getNotificationMessage(
                                                                   notification),
-                                                          style:
-                                                              const TextStyle(
+                                                          style: TextStyle(
                                                             fontStyle: FontStyle
                                                                 .normal,
                                                             fontWeight:
                                                                 FontWeight.w400,
                                                             fontSize: 13,
-                                                            color: Color(
-                                                                0xFF8F9BB3),
+                                                            color: isDarkMode
+                                                                ? Colors.grey[400]
+                                                                : const Color(0xFF8F9BB3),
                                                           ),
                                                           maxLines: 2,
                                                           overflow: TextOverflow

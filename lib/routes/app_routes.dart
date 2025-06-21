@@ -5,7 +5,6 @@ import '../schedule/schedule_screen.dart';
 import '../auth/register/register_screen.dart';
 import '../dynamo/set_user_name_screen.dart';
 import '../group/group_screen.dart';
-import '../schedule/invite/invite_member_screen.dart';
 import '../profile/profile_screen.dart';
 import '../notification/notification_screen.dart';
 
@@ -30,8 +29,8 @@ class AppRoutes {
         // AppRoutes.changePassword: (context) => const ChangePasswordScreen(),
         AppRoutes.setUserName: (context) => const SetUserNameScreen(),
         AppRoutes.addGroup: (context) => const GroupScreen(),
-        AppRoutes.inviteMember: (context) =>
-            const InviteMemberScreen(groupId: 'exampleGroupId'),
+        // Note: InviteMemberScreen is navigated to via MaterialPageRoute with proper groupId
+        // so we don't include it in static routes to avoid null check errors
         AppRoutes.profile: (context) => const ProfileScreen(email: ''),
         AppRoutes.notification: (context) => const NotificationScreen(),
       };

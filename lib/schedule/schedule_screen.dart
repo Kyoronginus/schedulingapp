@@ -706,7 +706,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       currentRoute: '/schedule',
       child: Scaffold(
         extendBody: true,
-        backgroundColor: const Color(0xFFF1F1F1),
+        backgroundColor: isDarkMode ? Colors.black : const Color(0xFFF1F1F1),
         body: RefreshController(
           onRefresh: _loadSchedules,
           child: Stack(
@@ -754,7 +754,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                 padding: const EdgeInsets.fromLTRB(
                                     8.0, 12.0, 8.0, 8.0),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
                                   borderRadius: BorderRadius.circular(16.0),
                                 ),
                                 child: TableCalendar(
@@ -781,16 +781,16 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                   startingDayOfWeek: StartingDayOfWeek
                                       .monday, // Start with Monday
                                   daysOfWeekHeight: 30.0,
-                                  daysOfWeekStyle: const DaysOfWeekStyle(
+                                  daysOfWeekStyle: DaysOfWeekStyle(
                                     weekdayStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 17,
-                                      color: Color(0xFF0F140F),
+                                      color: isDarkMode ? Colors.white : const Color(0xFF0F140F),
                                     ),
                                     weekendStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 17,
-                                      color: Color(0xFF0F140F),
+                                      color: isDarkMode ? Colors.white : const Color(0xFF0F140F),
                                     ),
                                   ),
                                   weekendDays: const [DateTime.sunday],
@@ -814,15 +814,15 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                       fontSize: 18,
                                     ),
 
-                                    outsideTextStyle: const TextStyle(
-                                        color: Color(0xFF8F9BB3),
+                                    outsideTextStyle: TextStyle(
+                                        color: isDarkMode ? Colors.grey.shade600 : const Color(0xFF8F9BB3),
                                         fontSize: 18,
                                         fontWeight: FontWeight.w500),
 
-                                    defaultTextStyle: const TextStyle(
+                                    defaultTextStyle: TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 18,
-                                      color: Color(0xFF252525),
+                                      color: isDarkMode ? Colors.white : const Color(0xFF252525),
                                     ),
 
                                     selectedTextStyle: const TextStyle(
@@ -942,7 +942,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                   width: 40,
                                   height: 4,
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade300,
+                                    color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),

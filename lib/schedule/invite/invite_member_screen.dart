@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:provider/provider.dart';
 import 'invite_member_service.dart'; // Import the service
 import '../../widgets/custom_app_bar.dart';
 import '../../dynamo/group_service.dart';
+import '../../theme/theme_provider.dart';
 
 class InviteMemberScreen extends StatefulWidget {
   final String groupId;
@@ -124,7 +126,12 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: const CustomAppBar(
         title: Text('Invite Member'),
       ),
@@ -134,9 +141,30 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
           children: [
             TextField(
               controller: _emailController,
-              decoration:
-                  const InputDecoration(labelText: 'Email of the member'),
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+              decoration: InputDecoration(
+                labelText: 'Email of the member',
+                labelStyle: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.grey.shade600,
+                ),
+                filled: true,
+                fillColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey.shade50,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: isDarkMode ? const Color(0xFF4CAF50) : theme.primaryColor,
+                    width: 2,
+                  ),
+                ),
+              ),
             ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Checkbox(
@@ -146,13 +174,28 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
                       _isAdmin = value ?? false;
                     });
                   },
+                  activeColor: isDarkMode ? const Color(0xFF4CAF50) : theme.primaryColor,
+                  checkColor: Colors.white,
                 ),
-                const Text('Give schedule authority'),
+                Text(
+                  'Give schedule authority',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _inviteMember,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : theme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               child: const Text('Invite'),
             ),
           ],

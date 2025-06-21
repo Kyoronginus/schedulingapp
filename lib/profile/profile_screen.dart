@@ -269,22 +269,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Colors
-                                .white, // Menggunakan warna kartu dari tema (putih di light mode)
-                            borderRadius: BorderRadius.circular(
-                              16,
-                            ), // Membuat sudut melengkung
+                            color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: 0.1,
-                                ), // Bayangan yang sangat lembut
+                                color: isDarkMode
+                                    ? Colors.black.withValues(alpha: 0.5)
+                                    : Colors.black.withValues(alpha: 0.1),
                                 spreadRadius: 1,
                                 blurRadius: 10,
-                                offset: const Offset(
-                                  0,
-                                  4,
-                                ), // Posisi bayangan (sedikit ke bawah)
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
@@ -506,8 +500,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     : Colors.grey.withValues(alpha: 0.5),
                                 title: "Change Password",
                                 titleColor: _authProvider == 'Email'
-                                    ? (theme.textTheme.bodyLarge?.color ??
-                                          Colors.black87)
+                                    ? (isDarkMode ? Colors.white : Colors.black87)
                                     : Colors.grey.withValues(alpha: 0.5),
                                 trailing: Icon(
                                   Icons.chevron_right,
@@ -588,18 +581,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required IconData icon,
     required Color iconColor,
     required String title,
-    Color titleColor = Colors.black87,
+    Color? titleColor,
     required Widget trailing,
     VoidCallback? onTap,
     required bool showDivider,
   }) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+    final effectiveTitleColor = titleColor ?? (isDarkMode ? Colors.white : Colors.black87);
+
     return Column(
       children: [
         ListTile(
           leading: Icon(icon, color: iconColor),
           title: Text(
             title,
-            style: TextStyle(fontWeight: FontWeight.w500, color: titleColor),
+            style: TextStyle(fontWeight: FontWeight.w500, color: effectiveTitleColor),
           ),
           trailing: trailing,
           onTap: onTap,

@@ -12,15 +12,25 @@ class CustomTextPair extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: theme.textTheme.titleMedium?.color,
+          ),
         ),
         const SizedBox(height: 5),
-        Text(subtitle),
+        Text(
+          subtitle,
+          style: TextStyle(
+            color: theme.textTheme.bodyMedium?.color,
+          ),
+        ),
         const SizedBox(height: 10),
       ],
     );

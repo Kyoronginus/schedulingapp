@@ -86,10 +86,16 @@ class SchedulingApp extends StatelessWidget {
         return MaterialApp(
           title: 'Scheduling App',
           theme: themeProvider.getTheme(),
-          initialRoute: '/auth',
-          routes: {
-            '/auth': (context) => const AuthWrapper(),
-            ...AppRoutes.routes,
+          home: const AuthWrapper(),
+          routes: AppRoutes.routes,
+          onGenerateRoute: (settings) {
+            return null;
+          },
+          onUnknownRoute: (settings) {
+            debugPrint('⚠️ Unknown route: ${settings.name}');
+            return MaterialPageRoute(
+              builder: (context) => const AuthWrapper(),
+            );
           },
           debugShowCheckedModeBanner: false,
         );

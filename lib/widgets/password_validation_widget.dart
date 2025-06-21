@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../theme/theme_provider.dart';
 
 /// Widget that displays password validation criteria with visual feedback
 class PasswordValidationWidget extends StatelessWidget {
@@ -63,29 +65,40 @@ class PasswordValidationWidget extends StatelessWidget {
   }
 
   Widget _buildValidationItem(String text, bool isValid) {
-    return Row(
-      // Removed MainAxisSize.min to allow Expanded to manage width
-      children: [
-        Icon(
-          isValid ? Icons.check_circle : Icons.cancel,
-          size: 16,
-          color: isValid ? Colors.green : Colors.red,
-        ),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 11,
-              color: isValid ? Colors.green : Colors.red,
-              fontWeight: FontWeight.w500,
+    return Builder(
+      builder: (context) {
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        final isDarkMode = themeProvider.isDarkMode;
+
+        // Use slightly different colors for dark mode for better visibility
+        final validColor = isDarkMode ? const Color(0xFF4CAF50) : Colors.green;
+        final invalidColor = isDarkMode ? const Color(0xFFFF5252) : Colors.red;
+
+        return Row(
+          // Removed MainAxisSize.min to allow Expanded to manage width
+          children: [
+            Icon(
+              isValid ? Icons.check_circle : Icons.cancel,
+              size: 16,
+              color: isValid ? validColor : invalidColor,
             ),
-            // Allow text to wrap if needed, preventing it from being cut off
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isValid ? validColor : invalidColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                // Allow text to wrap if needed, preventing it from being cut off
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

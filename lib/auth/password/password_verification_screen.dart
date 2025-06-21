@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:provider/provider.dart';
 import '../../utils/utils_functions.dart';
 import '../../widgets/pin_input_widget.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
 import '../../routes/app_routes.dart';
 import '../../services/secure_storage_service.dart';
+import '../../theme/theme_provider.dart';
 
 enum PasswordResetMode { forgotPassword, changePassword }
 
@@ -215,19 +217,24 @@ class _PasswordVerificationScreenState extends State<PasswordVerificationScreen>
   @override
   Widget build(BuildContext context) {
     final isChangePassword = widget.mode == PasswordResetMode.changePassword;
-    
+    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return KeyboardAwareScaffold(
-      backgroundColor: const Color(0xFFF2F2F2),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           isChangePassword ? "Verify Email" : "Verify Reset Code",
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: isDarkMode ? const Color(0xFF4CAF50) : Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : primaryColor,
+        iconTheme: IconThemeData(
+          color: isDarkMode ? const Color(0xFF4CAF50) : Colors.white,
+        ),
         elevation: 0,
       ),
       body: Center(
@@ -241,11 +248,13 @@ class _PasswordVerificationScreenState extends State<PasswordVerificationScreen>
                 Container(
                   padding: const EdgeInsets.all(32.0),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
+                        color: isDarkMode
+                            ? Colors.black.withValues(alpha: 0.5)
+                            : Colors.black.withValues(alpha: 0.08),
                         spreadRadius: 2,
                         blurRadius: 12,
                         offset: const Offset(0, 4),
@@ -258,29 +267,34 @@ class _PasswordVerificationScreenState extends State<PasswordVerificationScreen>
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: 0.1),
+                          color: isDarkMode
+                              ? const Color(0xFF4CAF50).withValues(alpha: 0.2)
+                              : primaryColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           isChangePassword ? Icons.email_outlined : Icons.lock_reset,
                           size: 40,
-                          color: primaryColor,
+                          color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                         ),
                       ),
                       const SizedBox(height: 24),
                       Text(
                         isChangePassword ? "Check Your Email" : "Enter Verification Code",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: isDarkMode ? Colors.white : Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         "We've sent a 6-digit verification code to:",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isDarkMode ? Colors.white70 : Colors.grey,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
@@ -289,13 +303,13 @@ class _PasswordVerificationScreenState extends State<PasswordVerificationScreen>
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: primaryColor,
+                          color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 32),
                       PinInputWidget(
-                        primaryColor: primaryColor,
+                        primaryColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                         onCompleted: (pin) {
                           setState(() => _verificationCode = pin);
                           _verifyCode();
@@ -315,7 +329,7 @@ class _PasswordVerificationScreenState extends State<PasswordVerificationScreen>
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _verifyCode,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
+                            backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -337,10 +351,13 @@ class _PasswordVerificationScreenState extends State<PasswordVerificationScreen>
                       TextButton(
                         onPressed: _resendCooldown > 0 || _isResending ? null : _resendCode,
                         child: _isResending
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2.5),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                                ),
                               )
                             : Text(
                                 _resendCooldown > 0
@@ -348,8 +365,8 @@ class _PasswordVerificationScreenState extends State<PasswordVerificationScreen>
                                     : "Didn't receive a code? Resend",
                                 style: TextStyle(
                                   color: _resendCooldown > 0 || _isResending
-                                      ? Colors.grey
-                                      : primaryColor,
+                                      ? (isDarkMode ? Colors.grey.shade400 : Colors.grey)
+                                      : (isDarkMode ? const Color(0xFF4CAF50) : primaryColor),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),

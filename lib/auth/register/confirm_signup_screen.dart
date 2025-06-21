@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:provider/provider.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/pin_input_widget.dart';
 import '../../widgets/keyboard_aware_scaffold.dart';
 import '../../utils/utils_functions.dart';
+import '../../theme/theme_provider.dart';
 
 class ConfirmSignUpScreen extends StatefulWidget {
   final String email;
@@ -97,18 +99,24 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return KeyboardAwareScaffold(
-      backgroundColor: const Color(0xFFF2F2F2),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Verify Your Account",
           style: TextStyle(
-            color: Colors.white,
+            color: isDarkMode ? const Color(0xFF4CAF50) : Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : primaryColor,
+        iconTheme: IconThemeData(
+          color: isDarkMode ? const Color(0xFF4CAF50) : Colors.white,
+        ),
         elevation: 0,
       ),
       body: Center(
@@ -123,11 +131,13 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
                 Container(
                   padding: const EdgeInsets.all(32.0),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: isDarkMode
+                            ? Colors.black.withValues(alpha: 0.5)
+                            : Colors.black.withValues(alpha: 0.1),
                         spreadRadius: 2,
                         blurRadius: 8,
                         offset: const Offset(0, 4),
@@ -141,25 +151,27 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: 0.1),
+                          color: isDarkMode
+                              ? const Color(0xFF4CAF50).withValues(alpha: 0.2)
+                              : primaryColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.verified_user,
                           size: 40,
-                          color: primaryColor,
+                          color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                         ),
                       ),
 
                       const SizedBox(height: 24),
 
                       // Title
-                      const Text(
+                      Text(
                         "Enter Verification Code",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: isDarkMode ? Colors.white : Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -171,7 +183,7 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
                         "We've sent a 6-digit verification code to:",
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey[600],
+                          color: isDarkMode ? Colors.white70 : Colors.grey[600],
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -184,7 +196,7 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: primaryColor,
+                          color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -193,6 +205,7 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
 
                       // PIN Input
                       PinInputWidget(
+                        primaryColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                         onCompleted: (pin) {
                           setState(() {
                             _verificationCode = pin;
@@ -217,7 +230,7 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _confirmSignUp,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
+                            backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -245,7 +258,7 @@ class _ConfirmSignUpScreenState extends State<ConfirmSignUpScreen> {
                         child: Text(
                           "Resend Code",
                           style: TextStyle(
-                            color: primaryColor,
+                            color: isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                             fontSize: 14,
                           ),
                         ),

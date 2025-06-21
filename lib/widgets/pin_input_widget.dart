@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../theme/theme_provider.dart';
 
 /// A modern, robust 6-digit PIN input widget.
 ///
@@ -115,6 +117,8 @@ class _PinInputWidgetState extends State<PinInputWidget> {
   Widget _buildPinField(BuildContext context, int index) {
     final Color effectivePrimaryColor =
         widget.primaryColor ?? Theme.of(context).primaryColor;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
 
     return SizedBox(
       // Slightly reduced width to prevent overflow on smaller screens
@@ -134,10 +138,10 @@ class _PinInputWidgetState extends State<PinInputWidget> {
           focusNode: _focusNodes[index],
           textAlign: TextAlign.center,
           textAlignVertical: TextAlignVertical.center, // Perfect vertical centering
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
           keyboardType: TextInputType.number,
           inputFormatters: [
@@ -147,11 +151,14 @@ class _PinInputWidgetState extends State<PinInputWidget> {
           decoration: InputDecoration(
             counterText: '',
             filled: true,
-            fillColor: Colors.white,
+            fillColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
             contentPadding: EdgeInsets.zero, // Ensures text is centered
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
+              borderSide: BorderSide(
+                color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400,
+                width: 1.5,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:provider/provider.dart';
+import '../theme/theme_provider.dart';
 
 /// Service for handling OAuth authentication UI dialogs and errors
 /// Note: Conflict detection is now handled by Lambda triggers
@@ -24,24 +26,33 @@ class OAuthConflictService {
 
   /// Show account conflict dialog with detailed information
   static void showAccountConflictDialog(
-    BuildContext context, 
+    BuildContext context,
     Map<String, String> conflictInfo,
     {VoidCallback? onEmailLoginPressed}
   ) {
     final email = conflictInfo['email'] ?? 'your email';
     final existingMethod = conflictInfo['existingMethod'] ?? 'another method';
     final attemptedMethod = conflictInfo['attemptedMethod'] ?? 'this method';
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        final isDarkMode = themeProvider.isDarkMode;
+
         return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
           title: Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange[700]),
               const SizedBox(width: 8),
-              const Text('Account Already Exists'),
+              Text(
+                'Account Already Exists',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
             ],
           ),
           content: Column(
@@ -50,15 +61,20 @@ class OAuthConflictService {
             children: [
               Text(
                 'An account with the email "$email" already exists.',
-                style: const TextStyle(fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
               ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: isDarkMode ? Colors.blue[900] : Colors.blue[50],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue[200]!),
+                  border: Border.all(
+                    color: isDarkMode ? Colors.blue[700]! : Colors.blue[200]!,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,13 +83,16 @@ class OAuthConflictService {
                       'Existing sign-in method:',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue[700],
+                        color: isDarkMode ? Colors.blue[300] : Colors.blue[700],
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
                       existingMethod,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
                     ),
                   ],
                 ),
@@ -82,9 +101,11 @@ class OAuthConflictService {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: isDarkMode ? Colors.orange[900] : Colors.orange[50],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange[200]!),
+                  border: Border.all(
+                    color: isDarkMode ? Colors.orange[700]! : Colors.orange[200]!,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,13 +114,16 @@ class OAuthConflictService {
                       'Attempted sign-in method:',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.orange[700],
+                        color: isDarkMode ? Colors.orange[300] : Colors.orange[700],
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
                       attemptedMethod,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
                     ),
                   ],
                 ),
@@ -107,7 +131,10 @@ class OAuthConflictService {
               const SizedBox(height: 16),
               Text(
                 'To access your account, please use $existingMethod to sign in.',
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
               ),
             ],
           ),
@@ -136,36 +163,63 @@ class OAuthConflictService {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        final isDarkMode = themeProvider.isDarkMode;
+
         return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
           title: Row(
             children: [
               Icon(Icons.error_outline, color: Colors.red[700]),
               const SizedBox(width: 8),
-              Text('$provider Sign-In Unavailable'),
+              Text(
+                '$provider Sign-In Unavailable',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('$provider sign-in is currently not configured properly.'),
+              Text(
+                '$provider sign-in is currently not configured properly.',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Alternative options:',
-                      style: TextStyle(fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
                     ),
-                    SizedBox(height: 8),
-                    Text('• Use email/password sign-in'),
-                    Text('• Contact support for assistance'),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• Use email/password sign-in',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    Text(
+                      '• Contact support for assistance',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -187,28 +241,53 @@ class OAuthConflictService {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        final isDarkMode = themeProvider.isDarkMode;
+
         return AlertDialog(
-          title: Text('$provider Sign-In Error'),
+          backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+          title: Text(
+            '$provider Sign-In Error',
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('An error occurred during sign-in:'),
+              Text(
+                'An error occurred during sign-in:',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
+                  color: isDarkMode ? Colors.red[900] : Colors.red[50],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red[200]!),
+                  border: Border.all(
+                    color: isDarkMode ? Colors.red[700]! : Colors.red[200]!,
+                  ),
                 ),
                 child: Text(
                   error,
-                  style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Please try again or use email/password sign-in.'),
+              Text(
+                'Please try again or use email/password sign-in.',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
             ],
           ),
           actions: [

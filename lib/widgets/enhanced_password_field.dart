@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../utils/utils_functions.dart';
+import '../theme/theme_provider.dart';
 
 /// Enhanced password field with visual feedback (checkmarks, border colors)
 /// matching the implementation in change_password_screen.dart
@@ -46,13 +48,17 @@ class _EnhancedPasswordFieldState extends State<EnhancedPasswordField> {
     }
   }
 
-  Color _getBorderColor() {
+  Color _getBorderColor(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDarkMode = themeProvider.isDarkMode;
+    final defaultColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
+
     final focusNode = widget.focusNode;
     if (focusNode != null && focusNode.hasFocus) {
       if (widget.hasMismatch) return Colors.red;
-      return widget.isValid ? Colors.green : primaryColor;
+      return widget.isValid ? Colors.green : defaultColor;
     }
-    return primaryColor; // Default color when not focused
+    return defaultColor; // Default color when not focused
   }
 
   Widget? _getValidationIcon() {
@@ -68,18 +74,29 @@ class _EnhancedPasswordFieldState extends State<EnhancedPasswordField> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+    final defaultColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
           controller: widget.controller,
           focusNode: widget.focusNode,
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+          ),
           decoration: InputDecoration(
             hintText: widget.hintText,
-            hintStyle: const TextStyle(color: Color(0xFF999999)),
+            hintStyle: TextStyle(
+              color: isDarkMode ? Colors.white54 : const Color(0xFF999999),
+            ),
             labelText: widget.labelText,
-            labelStyle: const TextStyle(color: Color(0xFF999999)),
-            fillColor: Colors.white,
+            labelStyle: TextStyle(
+              color: isDarkMode ? Colors.white70 : const Color(0xFF999999),
+            ),
+            fillColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
             filled: true,
             suffixIcon: Row(
               mainAxisSize: MainAxisSize.min,
@@ -90,7 +107,7 @@ class _EnhancedPasswordFieldState extends State<EnhancedPasswordField> {
                     _obscurePassword
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
-                    color: primaryColor,
+                    color: defaultColor,
                   ),
                   onPressed: () {
                     setState(() {
@@ -105,11 +122,14 @@ class _EnhancedPasswordFieldState extends State<EnhancedPasswordField> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10.0),
-              borderSide: BorderSide(color: secondaryColor, width: 1.5),
+              borderSide: BorderSide(
+                color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
+                width: 1.5,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10.0),
-              borderSide: BorderSide(color: _getBorderColor(), width: 1.5),
+              borderSide: BorderSide(color: _getBorderColor(context), width: 1.5),
             ),
           ),
           obscureText: _obscurePassword,

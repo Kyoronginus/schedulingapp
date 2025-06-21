@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../models/Schedule.dart';
 import '../schedule_service.dart';
 import '../../models/Group.dart';
@@ -9,6 +10,7 @@ import '../../services/timezone_service.dart';
 import '../../services/refresh_service.dart';
 import '../../services/oauth_user_service.dart';
 import '../../widgets/scrollable_time_picker.dart';
+import '../../theme/theme_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 // DIUBAH: Nama kelas diubah agar lebih deskriptif
@@ -239,55 +241,30 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
     }
   }
 
-  Future<void> _selectGroup() async {
-    if (!mounted) return;
-    final groups = await GroupService.getUserGroups();
-    if (!mounted) return;
-
-    final selectedGroup = await showDialog<Group>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select a Group'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: groups.length,
-            itemBuilder: (ctx, index) => ListTile(
-              title: Text(groups[index].name),
-              onTap: () => Navigator.pop(ctx, groups[index]),
-            ),
-          ),
-        ),
-      ),
-    );
-    if (selectedGroup != null) {
-      setState(() => _selectedGroup = selectedGroup);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF735BF2);
-    const cancelColor = Color(0xFFF77272);
-    const textColor = Colors.black87;
-    const hintColor = Color(0xFF999999);
-    const iconColor = Color(0xFF999999);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
+    final primaryColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
+    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final hintColor = isDarkMode ? Colors.grey.shade400 : const Color(0xFF999999);
+    final iconColor = isDarkMode ? Colors.grey.shade400 : const Color(0xFF999999);
+    final backgroundColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
+    final borderColor = isDarkMode ? Colors.grey.shade600 : const Color(0xFFEDF1F7);
 
     final inputDecorationTheme = InputDecoration(
-      hintStyle:
-          const TextStyle(color: hintColor, fontWeight: FontWeight.normal),
+      hintStyle: TextStyle(color: hintColor, fontWeight: FontWeight.normal),
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
-        borderSide: const BorderSide(color: Color(0xFFEDF1F7), width: 1.5),
+        borderSide: BorderSide(color: borderColor, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
-        borderSide: const BorderSide(color: primaryColor, width: 1.5),
+        borderSide: BorderSide(color: primaryColor, width: 1.5),
       ),
-      // Menambahkan border untuk error dan focus error
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
         borderSide: const BorderSide(color: Colors.red, width: 1.5),
@@ -296,15 +273,17 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
         borderRadius: BorderRadius.circular(10.0),
         borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
+      fillColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.white,
+      filled: true,
     );
 
     return AlertDialog(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16.0),
       title: Center(
         child: Text(
           _isEditing ? 'Edit Event' : 'Add New Event',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
             color: textColor,
@@ -328,7 +307,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 // DIUBAH: Menerapkan tema ke semua field
                 TextFormField(
                   controller: _titleController,
-                  style: const TextStyle(color: textColor),
+                  style: TextStyle(color: textColor),
                   decoration: inputDecorationTheme.copyWith(
                     hintText: 'Event title ...',
                   ),
@@ -358,7 +337,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                       _selectedDate != null
                           ? DateFormat('dd / MM / yyyy').format(_selectedDate!)
                           : 'Select date',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: textColor,
                         fontSize: 16,
                       ),
@@ -379,19 +358,19 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 'assets/icons/clock-icon.svg',
                 width: 20,
                 height: 20,
-                colorFilter: const ColorFilter.mode(iconColor, BlendMode.srcIn),
+                colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
               ),
             ),
           ),
           child: Text(
             _startTime!.format(context),
-            style: const TextStyle(fontSize: 16, color: textColor),
+            style: TextStyle(fontSize: 16, color: textColor),
           ),
         ),
       ),
     ),
-    const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12),
+    Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Icon(Icons.arrow_forward, color: hintColor),
     ),
     Expanded(
@@ -405,13 +384,13 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 'assets/icons/clock-icon.svg', // Pastikan path ini benar
                 width: 20,
                 height: 20,
-                colorFilter: const ColorFilter.mode(iconColor, BlendMode.srcIn),
+                colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
               ),
             ),
           ),
           child: Text(
             _endTime!.format(context),
-            style: const TextStyle(fontSize: 16, color: textColor),
+            style: TextStyle(fontSize: 16, color: textColor),
           ),
         ),
       ),
@@ -421,7 +400,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _locationController,
-                  style: const TextStyle(color: textColor),
+                  style: TextStyle(color: textColor),
                   decoration: inputDecorationTheme.copyWith(
                     hintText: 'Location (Link Gmaps/Zoom)',
                     suffixIcon: Padding(
@@ -438,7 +417,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _descriptionController,
-                  style: const TextStyle(color: textColor),
+                  style: TextStyle(color: textColor),
                   decoration: inputDecorationTheme.copyWith(
                     hintText: 'Description...',
                   ),
@@ -448,7 +427,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Event Color',
                       style: TextStyle(
                         fontSize: 16,
@@ -480,8 +459,14 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                                 color: color,
                                 shape: BoxShape.circle,
                                 border: isSelected
-                                    ? Border.all(color: Colors.black, width: 3)
-                                    : Border.all(color: Colors.grey.shade300, width: 1),
+                                    ? Border.all(
+                                        color: isDarkMode ? Colors.white : Colors.black,
+                                        width: 3
+                                      )
+                                    : Border.all(
+                                        color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300,
+                                        width: 1
+                                      ),
                               ),
                               child: isSelected
                                   ? const Icon(
@@ -507,12 +492,10 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                       child: ElevatedButton(
                         onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(0xFFEA3C54),
+                          backgroundColor: const Color(0xFFEA3C54),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(8.0),
+                            borderRadius: BorderRadius.circular(8.0),
                           ),
                           elevation: 0,
                         ),
@@ -528,12 +511,10 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _saveSchedule,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(0xFF735BF2),
+                          backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(8.0),
+                            borderRadius: BorderRadius.circular(8.0),
                           ),
                           elevation: 0,
                         ),

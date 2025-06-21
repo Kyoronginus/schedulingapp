@@ -72,7 +72,6 @@ class _CustomMenuButtonState extends State<CustomMenuButton> {
                 elevation: 8,
                 borderRadius: BorderRadius.circular(8),
                 color: widget.backgroundColor ?? Theme.of(context).cardColor,
-
                 child: SizedBox(
                   width: estimatedMenuWidth,
                   child: Column(
