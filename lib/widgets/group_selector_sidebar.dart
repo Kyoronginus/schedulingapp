@@ -706,59 +706,88 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
   }
 
   void _showDeleteGroupDialog(Group group) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Group'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Are you sure you want to delete "${group.name}"?'),
-            const SizedBox(height: 16),
-            const Text(
-              'This action cannot be undone. All schedules and data associated with this group will be permanently deleted.',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 14,
+  final theme = Theme.of(context);
+  final isDarkMode = theme.brightness == Brightness.dark;
+
+  // Mendefinisikan warna yang akan digunakan
+  final primaryPurpleColor = const Color(0xFF735BF2);
+  final destructiveColor = const Color(0xFFEA3C54);
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0),
+      ),
+      backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+      elevation: 10.0,
+      title: const Text('Delete Group'),
+      titleTextStyle: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: isDarkMode ? Colors.white : Colors.black87,
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Are you sure you want to delete "${group.name}"?'),
+          const SizedBox(height: 16),
+          const Text(
+            'This action cannot be undone. All schedules and data associated with this group will be permanently deleted.',
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+      
+      // DIUBAH: Menambahkan alignment untuk meratakan tombol
+      actionsAlignment: MainAxisAlignment.spaceBetween,
+
+      actions: [
+        // ==== GAYA TOMBOL DIUBAH MENJADI SEPANJANG DIALOG ====
+
+        // Tombol Batal (di sisi kiri)
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: destructiveColor, // Warna merah
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0),
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Cancel',
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
           ),
-          ElevatedButton(
+        ),
+
+
+        // Tombol Delete (di sisi kanan)
+        Expanded(
+          child: ElevatedButton(
             onPressed: () async {
               final navigator = Navigator.of(context);
               final scaffoldMessenger = ScaffoldMessenger.of(context);
-
               navigator.pop();
-
               scaffoldMessenger.showSnackBar(
                 const SnackBar(
-                  content: Row(
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      SizedBox(width: 16),
-                      Text('Deleting group...'),
-                    ],
-                  ),
+                  content: Row(children: [
+                    SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                    SizedBox(width: 16),
+                    Text('Deleting group...'),
+                  ]),
                   duration: Duration(seconds: 30),
                 ),
               );
-
               final success = await GroupService.deleteGroup(group.id);
-              
               if (mounted) {
                 scaffoldMessenger.hideCurrentSnackBar();
-
                 if (success) {
                   scaffoldMessenger.showSnackBar(
                     const SnackBar(
@@ -766,15 +795,10 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                       backgroundColor: Colors.green,
                     ),
                   );
-
-                  if (widget.onGroupsChanged != null) {
-                    widget.onGroupsChanged!();
-                  }
                 } else {
                   scaffoldMessenger.showSnackBar(
                     const SnackBar(
-                      content: Text(
-                          'Failed to delete group. Please try again.'),
+                      content: Text('Failed to delete group. Please try again.'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -782,13 +806,19 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: primaryPurpleColor, // Warna ungu
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0),
+              ),
             ),
-            child: const Text('Delete'),
+            child: const Text('Delete',
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 }
