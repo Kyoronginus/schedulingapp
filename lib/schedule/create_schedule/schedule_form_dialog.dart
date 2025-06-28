@@ -441,7 +441,7 @@ class _ScheduleFormDialogState extends State<ScheduleFormDialog> {
                         contentPadding: const EdgeInsets.all(12.0),
                       ),
                       child: Wrap(
-                        alignment: WrapAlignment.spaceBetween,
+                        alignment: WrapAlignment.start,
                         spacing: 12,
                         runSpacing: 12,
                         children: _colorOptions.map((color) {

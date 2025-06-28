@@ -310,11 +310,12 @@ class _GroupScreenState extends State<GroupScreen>
         ),
 
         // Members list
-        Expanded(
-          child: groupProvider.selectedGroup != null
-              ? _buildMembersList(groupProvider.selectedGroup!.id)
-              : const Center(child: Text('Open the sidebar to select a group')),
-        ),
+        SizedBox(
+        height: 650, // <-- ATUR TINGGI YANG DIINGINKAN DI SINI (misal: 500)
+        child: groupProvider.selectedGroup != null
+            ? _buildMembersList(groupProvider.selectedGroup!.id)
+            : const Center(child: Text('Open the sidebar to select a group')),
+      ),
       ],
     );
   }
@@ -599,31 +600,92 @@ class _GroupScreenState extends State<GroupScreen>
   }
 
   void _showRemoveMemberDialog(User member) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Remove Member'),
-          content: Text(
-              'Are you sure you want to remove ${member.name} from this group?'),
-          actions: [
-            TextButton(
+  final theme = Theme.of(context);
+  final isDarkMode = theme.brightness == Brightness.dark;
+  
+  // Warna primer disesuaikan dengan yang ada di form jadwal untuk konsistensi
+  final primaryColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
+  final destructiveColor = const Color(0xFFEA3C54); // Warna merah dari form
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14.0),
+        ),
+        backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+        elevation: 10.0,
+        title: const Text('Remove Member'),
+        titleTextStyle: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: isDarkMode ? Colors.white : Colors.black87,
+        ),
+        content: Text(
+          'Are you sure you want to remove ${member.name} from this group?',
+        ),
+        contentTextStyle: TextStyle(
+          fontSize: 16,
+          color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.6),
+          height: 1.5,
+        ),
+        
+        // Menggunakan padding dan actions yang sama seperti dialog sebelumnya
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+        actions: [
+          // ==== PERUBAHAN GAYA TOMBOL DIMULAI DI SINI ====
+          
+          // Tombol Batal, gayanya mengikuti tombol 'Cancel' dari form
+          SizedBox(
+            width: 106,
+            height: 41,
+            child: ElevatedButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: destructiveColor, // Menggunakan warna merah yang sama
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                elevation: 0,
+              ),
+              child: const Text('Cancel',
+                  style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.bold)),
             ),
-            TextButton(
+          ),
+          
+          // Tombol Remove, gayanya mengikuti tombol 'Save' dari form
+          // Namun warnanya kita buat tetap merah karena ini aksi utama yang berbahaya
+          SizedBox(
+            width: 106,
+            height: 41,
+            child: ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
                 _removeMember(member);
               },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Remove'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor, // Menggunakan warna primer
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                elevation: 0,
+              ),
+              child: const Text('Remove',
+                  style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.bold)),
             ),
-          ],
-        );
-      },
-    );
-  }
+          ),
+          
+          // ==== AKHIR DARI PERUBAHAN GAYA TOMBOL ====
+        ],
+      );
+    },
+  );
+}
 
   Future<void> _removeMember(User member) async {
     final groupProvider =

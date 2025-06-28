@@ -907,7 +907,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                                     color: Colors.transparent,
                                                     border: Border.all(
                                                       color: color,
-                                                      width: 1.5,
+                                                      width: 1.75,
                                                     ),
                                                   ),
                                                 ))
