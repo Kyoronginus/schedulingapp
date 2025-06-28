@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// A custom menu button that replaces PopupMenuButton to avoid lifecycle issues
 class CustomMenuButton extends StatefulWidget {
@@ -90,10 +91,20 @@ class _CustomMenuButtonState extends State<CustomMenuButton> {
                           ),
                           child: Row(
                             children: [
-                              if (item.icon != null) ...[
+                             if (item.svgPath != null) ...[ // Prioritaskan SVG
+                                SvgPicture.asset(
+                                  item.svgPath!,
+                                  width: 24,
+                                  height: 24,
+                                  colorFilter: item.iconColor != null
+                                      ? ColorFilter.mode(item.iconColor!, BlendMode.srcIn)
+                                      : null,
+                                ),
+                                const SizedBox(width: 12),
+                              ] else if (item.icon != null) ...[ // Fallback ke IconData
                                 Icon(
                                   item.icon,
-                                  size: 18,
+                                  size: 20,
                                   color: item.iconColor,
                                 ),
                                 const SizedBox(width: 12),
@@ -103,7 +114,8 @@ class _CustomMenuButtonState extends State<CustomMenuButton> {
                                   item.text,
                                   style: TextStyle(
                                     color: item.textColor,
-                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
                                   ),
                                   // Ellipsis will now work correctly
                                   overflow: TextOverflow.ellipsis,
@@ -153,12 +165,14 @@ class CustomMenuItem {
   final String value;
   final String text;
   final IconData? icon;
+  final String? svgPath;
   final Color? iconColor;
   final Color? textColor;
 
   const CustomMenuItem({
     required this.value,
     required this.text,
+    this.svgPath,
     this.icon,
     this.iconColor,
     this.textColor,

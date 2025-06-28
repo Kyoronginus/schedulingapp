@@ -582,6 +582,7 @@ class _GroupScreenState extends State<GroupScreen>
                             icon: Icons.person_remove,
                             iconColor: Colors.red,
                             textColor: Colors.red,
+                            svgPath: 'assets/icons/person_remove-icon.svg', 
                           ),
                         ],
                         backgroundColor:
