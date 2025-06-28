@@ -1,5 +1,3 @@
-// File: lib/group/group_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
@@ -195,106 +193,116 @@ class _GroupScreenState extends State<GroupScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final groupProvider = Provider.of<GroupSelectionProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
-    final primaryColor =
-        isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
+Widget build(BuildContext context) {
+  final themeProvider = Provider.of<ThemeProvider>(context);
+  final groupProvider = Provider.of<GroupSelectionProvider>(context);
+  final isDarkMode = themeProvider.isDarkMode;
+  final primaryColor =
+      isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
 
-    return NavigationMemoryWrapper(
-      currentRoute: '/addGroup',
-      child: Scaffold(
-        extendBody: true,
-        backgroundColor: isDarkMode ? Colors.black : const Color(0xFFF1F1F1),
-        body: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 50.0, 8, 0),
-              child: GestureDetector(
-                onTap: _closeSidebar,
-                child: groupProvider.isLoading
-                    ? Align(
-                        alignment: Alignment.topLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: CircularProgressIndicator(
-                            color: primaryColor,
-                          ),
+  return NavigationMemoryWrapper(
+    currentRoute: '/addGroup',
+    child: Scaffold(
+      extendBody: true,
+      backgroundColor: isDarkMode ? Colors.black : const Color(0xFFF1F1F1),
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 50.0, 8, 0),
+            child: GestureDetector(
+              onTap: _closeSidebar,
+              child: groupProvider.isLoading
+                  ? Align(
+                      alignment: Alignment.topLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(
+                          color: primaryColor,
                         ),
-                      )
-                    : groupProvider.groups.isEmpty
-                        ? _buildEmptyState(
-                            textColor: isDarkMode
-                                ? Colors.white
-                                : const Color(0xFF000000),
-                            subTextColor: isDarkMode
-                                ? Colors.grey.shade400
-                                : const Color(0xFF000000),
-                          )
-                        : _buildGroupContent(),
+                      ),
+                    )
+                  : groupProvider.groups.isEmpty
+                      ? _buildEmptyState(
+                          textColor: isDarkMode
+                              ? Colors.white
+                              : const Color(0xFF000000),
+                          subTextColor: isDarkMode
+                              ? Colors.grey.shade400
+                              : const Color(0xFF000000),
+                        )
+                      : _buildGroupContent(),
+            ),
+          ),
+          if (_isSidebarOpen)
+            GestureDetector(
+              onTap: _closeSidebar,
+              child: Container(
+                color: Colors.black.withOpacity(0.6),
               ),
             ),
-            if (_isSidebarOpen)
-              GestureDetector(
-                onTap: _closeSidebar,
-                child: Container(
-                  color: Colors.black.withOpacity(0.6),
-                ),
-              ),
-            AnimatedBuilder(
-              animation: _sidebarAnimation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(_sidebarAnimation.value * 320, 0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: GroupSelectorSidebar(
-                      groups: groupProvider.groups,
-                      selectedGroup: groupProvider.selectedGroup,
-                      isPersonalMode: false,
-                      onGroupSelected: (group) {
-                        groupProvider.selectGroup(group);
-                        _closeSidebar();
-                      },
-                      onCreateGroup: () {
-                        _closeSidebar();
-                        _navigateToCreateGroup();
-                      },
-                      currentUserId: groupProvider.currentUserId,
-                    ),
+          AnimatedBuilder(
+            animation: _sidebarAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(_sidebarAnimation.value * 320, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: GroupSelectorSidebar(
+                    groups: groupProvider.groups,
+                    selectedGroup: groupProvider.selectedGroup,
+                    isPersonalMode: false,
+                    onGroupSelected: (group) {
+                      groupProvider.selectGroup(group);
+                      _closeSidebar();
+                    },
+                    onCreateGroup: () {
+                      _closeSidebar();
+                      _navigateToCreateGroup();
+                    },
+                    currentUserId: groupProvider.currentUserId,
                   ),
-                );
-              },
-            ),
-          ],
-        ),
-        floatingActionButton: groupProvider.selectedGroup != null
-            ? FloatingActionButton(
-                // DIUBAH: onPressed sekarang memanggil dialog
-                onPressed: () =>
-                    _showInviteMemberDialog(groupProvider.selectedGroup!.id),
-                backgroundColor:
-                    isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(32),
                 ),
-                child: SvgPicture.asset(
-                  'assets/icons/add_person-icon.svg',
-                  width: 28,
-                  height: 28,
-                  colorFilter:
-                      const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                ),
-              )
-            : null,
-        bottomNavigationBar: AnimatedBottomNavBar(
-          currentIndex: _currentIndex,
-          navbarAnimation: _navbarAnimation,
-        ),
+              );
+            },
+          ),
+        ],
       ),
-    );
-  }
+
+      // ==== PERUBAHAN PADA FLOATING ACTION BUTTON DIMULAI DI SINI ====
+      floatingActionButton: groupProvider.selectedGroup != null
+          ? AnimatedOpacity(
+              duration: const Duration(milliseconds: 400),
+              opacity: _isSidebarOpen ? 0.0 : 1.0,
+              child: IgnorePointer(
+                ignoring: _isSidebarOpen,
+                child: FloatingActionButton(
+                  onPressed: () =>
+                      _showInviteMemberDialog(groupProvider.selectedGroup!.id),
+                  backgroundColor:
+                      isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                  child: SvgPicture.asset(
+                    'assets/icons/add_person-icon.svg',
+                    width: 28,
+                    height: 28,
+                    colorFilter:
+                        const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  ),
+                ),
+              ),
+            )
+          : null,
+      // ==== AKHIR DARI PERUBAHAN ====
+      
+      bottomNavigationBar: AnimatedBottomNavBar(
+        currentIndex: _currentIndex,
+        navbarAnimation: _navbarAnimation,
+      ),
+    ),
+  );
+}
 
   Widget _buildGroupContent() {
     final groupProvider =

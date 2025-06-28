@@ -1012,25 +1012,33 @@ class _ScheduleScreenState extends State<ScheduleScreen>
             ],
           ),
         ),
-        floatingActionButton: !groupProvider.isPersonalMode
-            ? FloatingActionButton(
-                onPressed: _showCreateScheduleDialog,
-                backgroundColor:
-                    isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(32),
-                ),
-                child: SvgPicture.asset(
-                  'assets/icons/plus-icon.svg',
-                  colorFilter: const ColorFilter.mode(
-                    Colors.white,
-                    BlendMode.srcIn,
+        floatingActionButton: AnimatedOpacity(
+        duration: const Duration(milliseconds: 400),
+        opacity: _isSidebarOpen ? 0.0 : 1.0,
+        child: IgnorePointer(
+          ignoring: _isSidebarOpen,
+          // Logika asli untuk menampilkan tombol tetap ada di dalam
+          child: !groupProvider.isPersonalMode
+              ? FloatingActionButton(
+                  onPressed: _showCreateScheduleDialog,
+                  backgroundColor:
+                      isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(32),
                   ),
-                  width: 22,
-                  height: 22,
-                ),
-              )
-            : null,
+                  child: SvgPicture.asset(
+                    'assets/icons/plus-icon.svg',
+                    colorFilter: const ColorFilter.mode(
+                      Colors.white,
+                      BlendMode.srcIn,
+                    ),
+                    width: 22,
+                    height: 22,
+                  ),
+                )
+              : null,
+        ),
+      ),
         bottomNavigationBar: AnimatedBottomNavBar(
           currentIndex: _currentIndex,
           navbarAnimation: _navbarAnimation,

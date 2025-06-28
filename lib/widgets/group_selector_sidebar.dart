@@ -1,3 +1,5 @@
+// File: lib/widgets/group_selector_sidebar.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
@@ -8,6 +10,7 @@ import '../theme/theme_provider.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/custom_menu_button.dart';
 import '../dynamo/group_service.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class GroupSelectorSidebar extends StatefulWidget {
   final List<Group> groups;
@@ -44,14 +47,12 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
   final Map<String, bool> _isAdminCache = {};
   String? _lastUserId;
 
-  /// Clear all caches when user changes
   void _clearCaches() {
     _membersCache.clear();
     _isAdminCache.clear();
     debugPrint('✅ GroupSelectorSidebar caches cleared');
   }
 
-  /// Check if user has changed and clear caches if needed
   void _checkUserChange() {
     if (_lastUserId != widget.currentUserId) {
       _clearCaches();
@@ -60,135 +61,139 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Check if user has changed and clear caches if needed
-    _checkUserChange();
+ Widget build(BuildContext context) {
+  _checkUserChange();
 
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
-    final backgroundColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
+  const sidebarBackgroundColor = Color(0xFFF2F2F2);
+  const textColor = Colors.black;
+  const headerIconColor = Color(0xFF2196F3);
 
-    return Container(
-      width: 320,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            offset: const Offset(2, 0),
-            blurRadius: 10,
+  return Container(
+    width: 320,
+    height: double.infinity,
+    decoration: BoxDecoration(
+      color: sidebarBackgroundColor,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.2),
+          offset: const Offset(2, 0),
+          blurRadius: 10,
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 50, 20, 16),
+          child: Row(
+            children: [
+              SizedBox(width: 12),
+              Text(
+                'Select Group',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
+        
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Divider(
+            color: Colors.grey[400]!,
+            height: 1,
+          ),
+        ),
+
+        Expanded(
+          child: widget.groups.isEmpty && !widget.showPersonalOption
+              ? _buildEmptyState()
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  itemCount: _getItemCount(),
+                  itemBuilder: (context, index) {
+                    if (widget.showPersonalOption && index == 0) {
+                      return _buildPersonalOption();
+                    }
+                    final groupIndex = widget.showPersonalOption ? index - 1 : index;
+                    final group = widget.groups[groupIndex];
+                    return _buildGroupBox(group);
+                  },
+                ),
+        ),
+
+        // ==== PERUBAHAN BAGIAN TOMBOL BAWAH DIMULAI DI SINI ====
+        if (widget.showCreateGroupButton)
+  Container(
+    // DIUBAH: Padding disesuaikan untuk menaikkan posisi tombol
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 48),
+    child: SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: widget.onCreateGroup,
+        icon: SvgPicture.asset(
+          'assets/icons/group_add-icon.svg',
+          // DIUBAH: Ukuran ikon diperbesar
+          height: 24, 
+          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+        ),
+        label: const Text(
+          'Create New Group',
+          // DIUBAH: Ukuran teks diperbesar
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF735BF2),
+          foregroundColor: Colors.white,
+          // Padding tombol juga sedikit diperbesar untuk menampung ikon & teks baru
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
       ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF2E2E2E) : Colors.grey[100],
-              border: Border(
-                bottom: BorderSide(
-                  color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.group,
-                  color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3),
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Select Group',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Groups list
-          Expanded(
-            child: widget.groups.isEmpty && !widget.showPersonalOption
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _getItemCount(),
-                    itemBuilder: (context, index) {
-                      if (widget.showPersonalOption && index == 0) {
-                        return _buildPersonalOption();
-                      }
-                      final groupIndex = widget.showPersonalOption ? index - 1 : index;
-                      final group = widget.groups[groupIndex];
-                      return _buildGroupBox(group);
-                    },
-                  ),
-          ),
-
-          // Add group button (conditionally shown)
-          if (widget.showCreateGroupButton)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: widget.onCreateGroup,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create New Group'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+    ),
+  ),
+        // ==== AKHIR DARI PERUBAHAN ====
+      ],
+    ),
+  );
+ }
 
   int _getItemCount() {
     return widget.groups.length + (widget.showPersonalOption ? 1 : 0);
   }
 
   Widget _buildPersonalOption() {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
     final isSelected = widget.isPersonalMode;
-    final backgroundColor = isSelected
-        ? (isDarkMode ? const Color(0xFF4CAF50).withValues(alpha: 0.2) : const Color(0xFF2196F3).withValues(alpha: 0.1))
-        : (isDarkMode ? const Color(0xFF2E2E2E) : Colors.white);
-    final borderColor = isSelected
-        ? (isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3))
-        : (isDarkMode ? Colors.grey[700]! : Colors.grey[300]!);
+
+    // Warna-warna untuk gaya baru
+    const primaryColor = Color(0xFF735BF2);
+    // ... di dalam _buildPersonalOption ...
+
+  // DIUBAH: Warna ikon dibuat statis (tidak berubah)
+  const iconColor = primaryColor; // Warna biru, sama seperti header
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
+        color: Colors.white, // Kartu berwarna putih
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          // Border hanya berwarna saat dipilih
+          color: isSelected ? primaryColor : Colors.transparent,
+          width: 2.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -199,22 +204,26 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(
-                  Icons.person,
-                  color: isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3),
-                  size: 24,
+                SvgPicture.asset(
+                  'assets/icons/profile-icon.svg',
+                  width: 32,
+                  height: 32,
+                  colorFilter: ColorFilter.mode(
+                    iconColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Personal',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.black,
+                          color: Colors.black,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -222,7 +231,7 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                         'View all your schedules and notifications',
                         style: TextStyle(
                           fontSize: 14,
-                          color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                          color: Colors.grey[600],
                         ),
                       ),
                     ],
@@ -237,9 +246,6 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
   }
 
   Widget _buildEmptyState() {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -249,7 +255,7 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
             Icon(
               Icons.group_outlined,
               size: 64,
-              color: Colors.grey[400],
+              color: Colors.grey[600],
             ),
             const SizedBox(height: 16),
             Text(
@@ -257,7 +263,7 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                color: Colors.grey[700],
               ),
             ),
             const SizedBox(height: 8),
@@ -265,7 +271,7 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
               'Create your first group to get started',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                color: Colors.grey[600],
               ),
             ),
           ],
@@ -275,22 +281,25 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
   }
 
   Widget _buildGroupBox(Group group) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
     final isSelected = widget.selectedGroup?.id == group.id;
-    final backgroundColor = isSelected
-        ? (isDarkMode ? const Color(0xFF4CAF50).withValues(alpha: 0.2) : const Color(0xFF2196F3).withValues(alpha: 0.1))
-        : (isDarkMode ? const Color(0xFF2E2E2E) : Colors.white);
-    final borderColor = isSelected
-        ? (isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3))
-        : (isDarkMode ? Colors.grey[700]! : Colors.grey[300]!);
+    final primaryColor = const Color(0xFF735BF2);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
+        color: Colors.white, // Kartu berwarna putih
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? primaryColor : Colors.transparent, // Border hanya berwarna saat dipilih
+          width: 2.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -298,43 +307,37 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
           onTap: () => widget.onGroupSelected(group),
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with group name and admin options
                 Row(
                   children: [
                     Expanded(
                       child: Text(
                         group.name,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.black,
+                          color: Colors.black,
                         ),
                       ),
                     ),
-                    // Admin options
                     _buildAdminOptions(group),
                   ],
                 ),
-
-                // Description
                 if (group.description != null && group.description!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
                     group.description!,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                      color: Colors.grey[600],
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
-
-                // Member previews
                 const SizedBox(height: 12),
                 _buildMemberPreviews(group),
               ],
@@ -345,82 +348,97 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
     );
   }
 
-  Widget _buildMemberPreviews(Group group) {
-    return FutureBuilder<List<User>>(
-      future: _getGroupMembers(group.id),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
-            height: 32,
-            child: Center(
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+ Widget _buildMemberPreviews(Group group) {
+  const double avatarSize = 40.0;
+  const double overlap = 22.0;
+
+  return FutureBuilder<List<User>>(
+    future: _getGroupMembers(group.id),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const SizedBox(
+          height: avatarSize,
+          child: Center(
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
-          );
-        }
+          ),
+        );
+      }
 
-        final members = snapshot.data ?? [];
-        final displayMembers = members.take(4).toList();
-        final remainingCount = members.length - displayMembers.length;
+      final members = snapshot.data ?? [];
+      if (members.isEmpty) {
+        return const Text('No members yet', style: TextStyle(fontSize: 12, color: Colors.grey));
+      }
+      
+      final displayMembers = members.take(4).toList();
+      final remainingCount = members.length - displayMembers.length;
 
-        return Row(
-          children: [
-            // Profile pictures
-            ...displayMembers.asMap().entries.map((entry) {
-              final index = entry.key;
-              final member = entry.value;
-              return Container(
-                margin: EdgeInsets.only(left: index > 0 ? 4 : 0),
-                child: ProfileAvatar(
-                  userId: member.id,
-                  userName: member.name,
-                  size: 32,
-                  showBorder: true,
-                ),
-              );
-            }),
+      final stackWidth = (displayMembers.length * overlap) + (avatarSize - overlap);
 
-            // Remaining count indicator
-            if (remainingCount > 0) ...[
-              Container(
-                margin: const EdgeInsets.only(left: 4),
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Center(
-                  child: Text(
-                    '+$remainingCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+      return Row(
+        children: [
+          SizedBox(
+            width: stackWidth,
+            height: avatarSize,
+            child: Stack(
+              children: [
+                ...displayMembers.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final member = entry.value;
+                  return Positioned(
+                    left: index * overlap,
+                    child: ProfileAvatar(
+                      userId: member.id,
+                      userName: member.name,
+                      size: avatarSize,
+                      showBorder: true,
+                    ),
+                  );
+                }),
+
+                if (remainingCount > 0)
+                  Positioned(
+                    left: displayMembers.length * overlap,
+                    child: Container(
+                      width: avatarSize,
+                      height: avatarSize,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '+$remainingCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ],
-
-            // Member count text
-            const SizedBox(width: 8),
-            Text(
-              '${members.length} member${members.length != 1 ? 's' : ''}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[500],
-              ),
+              ],
             ),
-          ],
-        );
-      },
-    );
-  }
+          ),
+          
+          const SizedBox(width: 8),
+          Text(
+            '${members.length} member${members.length != 1 ? 's' : ''}',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Future<List<User>> _getGroupMembers(String groupId) async {
     if (_membersCache.containsKey(groupId)) {
@@ -438,7 +456,6 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
   }
 
   Future<bool> _isUserAdmin(String groupId) async {
-    // Check cache first
     if (_isAdminCache.containsKey(groupId)) {
       return _isAdminCache[groupId]!;
     }
@@ -448,7 +465,6 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
     }
 
     try {
-      // Query to check if the current user is an admin of the group
       final request = GraphQLRequest<String>(
         document: '''
           query GetGroupUserRole(\$userId: ID!, \$groupId: ID!) {
@@ -476,7 +492,6 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
         isAdmin = items[0]['isAdmin'] ?? false;
       }
 
-      // Cache the result
       _isAdminCache[groupId] = isAdmin;
       return isAdmin;
     } catch (e) {
@@ -499,9 +514,6 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
           return const SizedBox.shrink();
         }
 
-        final themeProvider = Provider.of<ThemeProvider>(context);
-        final isDarkMode = themeProvider.isDarkMode;
-
         return CustomMenuButton(
           onSelected: (value) {
             if (!mounted) return;
@@ -511,15 +523,15 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
               _showDeleteGroupDialog(group);
             }
           },
-          items: [
+          items: const [
             CustomMenuItem(
               value: 'edit',
               text: 'Edit Group',
               icon: Icons.edit,
-              iconColor: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-              textColor: isDarkMode ? Colors.white : Colors.black,
+              iconColor: Colors.black87,
+              textColor: Colors.black87,
             ),
-            const CustomMenuItem(
+            CustomMenuItem(
               value: 'delete',
               text: 'Delete Group',
               icon: Icons.delete,
@@ -527,11 +539,11 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
               textColor: Colors.red,
             ),
           ],
-          backgroundColor: isDarkMode ? Colors.grey[800] : Colors.white,
+          backgroundColor: Colors.white,
           child: Icon(
             Icons.more_vert,
             size: 20,
-            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            color: Colors.grey[600],
           ),
         );
       },
@@ -540,16 +552,18 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
 
   void _showEditGroupDialog(Group group) {
     final nameController = TextEditingController(text: group.name);
-    final descriptionController = TextEditingController(text: group.description ?? '');
+    final descriptionController =
+        TextEditingController(text: group.description ?? '');
     bool isSaving = false;
 
     showDialog(
       context: context,
-      barrierDismissible: !isSaving, // Prevent dismissal while saving
+      barrierDismissible: !isSaving,
       builder: (context) {
         final themeProvider = Provider.of<ThemeProvider>(context);
         final isDarkMode = themeProvider.isDarkMode;
-        final primaryColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF4A80F0);
+        final primaryColor =
+            isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF4A80F0);
 
         return StatefulBuilder(
           builder: (context, setState) {
@@ -557,7 +571,8 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+              backgroundColor:
+                  isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
               titlePadding: const EdgeInsets.all(0),
               contentPadding: const EdgeInsets.all(0),
               title: Container(
@@ -590,7 +605,8 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                       decoration: const InputDecoration(
                         labelText: 'Group Name',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                       ),
                       maxLength: 50,
                     ),
@@ -601,7 +617,8 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                         labelText: 'Description (Optional)',
                         hintText: 'What is this group about?',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                       ),
                       maxLines: 3,
                       maxLength: 200,
@@ -611,7 +628,8 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
               ),
               actions: [
                 TextButton(
-                  onPressed: isSaving ? null : () => Navigator.of(context).pop(),
+                  onPressed:
+                      isSaving ? null : () => Navigator.of(context).pop(),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
@@ -619,11 +637,13 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                       ? null
                       : () async {
                           final name = nameController.text.trim();
-                          final description = descriptionController.text.trim();
+                          final description =
+                              descriptionController.text.trim();
 
                           if (name.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Group name cannot be empty')),
+                              const SnackBar(
+                                  content: Text('Group name cannot be empty')),
                             );
                             return;
                           }
@@ -631,9 +651,9 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                           setState(() => isSaving = true);
 
                           final navigator = Navigator.of(context);
-                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+                          final scaffoldMessenger =
+                              ScaffoldMessenger.of(context);
 
-                          // Update the group
                           final success = await GroupService.updateGroup(
                             group.id,
                             name,
@@ -641,7 +661,7 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                           );
 
                           if (mounted) {
-                            navigator.pop(); // Close the dialog first
+                            navigator.pop(); 
 
                             if (success) {
                               scaffoldMessenger.showSnackBar(
@@ -656,7 +676,8 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                             } else {
                               scaffoldMessenger.showSnackBar(
                                 const SnackBar(
-                                  content: Text('Failed to update group. Please try again.'),
+                                  content: Text(
+                                      'Failed to update group. Please try again.'),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -671,7 +692,8 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
                         )
                       : const Text('Update'),
                 ),
@@ -715,7 +737,6 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
 
               navigator.pop();
 
-              // Show loading indicator
               scaffoldMessenger.showSnackBar(
                 const SnackBar(
                   content: Row(
@@ -733,10 +754,8 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                 ),
               );
 
-              // Delete the group
               final success = await GroupService.deleteGroup(group.id);
-
-              // Hide loading indicator and show result
+              
               if (mounted) {
                 scaffoldMessenger.hideCurrentSnackBar();
 
@@ -748,14 +767,14 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                     ),
                   );
 
-                  // Refresh the groups list
                   if (widget.onGroupsChanged != null) {
                     widget.onGroupsChanged!();
                   }
                 } else {
                   scaffoldMessenger.showSnackBar(
                     const SnackBar(
-                      content: Text('Failed to delete group. Please try again.'),
+                      content: Text(
+                          'Failed to delete group. Please try again.'),
                       backgroundColor: Colors.red,
                     ),
                   );
