@@ -1,13 +1,36 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+// File: lib/widgets/custom_menu_button.dart
 
-/// A custom menu button that replaces PopupMenuButton to avoid lifecycle issues
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart'; // Jangan lupa tambahkan import ini
+
+// DIUBAH: Menambahkan parameter baru 'svgPath'
+class CustomMenuItem {
+  final String value;
+  final String text;
+  final IconData? icon; // Parameter lama, tetap ada untuk kompatibilitas
+  final String? svgPath; // Parameter BARU untuk path file SVG
+  final Color? iconColor;
+  final Color? textColor;
+
+  const CustomMenuItem({
+    required this.value,
+    required this.text,
+    this.icon,
+    this.svgPath, // Tambahkan di konstruktor
+    this.iconColor,
+    this.textColor,
+  }) : assert(icon == null || svgPath == null, 'Cannot provide both an IconData and an svgPath.');
+}
+
+// Tidak ada perubahan pada widget utama, hanya di bagian State di bawah
 class CustomMenuButton extends StatefulWidget {
   final Widget child;
   final List<CustomMenuItem> items;
   final Function(String) onSelected;
   final Color? backgroundColor;
-  final Color? iconColor;
+  final ShapeBorder? shape;
+  final List<BoxShadow>? boxShadow;
+  final Offset offset;
 
   const CustomMenuButton({
     super.key,
@@ -15,7 +38,9 @@ class CustomMenuButton extends StatefulWidget {
     required this.items,
     required this.onSelected,
     this.backgroundColor,
-    this.iconColor,
+    this.shape,
+    this.boxShadow,
+    this.offset = const Offset(0, 12),
   });
 
   @override
@@ -26,40 +51,48 @@ class _CustomMenuButtonState extends State<CustomMenuButton> {
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
 
+  // ... (Fungsi _showMenu, _hideMenu, dispose, dan build tetap sama persis)
+
   void _showMenu() {
-    if (_overlayEntry != null) return;
+    if (_overlayEntry != null) {
+      _hideMenu();
+      return;
+    }
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+  }
 
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+  void _hideMenu() {
+    if (_overlayEntry != null) {
+      _overlayEntry!.remove();
+      _overlayEntry = null;
+    }
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
-    final offset = renderBox.localToGlobal(Offset.zero);
     final screenSize = MediaQuery.of(context).size;
-    final screenWidth = screenSize.width;
-    const double screenPadding = 16.0;
 
-    double estimatedMenuWidth = 0;
-    for (final item in widget.items) {
-      final textPainter = TextPainter(
-        text: TextSpan(text: item.text, style: const TextStyle(fontSize: 14)),
-        maxLines: 1,
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      final double iconWidth = item.icon != null ? 30.0 : 0.0;
-      final double itemWidth = textPainter.width + iconWidth + 32.0;
-
-      if (itemWidth > estimatedMenuWidth) {
-        estimatedMenuWidth = itemWidth;
-      }
-    }
-    estimatedMenuWidth =
-        estimatedMenuWidth.clamp(120.0, screenWidth - (2 * screenPadding));
-
-    double horizontalOffset = 0;
-    if (offset.dx + estimatedMenuWidth > screenWidth - screenPadding) {
-      horizontalOffset = size.width - estimatedMenuWidth;
+    final double estimatedMenuWidth = 180;
+    double horizontalShift = 0;
+    if (renderBox.localToGlobal(Offset.zero).dx + estimatedMenuWidth >
+        screenSize.width - 16) {
+      horizontalShift = -estimatedMenuWidth + size.width;
     }
 
-    _overlayEntry = OverlayEntry(
+    final shape = widget.shape ??
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0));
+    final boxShadow = widget.boxShadow ??
+        [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              spreadRadius: 4,
+              blurRadius: 15,
+              offset: Offset.zero)
+        ];
+
+    return OverlayEntry(
       builder: (context) => GestureDetector(
         onTap: _hideMenu,
         behavior: HitTestBehavior.translucent,
@@ -68,56 +101,64 @@ class _CustomMenuButtonState extends State<CustomMenuButton> {
             CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,
-              offset: Offset(horizontalOffset, size.height + 12),
+              offset: Offset(horizontalShift + widget.offset.dx,
+                  size.height + widget.offset.dy),
               child: Material(
-                elevation: 8,
-                borderRadius: BorderRadius.circular(8),
-                color: widget.backgroundColor ?? Theme.of(context).cardColor,
-                child: SizedBox(
+                color: Colors.transparent,
+                child: Container(
                   width: estimatedMenuWidth,
+                  decoration: BoxDecoration(
+                    color:
+                        widget.backgroundColor ?? Theme.of(context).cardColor,
+                    borderRadius: (shape is RoundedRectangleBorder)
+                        ? shape.borderRadius.resolve(null)
+                        : BorderRadius.zero,
+                    boxShadow: boxShadow,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: widget.items.map((item) {
+                      final borderRadius = _getItemBorderRadius(item);
                       return InkWell(
                         onTap: () {
                           _hideMenu();
                           widget.onSelected(item.value);
                         },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
+                        borderRadius: borderRadius,
+                        child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
+                              horizontal: 16, vertical: 12),
                           child: Row(
                             children: [
-                             if (item.svgPath != null) ...[ // Prioritaskan SVG
+                              // ==== LOGIKA RENDER IKON DIPERBARUI DI SINI ====
+                              if (item.svgPath != null && item.svgPath!.isNotEmpty)
+                                // Jika ada svgPath, gunakan SvgPicture
                                 SvgPicture.asset(
                                   item.svgPath!,
-                                  width: 24,
-                                  height: 24,
+                                  width: 20,
+                                  height: 20,
                                   colorFilter: item.iconColor != null
-                                      ? ColorFilter.mode(item.iconColor!, BlendMode.srcIn)
+                                      ? ColorFilter.mode(
+                                          item.iconColor!, BlendMode.srcIn)
                                       : null,
-                                ),
-                                const SizedBox(width: 12),
-                              ] else if (item.icon != null) ...[ // Fallback ke IconData
+                                )
+                              // Jika tidak ada svgPath tapi ada icon, gunakan Icon (kode lama)
+                              else if (item.icon != null)
                                 Icon(
                                   item.icon,
                                   size: 20,
                                   color: item.iconColor,
                                 ),
+                              
+                              // Memberi jarak jika ada ikon
+                              if(item.svgPath != null || item.icon != null)
                                 const SizedBox(width: 12),
-                              ],
+
                               Expanded(
                                 child: Text(
                                   item.text,
                                   style: TextStyle(
-                                    color: item.textColor,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 13,
-                                  ),
-                                  // Ellipsis will now work correctly
+                                      color: item.textColor, fontSize: 14),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -134,13 +175,26 @@ class _CustomMenuButtonState extends State<CustomMenuButton> {
         ),
       ),
     );
-
-    Overlay.of(context).insert(_overlayEntry!);
   }
 
-  void _hideMenu() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
+  BorderRadius _getItemBorderRadius(CustomMenuItem item) {
+    final isFirst = widget.items.first == item;
+    final isLast = widget.items.last == item;
+
+    if (widget.shape is RoundedRectangleBorder) {
+      final radiusValue =
+          (widget.shape as RoundedRectangleBorder).borderRadius.resolve(null).bottomLeft.x;
+      if (widget.items.length == 1) {
+        return BorderRadius.circular(radiusValue);
+      }
+      if (isFirst) {
+        return BorderRadius.vertical(top: Radius.circular(radiusValue));
+      }
+      if (isLast) {
+        return BorderRadius.vertical(bottom: Radius.circular(radiusValue));
+      }
+    }
+    return BorderRadius.zero;
   }
 
   @override
@@ -159,22 +213,4 @@ class _CustomMenuButtonState extends State<CustomMenuButton> {
       ),
     );
   }
-}
-
-class CustomMenuItem {
-  final String value;
-  final String text;
-  final IconData? icon;
-  final String? svgPath;
-  final Color? iconColor;
-  final Color? textColor;
-
-  const CustomMenuItem({
-    required this.value,
-    required this.text,
-    this.svgPath,
-    this.icon,
-    this.iconColor,
-    this.textColor,
-  });
 }

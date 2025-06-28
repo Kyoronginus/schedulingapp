@@ -512,38 +512,44 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
           return const SizedBox.shrink();
         }
 
-        return CustomMenuButton(
-          onSelected: (value) {
-            if (!mounted) return;
-            if (value == 'edit') {
-              _showEditGroupDialog(group);
-            } else if (value == 'delete') {
-              _showDeleteGroupDialog(group);
-            }
-          },
-          items: const [
-            CustomMenuItem(
-              value: 'edit',
-              text: 'Edit Group',
-              icon: Icons.edit,
-              iconColor: Colors.black87,
-              textColor: Colors.black87,
-            ),
-            CustomMenuItem(
-              value: 'delete',
-              text: 'Delete Group',
-              icon: Icons.delete,
-              iconColor: Colors.red,
-              textColor: Colors.red,
-            ),
-          ],
-          backgroundColor: Colors.white,
-          child: Icon(
-            Icons.more_vert,
-            size: 20,
-            color: Colors.grey[600],
+        // Di dalam file group_selector_sidebar.dart, pada method _buildAdminOptions
+
+      return CustomMenuButton(
+        onSelected: (value) {
+          if (!mounted) return;
+          if (value == 'edit') {
+            _showEditGroupDialog(group);
+          } else if (value == 'delete') {
+            _showDeleteGroupDialog(group);
+          }
+        },
+        // ==== UBAH BAGIAN 'items' INI ====
+        items: const [
+          CustomMenuItem(
+            value: 'edit',
+            text: 'Edit Group',
+            // Hapus 'icon', ganti dengan 'svgPath'
+            svgPath: 'assets/icons/edit-icon.svg',
+            iconColor: Colors.black87,
+            textColor: Colors.black87,
           ),
-        );
+          CustomMenuItem(
+            value: 'delete',
+            text: 'Delete Group',
+             // Hapus 'icon', ganti dengan 'svgPath'
+            svgPath: 'assets/icons/delete-icon.svg',
+            iconColor: Colors.red,
+            textColor: Colors.red,
+          ),
+        ],
+        // ===================================
+        backgroundColor: Colors.white,
+        child: Icon(
+          Icons.more_vert,
+          size: 20,
+          color: Colors.grey[600],
+        ),
+      );
       },
     );
   }
