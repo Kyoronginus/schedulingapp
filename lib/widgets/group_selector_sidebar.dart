@@ -551,159 +551,173 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
   }
 
   void _showEditGroupDialog(Group group) {
-    final nameController = TextEditingController(text: group.name);
-    final descriptionController =
-        TextEditingController(text: group.description ?? '');
-    bool isSaving = false;
+  final nameController = TextEditingController(text: group.name);
+  final descriptionController =
+      TextEditingController(text: group.description ?? '');
+  bool isSaving = false;
 
-    showDialog(
-      context: context,
-      barrierDismissible: !isSaving,
-      builder: (context) {
-        final themeProvider = Provider.of<ThemeProvider>(context);
-        final isDarkMode = themeProvider.isDarkMode;
-        final primaryColor =
-            isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF4A80F0);
+  showDialog(
+    context: context,
+    barrierDismissible: !isSaving,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          final themeProvider = Provider.of<ThemeProvider>(context);
+          final isDarkMode = themeProvider.isDarkMode;
 
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+          final primaryColor = const Color(0xFF735BF2);
+          final destructiveColor = const Color(0xFFEA3C54);
+          final hintColor = isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600;
+          final borderColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300;
+
+          final inputDecorationTheme = InputDecoration(
+            hintStyle: TextStyle(color: hintColor, fontWeight: FontWeight.normal),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(color: borderColor, width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(color: primaryColor, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: Colors.red, width: 2.0),
+            ),
+            fillColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.white,
+            filled: true,
+          );
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+            titlePadding: const EdgeInsets.all(0),
+            contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+            actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            
+            title: Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
               ),
-              backgroundColor:
-                  isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
-              titlePadding: const EdgeInsets.all(0),
-              contentPadding: const EdgeInsets.all(0),
-              title: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: primaryColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
+              child: const Center(
+                child: Text(
+                  'Edit Group',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                child: const Center(
-                  child: Text(
-                    'Edit Group',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: inputDecorationTheme.copyWith(
+                      labelText: 'Group Name',
+                    ),
+                    maxLength: 50,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: inputDecorationTheme.copyWith(
+                      labelText: 'Description (Optional)',
+                    ),
+                    maxLines: 3,
+                    maxLength: 200,
+                  ),
+                ],
+              ),
+            ),
+            
+            actionsAlignment: MainAxisAlignment.spaceBetween,
+            actions: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: isSaving ? null : () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: destructiveColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                ),
-              ),
-              content: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Group Name',
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                      ),
-                      maxLength: 50,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description (Optional)',
-                        hintText: 'What is this group about?',
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                      ),
-                      maxLines: 3,
-                      maxLength: 200,
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed:
-                      isSaving ? null : () => Navigator.of(context).pop(),
                   child: const Text('Cancel'),
                 ),
-                ElevatedButton(
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
                   onPressed: isSaving
                       ? null
                       : () async {
                           final name = nameController.text.trim();
-                          final description =
-                              descriptionController.text.trim();
-
                           if (name.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Group name cannot be empty')),
+                              const SnackBar(content: Text('Group name cannot be empty')),
                             );
                             return;
                           }
-
+                          
                           setState(() => isSaving = true);
-
-                          final navigator = Navigator.of(context);
-                          final scaffoldMessenger =
-                              ScaffoldMessenger.of(context);
-
+                          
                           final success = await GroupService.updateGroup(
                             group.id,
                             name,
-                            description.isEmpty ? null : description,
+                            descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
                           );
 
-                          if (mounted) {
-                            navigator.pop(); 
-
-                            if (success) {
-                              scaffoldMessenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Group updated successfully!'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                              if (widget.onGroupsChanged != null) {
-                                widget.onGroupsChanged!();
-                              }
-                            } else {
-                              scaffoldMessenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      'Failed to update group. Please try again.'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
+                          if(mounted){
+                             Navigator.of(dialogContext).pop();
+                             if (success) {
+                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Group updated!"), backgroundColor: Colors.green,));
+                               // DIHAPUS: Baris Provider.of<GroupSelectionProvider>... telah dihapus
+                             } else {
+                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to update group."), backgroundColor: Colors.red,));
+                             }
                           }
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
+                     shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                   ),
                   child: isSaving
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : const Text('Update'),
                 ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
 
   void _showDeleteGroupDialog(Group group) {
   final theme = Theme.of(context);
