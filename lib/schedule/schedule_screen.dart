@@ -288,215 +288,197 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   // Removed unused method _navigateToAddGroup
 
   void _showCreateGroupDialog() {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-    bool isSaving = false;
+  final nameController = TextEditingController();
+  final descriptionController = TextEditingController();
+  bool isSaving = false;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        final themeProvider = Provider.of<ThemeProvider>(context);
-        final isDarkMode = themeProvider.isDarkMode;
-        final primaryColor =
-            isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF4A80F0);
+  showDialog(
+    context: context,
+    barrierDismissible: !isSaving,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          final themeProvider = Provider.of<ThemeProvider>(context);
+          final isDarkMode = themeProvider.isDarkMode;
 
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              backgroundColor:
-                  isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
-              titlePadding: const EdgeInsets.all(0),
-              contentPadding: const EdgeInsets.all(0),
-              title: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: primaryColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Create New Group',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              content: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxHeight: 400, // Limit maximum height to prevent overflow
-                  maxWidth: 400, // Limit maximum width for better layout
-                ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: nameController,
-                          style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black),
-                          decoration: InputDecoration(
-                            labelText: 'Group Name',
-                            labelStyle: TextStyle(
-                                color: isDarkMode
-                                    ? Colors.grey[300]
-                                    : Colors.grey[600]),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                  color: isDarkMode
-                                      ? Colors.grey[600]!
-                                      : Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: primaryColor),
-                            ),
-                          ),
+          // ==== DEFINISI GAYA (Sama seperti dialog lain) ====
+          final primaryColor = const Color(0xFF735BF2);
+          final destructiveColor = const Color(0xFFEA3C54);
+          final hintColor = isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600;
+          final borderColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300;
+          final formBackgroundColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
+
+          final inputDecorationTheme = InputDecoration(
+            labelStyle: TextStyle(color: hintColor),
+            hintStyle: TextStyle(color: hintColor, fontWeight: FontWeight.normal),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(color: borderColor, width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(color: primaryColor, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: Colors.red, width: 2.0),
+            ),
+            fillColor: isDarkMode ? const Color(0xFF3A3A3A) : Colors.white,
+            filled: true,
+          );
+          // ===============================================
+
+          return AlertDialog(
+            contentPadding: EdgeInsets.zero,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            content: ClipRRect(
+              borderRadius: BorderRadius.circular(16.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header Dialog
+                    Container(
+                      color: primaryColor,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      width: double.infinity,
+                      child: const Text(
+                        'Create New Group',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
                         ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: descriptionController,
-                          style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black),
-                          decoration: InputDecoration(
-                            labelText: 'Description (Optional)',
-                            labelStyle: TextStyle(
-                                color: isDarkMode
-                                    ? Colors.grey[300]
-                                    : Colors.grey[600]),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                  color: isDarkMode
-                                      ? Colors.grey[600]!
-                                      : Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: primaryColor),
-                            ),
-                          ),
-                          maxLines: 3,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              actions: [
-                SizedBox(
-                  width: 100,
-                  child: TextButton(
-                    onPressed:
-                        isSaving ? null : () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                SizedBox(
-                  width: 100,
-                  child: ElevatedButton(
-                    onPressed: isSaving
-                        ? null
-                        : () async {
-                            final name = nameController.text.trim();
-                            if (name.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Group name is required')),
-                              );
-                              return;
-                            }
-
-                            setState(() => isSaving = true);
-
-                            final navigator = Navigator.of(context);
-                            final scaffoldMessenger =
-                                ScaffoldMessenger.of(context);
-                            final groupProvider =
-                                Provider.of<GroupSelectionProvider>(context,
-                                    listen: false);
-
-                            try {
-                              await GroupService.createGroup(
-                                name: name,
-                                description: descriptionController.text.trim(),
-                              );
-
-                              if (mounted) {
-                                // Refresh the groups from provider first
-                                await groupProvider.refreshGroups();
-
-                                navigator.pop();
-                                scaffoldMessenger.showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text('Group created successfully!'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                scaffoldMessenger.showSnackBar(
-                                  SnackBar(
-                                      content: Text(
-                                          'Failed to create group: ${e.toString()}')),
-                                );
-                              }
-                            } finally {
-                              if (mounted) {
-                                setState(() => isSaving = false);
-                              }
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                    // Konten Form
+                    Container(
+                      color: formBackgroundColor,
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            controller: nameController,
+                            decoration: inputDecorationTheme.copyWith(
+                              labelText: 'Group Name*',
                             ),
-                          )
-                        : const Text('Create'),
-                  ),
+                            maxLength: 50,
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: descriptionController,
+                            decoration: inputDecorationTheme.copyWith(
+                              labelText: 'Description (Optional)',
+                            ),
+                            maxLines: 3,
+                            maxLength: 200,
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Tombol Aksi dengan gaya baru
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: isSaving ? null : () => Navigator.of(dialogContext).pop(),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: destructiveColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                  ),
+                                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                              const SizedBox(width: 32),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: isSaving
+                                      ? null
+                                      : () async {
+                                          final name = nameController.text.trim();
+                                          if (name.isEmpty) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                  content: Text('Group name is required')),
+                                            );
+                                            return;
+                                          }
+                                          setState(() => isSaving = true);
+                                          
+                                          final navigator = Navigator.of(dialogContext);
+                                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                          final groupProvider = Provider.of<GroupSelectionProvider>(context, listen: false);
+
+                                          try {
+                                            await GroupService.createGroup(
+                                              name: name,
+                                              description: descriptionController.text.trim(),
+                                            );
+                                            if (mounted) {
+                                              await groupProvider.refreshGroups();
+                                              navigator.pop();
+                                              scaffoldMessenger.showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Group created successfully!'),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (mounted) {
+                                              scaffoldMessenger.showSnackBar(
+                                                SnackBar(content: Text('Failed to create group: ${e.toString()}')),
+                                              );
+                                            }
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() => isSaving = false);
+                                            }
+                                          }
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                  ),
+                                  child: isSaving
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2, color: Colors.white),
+                                        )
+                                      : const Text('Create', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   void _updateMonthYear(int month, int year) {
     setState(() {

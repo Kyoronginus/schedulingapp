@@ -125,7 +125,6 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
                 ),
         ),
 
-        // ==== PERUBAHAN BAGIAN TOMBOL BAWAH DIMULAI DI SINI ====
         if (widget.showCreateGroupButton)
   Container(
     // DIUBAH: Padding disesuaikan untuk menaikkan posisi tombol
@@ -157,7 +156,6 @@ class _GroupSelectorSidebarState extends State<GroupSelectorSidebar> {
       ),
     ),
   ),
-        // ==== AKHIR DARI PERUBAHAN ====
       ],
     ),
   );
