@@ -560,7 +560,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                           ? Colors.grey[850]
                                           : const Color(0xFF1E1E1E))
                                       : (isRead
-                                          ? Colors.grey[200]
+                                          ? const Color(0xFFD8D8D8)
                                           : Colors.white);
                                   final dotColor = _getNotificationColor(
                                       notification,
@@ -673,9 +673,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                                 const SizedBox(width: 14.0),
                                                 Container(
                                                   width: 1,
-                                                  color: isDarkMode
-                                                      ? Colors.grey[700]
-                                                      : Colors.grey[300],
+                                                  color: const Color.fromARGB(201, 142, 141, 141),
                                                 ),
 
                                                 Expanded(
