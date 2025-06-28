@@ -1,3 +1,5 @@
+// File: lib/group/group_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
@@ -9,7 +11,8 @@ import '../widgets/group_selector_sidebar.dart';
 import '../widgets/custom_menu_button.dart';
 import '../dynamo/group_service.dart';
 import '../models/User.dart';
-import '../schedule/invite/invite_member_screen.dart';
+// DIUBAH: Import screen diganti dengan import dialog
+import '../schedule/invite/invite_member_dialog.dart';
 
 import '../theme/theme_provider.dart';
 import '../providers/group_selection_provider.dart';
@@ -57,7 +60,6 @@ class _GroupScreenState extends State<GroupScreen>
       curve: Curves.easeInOut,
     ));
 
-    // Initialize navbar animation
     _navbarAnimationController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -70,17 +72,15 @@ class _GroupScreenState extends State<GroupScreen>
       curve: Curves.easeInOut,
     ));
 
-    // Listen for profile changes to refresh group member data
     _profileRefreshSubscription = RefreshService().profileChanges.listen((_) {
       if (mounted) {
-        setState(() {}); // Trigger rebuild to refresh member lists
+        setState(() {});
       }
     });
 
-    // Listen for group changes to refresh when group membership changes
     _groupRefreshSubscription = RefreshService().groupChanges.listen((_) {
       if (mounted) {
-        setState(() {}); // Trigger rebuild to refresh group data
+        setState(() {});
       }
     });
   }
@@ -95,7 +95,6 @@ class _GroupScreenState extends State<GroupScreen>
   }
 
   Future<bool> _isUserAdmin(String groupId) async {
-    // Check cache first
     if (_isAdminCache.containsKey(groupId)) {
       return _isAdminCache[groupId]!;
     }
@@ -109,7 +108,6 @@ class _GroupScreenState extends State<GroupScreen>
     }
 
     try {
-      // Query to check if the current user is an admin of the group
       final request = GraphQLRequest<String>(
         document: '''
           query GetGroupUserRole(\$userId: ID!, \$groupId: ID!) {
@@ -137,7 +135,6 @@ class _GroupScreenState extends State<GroupScreen>
         isAdmin = items[0]['isAdmin'] ?? false;
       }
 
-      // Cache the result
       _isAdminCache[groupId] = isAdmin;
       return isAdmin;
     } catch (e) {
@@ -150,19 +147,22 @@ class _GroupScreenState extends State<GroupScreen>
     try {
       return await GroupService.getGroupMembers(groupId);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load members: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load members: $e')),
+        );
+      }
       return [];
     }
   }
 
-  void _navigateToInviteMember(String groupId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => InviteMemberScreen(groupId: groupId),
-      ),
+  // DIUBAH: Fungsi ini sekarang menampilkan dialog, bukan screen baru
+  void _showInviteMemberDialog(String groupId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return InviteMemberDialog(groupId: groupId);
+      },
     );
   }
 
@@ -199,15 +199,13 @@ class _GroupScreenState extends State<GroupScreen>
     final themeProvider = Provider.of<ThemeProvider>(context);
     final groupProvider = Provider.of<GroupSelectionProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final activeColor =
-        isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3);
+    final primaryColor =
+        isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
 
     return NavigationMemoryWrapper(
       currentRoute: '/addGroup',
       child: Scaffold(
-
         extendBody: true,
-
         backgroundColor: isDarkMode ? Colors.black : const Color(0xFFF1F1F1),
         body: Stack(
           children: [
@@ -221,27 +219,29 @@ class _GroupScreenState extends State<GroupScreen>
                         child: Padding(
                           padding: const EdgeInsets.all(20.0),
                           child: CircularProgressIndicator(
-                            color: activeColor,
+                            color: primaryColor,
                           ),
                         ),
                       )
                     : groupProvider.groups.isEmpty
                         ? _buildEmptyState(
-                            textColor: isDarkMode ? Colors.white : const Color(0xFF000000),
-                            subTextColor: isDarkMode ? Colors.grey.shade400 : const Color(0xFF000000),
+                            textColor: isDarkMode
+                                ? Colors.white
+                                : const Color(0xFF000000),
+                            subTextColor: isDarkMode
+                                ? Colors.grey.shade400
+                                : const Color(0xFF000000),
                           )
                         : _buildGroupContent(),
               ),
             ),
-
             if (_isSidebarOpen)
               GestureDetector(
                 onTap: _closeSidebar,
                 child: Container(
-                  color: Colors.black.withValues(alpha:0.6),
+                  color: Colors.black.withOpacity(0.6),
                 ),
               ),
-
             AnimatedBuilder(
               animation: _sidebarAnimation,
               builder: (context, child) {
@@ -271,8 +271,9 @@ class _GroupScreenState extends State<GroupScreen>
         ),
         floatingActionButton: groupProvider.selectedGroup != null
             ? FloatingActionButton(
+                // DIUBAH: onPressed sekarang memanggil dialog
                 onPressed: () =>
-                    _navigateToInviteMember(groupProvider.selectedGroup!.id),
+                    _showInviteMemberDialog(groupProvider.selectedGroup!.id),
                 backgroundColor:
                     isDarkMode ? const Color(0xFF4CAF50) : primaryColor,
                 shape: RoundedRectangleBorder(
@@ -300,22 +301,18 @@ class _GroupScreenState extends State<GroupScreen>
         Provider.of<GroupSelectionProvider>(context, listen: false);
 
     return Column(
-      // DIUBAH: Tambahkan baris ini untuk meratakan semua ke kiri
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Top section with group selector
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: _buildGroupSelector(),
         ),
-
-        // Members list
         SizedBox(
-        height: 650, // <-- ATUR TINGGI YANG DIINGINKAN DI SINI (misal: 500)
-        child: groupProvider.selectedGroup != null
-            ? _buildMembersList(groupProvider.selectedGroup!.id)
-            : const Center(child: Text('Open the sidebar to select a group')),
-      ),
+          height: 650,
+          child: groupProvider.selectedGroup != null
+              ? _buildMembersList(groupProvider.selectedGroup!.id)
+              : const Center(child: Text('Open the sidebar to select a group')),
+        ),
       ],
     );
   }
@@ -325,26 +322,20 @@ class _GroupScreenState extends State<GroupScreen>
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
-    // Widget terluar adalah Padding, bukan Center, untuk memberi jarak dari tepi.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
       child: Column(
-        // crossAxisAlignment.start akan meratakan semua elemen ke kiri.
         crossAxisAlignment: CrossAxisAlignment.start,
-        // mainAxisSize.min agar Column tidak mengambil semua ruang vertikal.
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. Ikon sebagai ilustrasi
           Icon(
-            Icons.groups_3_outlined, // Ikon yang relevan dengan grup
+            Icons.groups_3_outlined,
             size: 72,
             color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
           ),
           const SizedBox(height: 24),
-
-          // 2. Teks Judul (Headline)
           Text(
-            'Anda belum memiliki grup',
+            'You don\'t have a group yet',
             style: TextStyle(
               color: textColor,
               fontSize: 22,
@@ -352,10 +343,8 @@ class _GroupScreenState extends State<GroupScreen>
             ),
           ),
           const SizedBox(height: 8),
-
-          // 3. Teks Deskripsi/Instruksi
           Text(
-            'Buat grup baru atau terima undangan untuk memulai kolaborasi dengan jadwal bersama.',
+            'Create a new group or accept an invitation to start collaborating on schedules.',
             style: TextStyle(
               color: subTextColor,
               fontSize: 16,
@@ -383,7 +372,7 @@ class _GroupScreenState extends State<GroupScreen>
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha((0.1 * 255).round()),
+              color: Colors.black.withOpacity(0.1),
               offset: const Offset(0, 4),
               blurRadius: 6,
             ),
@@ -393,7 +382,7 @@ class _GroupScreenState extends State<GroupScreen>
           onTap: _toggleSidebar,
           borderRadius: BorderRadius.circular(30),
           child: Padding(
-            padding: const EdgeInsets.only(left: 17.0, right: 17.0),
+            padding: const EdgeInsets.symmetric(horizontal: 17.0),
             child: Row(
               children: [
                 SvgPicture.asset(
@@ -408,7 +397,6 @@ class _GroupScreenState extends State<GroupScreen>
                     style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.w500,
-                        fontStyle: FontStyle.normal,
                         fontSize: 14,
                         fontFamily: 'Arial'),
                     overflow: TextOverflow.ellipsis,
@@ -436,7 +424,7 @@ class _GroupScreenState extends State<GroupScreen>
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -495,35 +483,27 @@ class _GroupScreenState extends State<GroupScreen>
   }
 
   Widget _buildMemberCard(User member) {
-    // Mengambil data dari provider dan tema
     final themeProvider = Provider.of<ThemeProvider>(context);
     final groupProvider =
         Provider.of<GroupSelectionProvider>(context, listen: false);
     final isDarkMode = themeProvider.isDarkMode;
 
-    // Asumsi 'secondaryColor' sudah diimpor atau didefinisikan di scope ini
-    // final Color secondaryColor = const Color(0x...);
+    final Color secondaryColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300;
 
-    // Mengganti Card dengan Container untuk kustomisasi penuh
     return Container(
       margin: const EdgeInsets.only(bottom: 12.0),
-      // Dekorasi utama untuk menciptakan gaya outline
       decoration: BoxDecoration(
-        // 1. Latar belakang dibuat transparan
         color: Colors.transparent,
-        // 2. Diberi garis tepi (outline) dengan warna sekunder
         border: Border.all(
-          color: isDarkMode ? Colors.grey.shade600 : secondaryColor,
-          width: 2.5, // Ketebalan garis bisa disesuaikan
+          color: secondaryColor,
+          width: 2.0,
         ),
-        // 3. Sudut tetap dibuat tumpul
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            // Profile picture (tidak ada perubahan)
             ProfileAvatar(
               userId: member.id,
               userName: member.name,
@@ -531,8 +511,6 @@ class _GroupScreenState extends State<GroupScreen>
               showBorder: false,
             ),
             const SizedBox(width: 16),
-
-            // Info Anggota (tidak ada perubahan)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -556,43 +534,38 @@ class _GroupScreenState extends State<GroupScreen>
                 ],
               ),
             ),
+            if (groupProvider.selectedGroup != null)
+              FutureBuilder<bool>(
+                future: _isUserAdmin(groupProvider.selectedGroup!.id),
+                builder: (context, snapshot) {
+                  final isAdmin = snapshot.data ?? false;
 
-            // Tombol menu tiga titik (tidak ada perubahan)
-            groupProvider.selectedGroup != null
-                ? FutureBuilder<bool>(
-                    future: _isUserAdmin(groupProvider.selectedGroup!.id),
-                    builder: (context, snapshot) {
-                      final isAdmin = snapshot.data ?? false;
+                  if (!isAdmin || member.id == groupProvider.currentUserId) {
+                    return const SizedBox.shrink();
+                  }
 
-                      if (!isAdmin ||
-                          member.id == groupProvider.currentUserId) {
-                        return const SizedBox.shrink();
+                  return CustomMenuButton(
+                    onSelected: (value) {
+                      if (!mounted) return;
+                      if (value == 'remove') {
+                        _showRemoveMemberDialog(member);
                       }
-
-                      return CustomMenuButton(
-                        onSelected: (value) {
-                          if (!mounted) return;
-                          if (value == 'remove') {
-                            _showRemoveMemberDialog(member);
-                          }
-                        },
-                        items: const [
-                          CustomMenuItem(
-                            value: 'remove',
-                            text: 'Remove',
-                            icon: Icons.person_remove,
-                            iconColor: Colors.red,
-                            textColor: Colors.red,
-                            svgPath: 'assets/icons/person_remove-icon.svg', 
-                          ),
-                        ],
-                        backgroundColor:
-                            isDarkMode ? Colors.grey[800] : Colors.white,
-                        child: const Icon(Icons.more_vert),
-                      );
                     },
-                  )
-                : const SizedBox.shrink(),
+                    items: const [
+                      CustomMenuItem(
+                        value: 'remove',
+                        text: 'Remove',
+                        iconColor: Colors.red,
+                        textColor: Colors.red,
+                        svgPath: 'assets/icons/person_remove-icon.svg',
+                      ),
+                    ],
+                    backgroundColor:
+                        isDarkMode ? Colors.grey[800] : Colors.white,
+                    child: const Icon(Icons.more_vert),
+                  );
+                },
+              ),
           ],
         ),
       ),
@@ -602,17 +575,17 @@ class _GroupScreenState extends State<GroupScreen>
   void _showRemoveMemberDialog(User member) {
   final theme = Theme.of(context);
   final isDarkMode = theme.brightness == Brightness.dark;
-  
-  // Warna primer disesuaikan dengan yang ada di form jadwal untuk konsistensi
-  final primaryColor = isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF735BF2);
-  final destructiveColor = const Color(0xFFEA3C54); // Warna merah dari form
+
+  // Mendefinisikan warna yang akan digunakan
+  const primaryPurpleColor = Color(0xFF735BF2);
+  const destructiveColor = Color(0xFFEA3C54); // Warna merah untuk tombol batal
 
   showDialog(
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14.0),
+          borderRadius: BorderRadius.circular(16.0),
         ),
         backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
         elevation: 10.0,
@@ -627,23 +600,23 @@ class _GroupScreenState extends State<GroupScreen>
         ),
         contentTextStyle: TextStyle(
           fontSize: 16,
-          color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.6),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.8)
+              : Colors.black.withOpacity(0.6),
           height: 1.5,
         ),
-        
-        // Menggunakan padding dan actions yang sama seperti dialog sebelumnya
         actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
         actions: [
-          // ==== PERUBAHAN GAYA TOMBOL DIMULAI DI SINI ====
-          
-          // Tombol Batal, gayanya mengikuti tombol 'Cancel' dari form
+          // ==== GAYA TOMBOL DIUBAH SESUAI PERMINTAAN ====
+
+          // Tombol Batal
           SizedBox(
             width: 106,
             height: 41,
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: destructiveColor, // Menggunakan warna merah yang sama
+                backgroundColor: destructiveColor, // Warna merah
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
@@ -655,9 +628,8 @@ class _GroupScreenState extends State<GroupScreen>
                       fontSize: 15, fontWeight: FontWeight.bold)),
             ),
           ),
-          
-          // Tombol Remove, gayanya mengikuti tombol 'Save' dari form
-          // Namun warnanya kita buat tetap merah karena ini aksi utama yang berbahaya
+
+          // Tombol Remove
           SizedBox(
             width: 106,
             height: 41,
@@ -667,7 +639,7 @@ class _GroupScreenState extends State<GroupScreen>
                 _removeMember(member);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor, // Menggunakan warna primer
+                backgroundColor: primaryPurpleColor, // Warna ungu primer
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
@@ -679,8 +651,6 @@ class _GroupScreenState extends State<GroupScreen>
                       fontSize: 15, fontWeight: FontWeight.bold)),
             ),
           ),
-          
-          // ==== AKHIR DARI PERUBAHAN GAYA TOMBOL ====
         ],
       );
     },
@@ -692,7 +662,6 @@ class _GroupScreenState extends State<GroupScreen>
         Provider.of<GroupSelectionProvider>(context, listen: false);
     if (groupProvider.selectedGroup == null) return;
 
-    // Capture context references before async operation to prevent deactivated widget errors
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final groupId = groupProvider.selectedGroup!.id;
 
@@ -706,13 +675,7 @@ class _GroupScreenState extends State<GroupScreen>
         scaffoldMessenger.showSnackBar(
           SnackBar(content: Text('${member.name} removed from group')),
         );
-
-        // Refresh the members list after a brief delay to allow any open popups to close
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) {
-            setState(() {});
-          }
-        });
+        setState(() {});
       }
     } catch (e) {
       if (mounted) {
@@ -730,166 +693,160 @@ class _GroupScreenState extends State<GroupScreen>
 
     showDialog(
       context: context,
-      barrierDismissible: !isSaving, // Prevent dismissal while saving
-      builder: (context) {
-        final themeProvider = Provider.of<ThemeProvider>(context);
-        final isDarkMode = themeProvider.isDarkMode;
-        final primaryColor =
-            isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3);
-
+      barrierDismissible: !isSaving,
+      builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
+            final themeProvider = Provider.of<ThemeProvider>(context);
+            final isDarkMode = themeProvider.isDarkMode;
+            final primaryColor =
+                isDarkMode ? const Color(0xFF4CAF50) : const Color(0xFF2196F3);
+
             return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              backgroundColor:
-                  isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
-              titlePadding: const EdgeInsets.all(0),
-              contentPadding: const EdgeInsets.all(0),
-              title: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: primaryColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Create New Group',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              content: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxHeight: 400, // Limit maximum height to prevent overflow
-                  maxWidth: 400, // Limit maximum width for better layout
-                ),
+              contentPadding: EdgeInsets.zero,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              content: ClipRRect(
+                borderRadius: BorderRadius.circular(16.0),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      TextField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Group Name*',
-                          hintText: 'e.g., Project Phoenix Team',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 16),
+                      Container(
+                        color: primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        width: double.infinity,
+                        child: const Text(
+                          'Create New Group',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
                         ),
-                        maxLength: 50,
                       ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description',
-                          hintText:
-                              'A short description of the group\'s purpose',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 16),
+                      Container(
+                        color:
+                            isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextField(
+                              controller: nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Group Name*',
+                                hintText: 'e.g., Project Phoenix Team',
+                                border: OutlineInputBorder(),
+                              ),
+                              maxLength: 50,
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: descriptionController,
+                              decoration: const InputDecoration(
+                                labelText: 'Description (Optional)',
+                                border: OutlineInputBorder(),
+                              ),
+                              maxLines: 3,
+                              maxLength: 200,
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: isSaving
+                                      ? null
+                                      : () => Navigator.of(context).pop(),
+                                  child: const Text('Cancel'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: isSaving
+                                      ? null
+                                      : () async {
+                                          final name =
+                                              nameController.text.trim();
+                                          if (name.isEmpty) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content: Text(
+                                                      'Group name is required')),
+                                            );
+                                            return;
+                                          }
+
+                                          setState(() => isSaving = true);
+
+                                          final navigator =
+                                              Navigator.of(dialogContext);
+                                          final scaffoldMessenger =
+                                              ScaffoldMessenger.of(context);
+                                          final groupProvider = Provider.of<
+                                                  GroupSelectionProvider>(
+                                              context,
+                                              listen: false);
+
+                                          try {
+                                            await GroupService.createGroup(
+                                              name: name,
+                                              description:
+                                                  descriptionController.text
+                                                      .trim(),
+                                            );
+
+                                            if (mounted) {
+                                              await groupProvider
+                                                  .refreshGroups();
+                                              navigator.pop();
+                                              scaffoldMessenger.showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                      'Group created successfully!'),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (mounted) {
+                                              scaffoldMessenger.showSnackBar(
+                                                SnackBar(
+                                                    content: Text(
+                                                        'Failed to create group: ${e.toString()}')),
+                                              );
+                                            }
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() => isSaving = false);
+                                            }
+                                          }
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryColor,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: isSaving
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white),
+                                        )
+                                      : const Text('Create'),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        maxLines: 3,
-                        maxLength: 200,
                       ),
                     ],
                   ),
                 ),
               ),
-              actions: [
-                SizedBox(
-                  width: 100,
-                  child: TextButton(
-                    onPressed:
-                        isSaving ? null : () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                SizedBox(
-                  width: 100,
-                  child: ElevatedButton(
-                    onPressed: isSaving
-                        ? null
-                        : () async {
-                            final name = nameController.text.trim();
-                            if (name.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Group name is required')),
-                              );
-                              return;
-                            }
-
-                            setState(() => isSaving = true);
-
-                            final navigator = Navigator.of(context);
-                            final scaffoldMessenger =
-                                ScaffoldMessenger.of(context);
-                            final groupProvider =
-                                Provider.of<GroupSelectionProvider>(context,
-                                    listen: false);
-
-                            try {
-                              await GroupService.createGroup(
-                                name: name,
-                                description: descriptionController.text.trim(),
-                              );
-
-                              if (mounted) {
-                                // Refresh the groups from provider first
-                                await groupProvider.refreshGroups();
-
-                                navigator.pop();
-                                scaffoldMessenger.showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text('Group created successfully!'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                scaffoldMessenger.showSnackBar(
-                                  SnackBar(
-                                      content: Text(
-                                          'Failed to create group: ${e.toString()}')),
-                                );
-                              }
-                            } finally {
-                              if (mounted) {
-                                setState(() => isSaving = false);
-                              }
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Create'),
-                  ),
-                ),
-              ],
             );
           },
         );
