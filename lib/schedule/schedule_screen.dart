@@ -754,7 +754,9 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                 padding: const EdgeInsets.fromLTRB(
                                     8.0, 12.0, 8.0, 8.0),
                                 decoration: BoxDecoration(
-                                  color: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                                  color: isDarkMode
+                                      ? const Color(0xFF2A2A2A)
+                                      : Colors.white,
                                   borderRadius: BorderRadius.circular(16.0),
                                 ),
                                 child: TableCalendar(
@@ -785,12 +787,16 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                     weekdayStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 17,
-                                      color: isDarkMode ? Colors.white : const Color(0xFF0F140F),
+                                      color: isDarkMode
+                                          ? Colors.white
+                                          : const Color(0xFF0F140F),
                                     ),
                                     weekendStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 17,
-                                      color: isDarkMode ? Colors.white : const Color(0xFF0F140F),
+                                      color: isDarkMode
+                                          ? Colors.white
+                                          : const Color(0xFF0F140F),
                                     ),
                                   ),
                                   weekendDays: const [DateTime.sunday],
@@ -815,14 +821,18 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                     ),
 
                                     outsideTextStyle: TextStyle(
-                                        color: isDarkMode ? Colors.grey.shade600 : const Color(0xFF8F9BB3),
+                                        color: isDarkMode
+                                            ? Colors.grey.shade600
+                                            : const Color(0xFF8F9BB3),
                                         fontSize: 18,
                                         fontWeight: FontWeight.w500),
 
                                     defaultTextStyle: TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 18,
-                                      color: isDarkMode ? Colors.white : const Color(0xFF252525),
+                                      color: isDarkMode
+                                          ? Colors.white
+                                          : const Color(0xFF252525),
                                     ),
 
                                     selectedTextStyle: const TextStyle(
@@ -942,7 +952,9 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                                   width: 40,
                                   height: 4,
                                   decoration: BoxDecoration(
-                                    color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300,
+                                    color: isDarkMode
+                                        ? Colors.grey.shade600
+                                        : Colors.grey.shade300,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
@@ -1231,10 +1243,11 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
     final textColor = isDarkMode ? Colors.white : const Color(0xFF0F1A2A);
-    final subTextColor = isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    final subTextColor =
+        isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600;
     final cardBackgroundColor =
         isDarkMode ? const Color(0xFF2C2C2C) : Colors.white;
-    const primaryColor = Color(0xFF735BF2); // Asumsi primaryColor sudah ada
+    const primaryColor = Color(0xFF735BF2);
     final activeColor = isDarkMode ? const Color(0xFF4CAF50) : primaryColor;
 
     final day = _selectedDay ?? _focusedDay;
@@ -1247,7 +1260,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       ),
     );
 
-    // Create a combined list of schedules and conflict notices
     final totalItems = schedules.length + conflictNotices.length;
 
     if (totalItems == 0) {
@@ -1257,8 +1269,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
           child: Text(
             'No Schedule For Today.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-                color: textColor.withValues(alpha: 0.6), fontSize: 16),
+            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 16),
           ),
         ),
       );
@@ -1268,9 +1279,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       itemCount: totalItems,
       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 125.0),
       itemBuilder: (context, index) {
-        // First show all regular schedules, then conflict notices
         if (index < schedules.length) {
-          final schedule = schedules[index];
+          final schedule = schedules.elementAt(index);
           final dotColor = _getDotColor(schedule, activeColor, 0);
 
           return GestureDetector(
@@ -1279,130 +1289,173 @@ class _ScheduleScreenState extends State<ScheduleScreen>
             },
             child: Container(
               margin: const EdgeInsets.only(bottom: 12.0),
-              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 18.0, 10.0),
               decoration: BoxDecoration(
                 color: cardBackgroundColor,
                 borderRadius: BorderRadius.circular(10.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    spreadRadius: 3,
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.transparent,
-                          border: Border.all(
-                            color: dotColor,
-                            width: 3,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 8.0, 18.0, 10.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.transparent,
+                            border: Border.all(
+                              color: dotColor,
+                              width: 3,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
-                        style: const TextStyle(
-                          fontStyle: FontStyle.normal,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13.0,
-                          color: Color(0xFF8F9BB3),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_formatTime(TimezoneService.utcToLocal(schedule.startTime))} - ${_formatTime(TimezoneService.utcToLocal(schedule.endTime))}',
+                          style: TextStyle(
+                            fontStyle: FontStyle.normal,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13.0,
+                            color: subTextColor,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      FutureBuilder<bool>(
-                        future: schedule.group != null
-                            ? _isUserAdmin(schedule.group!.id)
-                            : Future.value(true),
-                        builder: (context, snapshot) {
-                          final isAdmin = snapshot.data ?? false;
-                          return isAdmin
-                              ? SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: IconButton(
-                                    padding: EdgeInsets.zero,
-                                    icon: Icon(
-                                      Icons.more_horiz,
-                                      color: subTextColor,
-                                      size: 24,
-                                    ),
-                                    onPressed: () {
-                                      showModalBottomSheet(
-                                        context: context,
-                                        builder: (context) => Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            ListTile(
-                                              leading: const Icon(Icons.edit),
-                                              title:
-                                                  const Text('Edit Schedule'),
-                                              onTap: () {
-                                                Navigator.pop(context);
-                                                _showEditScheduleForm(schedule);
-                                              },
+                        const Spacer(),
+                        FutureBuilder<bool>(
+                          future: schedule.group != null
+                              ? _isUserAdmin(schedule.group!.id)
+                              : Future.value(true),
+                          builder: (context, snapshot) {
+                            final isAdmin = snapshot.data ?? false;
+                            return isAdmin
+                                ? SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: PopupMenuButton<String>(
+                                      elevation: 16.0,
+
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                            12.0), // Membuat sudut lebih melengkung
+                                      ),
+                                      offset: const Offset(0,
+                                          16.0), 
+
+                                      color: isDarkMode
+                                          ? const Color(0xFF3A3A3A)
+                                          : Colors.white,
+                                      tooltip: 'More options',
+                                      padding: EdgeInsets.zero,
+                                      icon: Icon(
+                                        Icons.more_horiz,
+                                        color: subTextColor,
+                                        size: 24,
+                                      ),
+                                      onSelected: (String value) {
+                                        if (value == 'edit') {
+                                          _showEditScheduleForm(schedule);
+                                        } else if (value == 'delete') {
+                                          _showDeleteConfirmation(schedule);
+                                        }
+                                      },
+                                      itemBuilder: (BuildContext context) {
+                                        final editIconColor = isDarkMode
+                                            ? Colors.white70
+                                            : Colors.black87;
+                                        return <PopupMenuEntry<String>>[
+                                          PopupMenuItem<String>(
+                                            value: 'edit',
+                                            child: Row(
+                                              children: [
+                                                SvgPicture.asset(
+                                                  'assets/icons/edit-icon.svg',
+                                                  width: 20,
+                                                  height: 20,
+                                                  colorFilter: ColorFilter.mode(
+                                                    editIconColor,
+                                                    BlendMode.srcIn,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                const Text('Edit Schedule'),
+                                              ],
                                             ),
-                                            ListTile(
-                                              leading: const Icon(Icons.delete,
-                                                  color: Colors.red),
-                                              title: const Text(
+                                          ),
+                                          PopupMenuItem<String>(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                SvgPicture.asset(
+                                                  'assets/icons/delete-icon.svg',
+                                                  width: 20,
+                                                  height: 20,
+                                                  colorFilter:
+                                                      const ColorFilter.mode(
+                                                    Colors.red,
+                                                    BlendMode.srcIn,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                const Text(
                                                   'Delete Schedule',
                                                   style: TextStyle(
-                                                      color: Colors.red)),
-                                              onTap: () {
-                                                Navigator.pop(context);
-                                                _showDeleteConfirmation(
-                                                    schedule);
-                                              },
+                                                      color: Colors.red),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                )
-                              : const SizedBox.shrink();
-                        },
-                      ),
-                    ],
-                  ),
-                  Text(
-                    schedule.title,
-                    style: TextStyle(
-                      fontStyle: FontStyle.normal,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 17.0,
-                      color:
-                          isDarkMode ? Colors.white : const Color(0xFF222B45),
+                                          ),
+                                        ];
+                                      },
+                                    ),
+                                  )
+                                : const SizedBox.shrink();
+                          },
+                        ),
+                      ],
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  if (schedule.description != null &&
-                      schedule.description!.isNotEmpty)
                     Text(
-                      schedule.description!,
-                      style: const TextStyle(
+                      schedule.title,
+                      style: TextStyle(
                         fontStyle: FontStyle.normal,
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14.0,
-                        color: Color(0xFF8F9BB3),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 17.0,
+                        color: textColor,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                ],
+                    const SizedBox(height: 2),
+                    if (schedule.description != null &&
+                        schedule.description!.isNotEmpty)
+                      Text(
+                        schedule.description!,
+                        style: TextStyle(
+                          fontStyle: FontStyle.normal,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14.0,
+                          color: subTextColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
               ),
             ),
           );
         } else {
-          // Show conflict availability notice
           final noticeIndex = index - schedules.length;
-          final notice = conflictNotices[noticeIndex];
-
+          final notice = conflictNotices.elementAt(noticeIndex);
           return _buildConflictNoticeWidget(
               notice, cardBackgroundColor, textColor, subTextColor);
         }
